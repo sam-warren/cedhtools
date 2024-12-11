@@ -8,7 +8,6 @@ import Tooltip from '@mui/joy/Tooltip';
 
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
-import HomeIcon from '@mui/icons-material/Home';
 
 function ColorSchemeToggle() {
   const { mode, setMode } = useColorScheme();
