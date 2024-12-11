@@ -18,10 +18,10 @@ export default function LandingPage() {
       }}
     >
       <Typography level="h1" sx={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-        Welcome to cedhtools
+        welcome to cedhtools
       </Typography>
       <Typography level="body-md" color="neutral">
-        a suite of tools to help players analyze and improve their CEDH decks.
+        a suite of tools to help players analyze and improve their CEDH decks
       </Typography>
       <Search />
     </Box>
