@@ -10,10 +10,10 @@ function Root(props: BoxProps) {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            sm: 'minmax(64px, 200px) minmax(450px, 1fr)',
-            md: 'minmax(160px, 300px) minmax(300px, 500px) minmax(500px, 1fr)',
+            sm: 'minmax(64px, 200px) 1fr',
+            md: 'minmax(160px, 300px) 1fr 1fr',
           },
-          gridTemplateRows: '64px 1fr',
+          gridTemplateRows: '64px 1fr 64px',
           minHeight: '100vh',
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
@@ -56,7 +56,37 @@ function Main(props: BoxProps) {
       component="main"
       className="Main"
       {...props}
-      sx={[{ p: 2 }, ...(Array.isArray(props.sx) ? props.sx : [props.sx])]}
+      sx={[
+        { p: 2, gridColumn: '1 / -1' },
+        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
+      ]}
+    />
+  );
+}
+
+function Footer(props: BoxProps) {
+  return (
+    <Box
+      component="footer"
+      className="Footer"
+      {...props}
+      sx={[
+        {
+          p: 2,
+          gap: 2,
+          bgcolor: 'background.surface',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gridColumn: '1 / -1',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 1100,
+        },
+        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
+      ]}
     />
   );
 }
@@ -65,4 +95,5 @@ export default {
   Root,
   Header,
   Main,
+  Footer,
 };

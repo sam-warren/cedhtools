@@ -1,10 +1,38 @@
-import Button from "@mui/joy/Button"
-const Footer: React.FC = () => {
-  return (
-    <nav>
-      <Button variant="outlined" href="/">About</Button>
-    </nav>
-  );
-};
+import Box from '@mui/joy/Box';
+import Stack from '@mui/joy/Stack';
+import Link from '@mui/joy/Link';
 
-export default Footer;
+export default function Footer() {
+  return (
+    <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center' }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          justifyContent: 'center',
+          alignItems: 'center',
+          display: 'flex',
+        }}
+      >
+        <span>
+          Powerfully driven by data from{' '}
+          <Link
+            href="https://www.moxfield.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Moxfield
+          </Link>{' '}
+          and{' '}
+          <Link
+            href="https://www.topdeck.gg"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Topdeck.gg
+          </Link>
+        </span>
+      </Stack>
+    </Box>
+  );
+}

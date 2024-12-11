@@ -59,7 +59,6 @@ export default function Header() {
           component="a"
           href="/"
           size="lg"
-          startDecorator={<HomeIcon />}
           sx={{ alignSelf: 'center' }}
         >
           Home
