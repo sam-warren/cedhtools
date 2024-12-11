@@ -4,6 +4,7 @@ import Button from '@mui/joy/Button';
 import Box from '@mui/joy/Box';
 import { ChangeEvent, useState } from 'react';
 import Typography from '@mui/joy/Typography';
+import { getDecklistById } from '../../services/decklist.service';
 
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
@@ -14,12 +15,16 @@ export default function Search() {
     return pattern.test(url);
   };
 
-  const handleDecklist = () => {
+  const handleDecklist = async () => {
     const valid = validateUrl(inputValue);
     setIsValid(valid);
     if (valid) {
-      console.log('submitting: ', inputValue);
-      // Add your actual submission logic here
+      const id = inputValue.split('/').pop()?.toString();
+      console.log('id: ', id);
+      if (id) {
+        const decklist = await getDecklistById(id);
+        console.log('decklist: ', decklist);
+      }
     }
   };
 
@@ -40,6 +45,7 @@ export default function Search() {
       }}
     >
       <Input
+        autoFocus
         placeholder="Enter a Moxfield link to unlock powerful data"
         startDecorator={<SearchIcon />}
         endDecorator={<Button onClick={handleDecklist}>Analyze</Button>}
