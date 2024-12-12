@@ -1,9 +1,9 @@
-import Input from '@mui/joy/Input';
 import SearchIcon from '@mui/icons-material/Search';
-import Button from '@mui/joy/Button';
 import Box from '@mui/joy/Box';
-import { ChangeEvent, useState } from 'react';
+import Button from '@mui/joy/Button';
+import Input from '@mui/joy/Input';
 import Typography from '@mui/joy/Typography';
+import { ChangeEvent, useState } from 'react';
 import { getDecklistById } from '../../services/decklist.service';
 
 export default function Search() {

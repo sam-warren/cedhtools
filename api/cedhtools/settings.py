@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from urllib.parse import quote_plus
 from pathlib import Path
 import os
+import colorlog
 
 # Load environment variables
 load_dotenv()
@@ -104,6 +105,55 @@ DATABASES = {
         'HOST': PG_HOST,                       # The host of the database
         'PORT': PG_PORT,                            # Default PostgreSQL port
     }
+}
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,  # Keeps the default Django loggers
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] [{levelname}] {name}: {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname}: {message}',
+            'style': '{',
+        },
+        'colored': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(log_color)s%(levelname)s:%(name)s:%(message)s',
+            'log_colors': {
+                'DEBUG': 'bold_blue',
+                'INFO': 'bold_green',
+                'WARNING': 'bold_yellow',
+                'ERROR': 'bold_red',
+                'CRITICAL': 'bold_red,bg_white',
+            },
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'colored',  # Use the colored formatter
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': LOGS_DIR / 'import_tournaments.log',  # Updated path
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'cedhtools_backend.management.commands.import_tournament_data': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }
 
 
