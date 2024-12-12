@@ -5,7 +5,6 @@ import Box from '@mui/joy/Box';
 import { ChangeEvent, useState } from 'react';
 import Typography from '@mui/joy/Typography';
 import { getDecklistById } from '../../services/decklist.service';
-import { MoxfieldDeck } from '../../types';
 
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
@@ -20,7 +19,6 @@ export default function Search() {
 
   const handleDecklist = async () => {
     setIsLoading(true);
-    // reset server error when starting a new request
     setServerErrorMessage('');
 
     const valid = validateUrl(inputValue);
@@ -29,10 +27,9 @@ export default function Search() {
       const id = inputValue.split('/').pop()?.toString();
       if (id) {
         try {
-          const decklist: MoxfieldDeck = await getDecklistById(id);
+          const decklist = await getDecklistById(id);
           console.log(decklist);
         } catch (err: any) {
-          // If an error is thrown, it's one of the ones from our service
           setServerErrorMessage(err.message);
           setIsValid(false);
         }
