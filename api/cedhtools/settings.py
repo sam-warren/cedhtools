@@ -143,7 +143,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',  # Use RotatingFileHandler
-            'filename': LOGS_DIR / 'import_tournaments.log',  # Log file path
+            'filename': LOGS_DIR / 'import_topdeck_data.log',  # Log file path
             'formatter': 'verbose',
             'maxBytes': 5 * 1024 * 1024,  # 5 MB
             'backupCount': 5,              # Keep up to 5 backup files
