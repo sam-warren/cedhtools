@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 
+
 def validate_moxfield_url(value):
     """
     Validator to ensure the decklist URL is a valid Moxfield URL.

@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='playerstanding',
             name='decklist',
-            field=models.URLField(blank=True, max_length=255, null=True, validators=[cedhtools_backend.validators.moxfield_url_validator.validate_moxfield_url]),
+            field=models.URLField(blank=True, max_length=255, null=True, validators=[
+                                  cedhtools_backend.validators.moxfield_url_validator.validate_moxfield_url]),
         ),
     ]

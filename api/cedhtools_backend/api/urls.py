@@ -3,5 +3,6 @@ from django.urls import path
 from ..views.moxfield import MoxfieldDeckView
 
 urlpatterns = [
-    path('moxfield/deck/<str:deck_id>/', MoxfieldDeckView.as_view(), name='moxfield_deck'),
+    path('moxfield/deck/<str:deck_id>/',
+         MoxfieldDeckView.as_view(), name='moxfield_deck'),
 ]

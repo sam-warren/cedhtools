@@ -11,13 +11,16 @@ from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     help = 'Fetch tournaments data from topdeck.gg API in 6-month batches starting from June 1, 2022.'
 
     def add_arguments(self, parser):
         # Optionally allow passing custom start and end dates through command line arguments.
-        parser.add_argument('--start', help='Start date in YYYY-MM-DD format', default='2022-06-01')
-        parser.add_argument('--end', help='End date in YYYY-MM-DD format', default=None)
+        parser.add_argument(
+            '--start', help='Start date in YYYY-MM-DD format', default='2022-06-01')
+        parser.add_argument(
+            '--end', help='End date in YYYY-MM-DD format', default=None)
 
     def handle(self, *args, **options):
         start_str = options['start']
@@ -27,19 +30,25 @@ class Command(BaseCommand):
             start_date = datetime.strptime(start_str, '%Y-%m-%d')
             logger.info(f"Import started with start date: {start_date.date()}")
         except ValueError as ve:
-            logger.error(f"Invalid start date format: {start_str}. Expected YYYY-MM-DD.")
-            raise CommandError(f"Invalid start date format: {start_str}. Expected YYYY-MM-DD.") from ve
+            logger.error(
+                f"Invalid start date format: {start_str}. Expected YYYY-MM-DD.")
+            raise CommandError(
+                f"Invalid start date format: {start_str}. Expected YYYY-MM-DD.") from ve
 
         if end_str:
             try:
                 end_date = datetime.strptime(end_str, '%Y-%m-%d')
-                logger.info(f"Import will run until end date: {end_date.date()}")
+                logger.info(
+                    f"Import will run until end date: {end_date.date()}")
             except ValueError as ve:
-                logger.error(f"Invalid end date format: {end_str}. Expected YYYY-MM-DD.")
-                raise CommandError(f"Invalid end date format: {end_str}. Expected YYYY-MM-DD.") from ve
+                logger.error(
+                    f"Invalid end date format: {end_str}. Expected YYYY-MM-DD.")
+                raise CommandError(
+                    f"Invalid end date format: {end_str}. Expected YYYY-MM-DD.") from ve
         else:
             end_date = datetime.now()
-            logger.info(f"No end date provided. Using current date: {end_date.date()}")
+            logger.info(
+                f"No end date provided. Using current date: {end_date.date()}")
 
         if start_date > end_date:
             logger.error("Start date must be earlier than end date.")
@@ -59,13 +68,17 @@ class Command(BaseCommand):
             start_ts = int(time.mktime(current_start.timetuple()))
             end_ts = int(time.mktime(current_end.timetuple()))
 
-            logger.info(f"Fetching tournaments from {current_start.date()} to {current_end.date()}.")
+            logger.info(
+                f"Fetching tournaments from {current_start.date()} to {current_end.date()}.")
 
             try:
-                tournaments_fetched = self.fetch_and_store_tournaments(start_ts, end_ts)
-                logger.info(f"Fetched and stored {tournaments_fetched} tournaments from {current_start.date()} to {current_end.date()}.")
+                tournaments_fetched = self.fetch_and_store_tournaments(
+                    start_ts, end_ts)
+                logger.info(
+                    f"Fetched and stored {tournaments_fetched} tournaments from {current_start.date()} to {current_end.date()}.")
             except CommandError as ce:
-                logger.error(f"Failed to fetch/store tournaments for period {current_start.date()} to {current_end.date()}: {ce}")
+                logger.error(
+                    f"Failed to fetch/store tournaments for period {current_start.date()} to {current_end.date()}: {ce}")
                 # Depending on requirements, you might choose to continue or abort
                 continue
 
@@ -80,11 +93,13 @@ class Command(BaseCommand):
         api_token = os.getenv('TOPDECK_API_KEY')
 
         if not api_token:
-            logger.error("TOPDECK_API_KEY is not set in the environment or settings.")
+            logger.error(
+                "TOPDECK_API_KEY is not set in the environment or settings.")
             raise CommandError("TOPDECK_API_KEY is not set.")
 
         headers = {
-            'Authorization': f'{api_token}',  # Adjust the format as per API requirements
+            # Adjust the format as per API requirements
+            'Authorization': f'{api_token}',
             'Content-Type': 'application/json'
         }
 
@@ -115,7 +130,8 @@ class Command(BaseCommand):
         try:
             response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
-            logger.info(f"Successfully fetched data from API for timestamps {start_ts} to {end_ts}.")
+            logger.info(
+                f"Successfully fetched data from API for timestamps {start_ts} to {end_ts}.")
         except requests.RequestException as e:
             logger.error(f"Error fetching data from API: {e}")
             raise CommandError(f"Error fetching data: {e}") from e
@@ -125,7 +141,8 @@ class Command(BaseCommand):
             logger.info(f"Received {len(data)} tournaments from API.")
         except ValueError as ve:
             logger.error("Failed to parse JSON response from API.")
-            raise CommandError("Failed to parse JSON response from API.") from ve
+            raise CommandError(
+                "Failed to parse JSON response from API.") from ve
 
         tournaments_processed = 0
 
@@ -144,15 +161,18 @@ class Command(BaseCommand):
                 }
             )
             if created:
-                logger.info(f"Created new tournament: {t.tournament_name} (TID: {t.tid})")
+                logger.info(
+                    f"Created new tournament: {t.tournament_name} (TID: {t.tid})")
             else:
-                logger.info(f"Updated tournament: {t.tournament_name} (TID: {t.tid})")
+                logger.info(
+                    f"Updated tournament: {t.tournament_name} (TID: {t.tid})")
 
             # Clear old standings before re-importing to avoid duplicates
             previous_standings_count = t.standings.count()
             t.standings.all().delete()
             if previous_standings_count > 0:
-                logger.info(f"Deleted {previous_standings_count} previous standings for tournament: {t.tournament_name}")
+                logger.info(
+                    f"Deleted {previous_standings_count} previous standings for tournament: {t.tournament_name}")
 
             # Insert player standings
             player_objects = []
@@ -204,11 +224,14 @@ class Command(BaseCommand):
             try:
                 PlayerStanding.objects.bulk_create(player_objects)
                 player_count = len(player_objects)
-                logger.info(f"Added {player_count} player standings for tournament: {t.tournament_name}")
+                logger.info(
+                    f"Added {player_count} player standings for tournament: {t.tournament_name}")
                 tournaments_processed += 1
             except ValidationError as ve:
-                logger.error(f"Validation error while adding player standings for tournament '{t.tournament_name}': {ve}")
+                logger.error(
+                    f"Validation error while adding player standings for tournament '{t.tournament_name}': {ve}")
             except Exception as e:
-                logger.error(f"Unexpected error while adding player standings for tournament '{t.tournament_name}': {e}")
+                logger.error(
+                    f"Unexpected error while adding player standings for tournament '{t.tournament_name}': {e}")
 
         return tournaments_processed

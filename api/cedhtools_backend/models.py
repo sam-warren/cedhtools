@@ -1,5 +1,7 @@
 from django.db import models
 from .validators.moxfield_url_validator import validate_moxfield_url
+
+
 class Tournament(models.Model):
     tid = models.CharField(max_length=100, unique=True)
     tournament_name = models.CharField(max_length=255)
@@ -11,6 +13,7 @@ class Tournament(models.Model):
 
     def __str__(self):
         return self.tournament_name
+
 
 class PlayerStanding(models.Model):
     tournament = models.ForeignKey(

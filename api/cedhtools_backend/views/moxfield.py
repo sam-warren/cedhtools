@@ -6,13 +6,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class MoxfieldDeckView(View):
     def get(self, request, deck_id):
         client = MoxfieldClient()
         response = client.fetch_deck(deck_id)
 
         if response["error"]:
-            logger.error(f"Error fetching deck {deck_id}: {response['error_message']}")
+            logger.error(
+                f"Error fetching deck {deck_id}: {response['error_message']}")
             return JsonResponse(
                 {"error": response["error_message"]},
                 status=response["status"]

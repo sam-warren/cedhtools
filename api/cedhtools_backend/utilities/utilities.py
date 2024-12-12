@@ -6,6 +6,7 @@ def create_success_response(data: dict) -> dict:
         "status": 200
     }
 
+
 def create_error_response(error_message: str, status: int) -> dict:
     return {
         "data": None,
