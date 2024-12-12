@@ -12,7 +12,7 @@ export async function getDecklistById(id: string): Promise<any> {
       const axiosError = error as AxiosError;
 
       if (axiosError.response) {
-        const { status, data }: any = axiosError.response; // TODO: Create data model for response
+        const { status, data } = axiosError.response as {status: number, data: any}; // TODO: Create data model for data response
         if (status === 404) {
           throw new Error(data.error || 'Deck not found. Please check the URL and try again.');
         } else if (status === 400) {
