@@ -1,55 +1,40 @@
-import { MoxfieldCard } from './moxfield-card';
+import { MoxfieldBoardCard, MoxfieldMainCard } from "./moxfield-card";
+
+export interface MoxfieldBoard {
+    count: number;
+    cards: {
+        [key: string]: MoxfieldBoardCard;
+    };
+}
+
+export interface MoxfieldAuthor {
+    userName: string;
+    displayName: string;
+    profileImageUrl: string;
+    badges: string[];
+}
+
 
 export interface MoxfieldDeck {
-  id: string;
-  name: string;
-  description: string;
-  publicUrl: string;
-  publicId: string;
-  boards: {
-    mainboard: MoxfieldDeckBoard;
-    sideboard: MoxfieldDeckBoard;
-    maybeboard: MoxfieldDeckBoard;
-    commanders: MoxfieldDeckBoard;
-    companions: MoxfieldDeckBoard;
-    attractions: MoxfieldDeckBoard;
-    stickers: MoxfieldDeckBoard;
-  };
-  colors: string[];
-  colorPercentages: {
-    white: number;
-    blue: number;
-    black: number;
-    red: number;
-    green: number;
-  };
-  colorIdentity: string[];
-  colorIdentityPercentages: {
-    white: number;
-    blue: number;
-    black: number;
-    red: number;
-    green: number;
-  };
-}
-
-interface MoxfieldDeckBoard {
-  count: number;
-  cards: {
-    [cardId: string]: MoxfieldDeckCard;
-  };
-}
-
-interface MoxfieldDeckCard {
-  quantity: number;
-  boardType: string;
-  finish: string;
-  isFoil: boolean;
-  isAlter: boolean;
-  isProxy: boolean;
-  card: MoxfieldCard;
-  useCmcOverride?: boolean;
-  useManaCostOverride?: boolean;
-  useColorIdentityOverride?: boolean;
-  excludedFromColor?: boolean;
+    id: string;
+    name: string;
+    description: string;
+    format: string;
+    visibility: string;
+    publicUrl: string;
+    publicId: string;
+    likeCount: number;
+    viewCount: number;
+    commentCount: number;
+    sfwCommentCount: number;
+    areCommentsEnabled: boolean;
+    isShared: boolean;
+    authorsCanEdit: boolean;
+    createdByUser: MoxfieldAuthor;
+    authors: MoxfieldAuthor[];
+    requestedAuthors: MoxfieldAuthor[];
+    main: MoxfieldMainCard;
+    boards: {
+        [key: string]: MoxfieldBoard;
+    };
 }
