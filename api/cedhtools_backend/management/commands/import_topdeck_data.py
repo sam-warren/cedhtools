@@ -1,5 +1,3 @@
-# cedhtools_backend/management/commands/import_tournament_data.py
-
 import logging
 import requests
 import os
@@ -11,7 +9,6 @@ from django.conf import settings
 from cedhtools_backend.models import Tournament, PlayerStanding
 from django.core.exceptions import ValidationError
 
-# Configure the logger for this module
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
@@ -80,6 +77,17 @@ class Command(BaseCommand):
 
     def fetch_and_store_tournaments(self, start_ts, end_ts):
         url = "https://topdeck.gg/api/v2/tournaments"
+        api_token = os.getenv('TOPDECK_API_KEY')
+
+        if not api_token:
+            logger.error("TOPDECK_API_KEY is not set in the environment or settings.")
+            raise CommandError("TOPDECK_API_KEY is not set.")
+
+        headers = {
+            'Authorization': f'{api_token}',  # Adjust the format as per API requirements
+            'Content-Type': 'application/json'
+        }
+
         payload = {
             "game": "Magic: The Gathering",
             "format": "EDH",
@@ -102,17 +110,6 @@ class Command(BaseCommand):
                 "lossesBracket",
                 "id"
             ]
-        }
-
-        api_token = os.getenv('TOPDECK_API_KEY')
-
-        if not api_token:
-            logger.error("TOPDECK_API_KEY is not set in the environment or settings.")
-            raise CommandError("TOPDECK_API_KEY is not set.")
-
-        headers = {
-            'Authorization': f'{api_token}',  # Adjust the format as per API requirements
-            'Content-Type': 'application/json'
         }
 
         try:

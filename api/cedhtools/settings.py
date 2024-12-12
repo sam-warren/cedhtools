@@ -128,7 +128,7 @@ LOGGING = {
             'format': '%(log_color)s%(levelname)s:%(name)s:%(message)s',
             'log_colors': {
                 'DEBUG': 'bold_blue',
-                'INFO': 'bold_green',
+                'INFO': 'bold_cyan',
                 'WARNING': 'bold_yellow',
                 'ERROR': 'bold_red',
                 'CRITICAL': 'bold_red,bg_white',
@@ -151,7 +151,7 @@ LOGGING = {
         },
     },
     'loggers': {
-        'cedhtools_backend.management.commands.import_tournament_data': {
+        'cedhtools_backend.management.commands.import_topdeck_data': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,

@@ -6,7 +6,7 @@ def validate_moxfield_url(value):
     Validator to ensure the decklist URL is a valid Moxfield URL.
     """
     if not value:
-        return  # Allow empty values if decklist is nullable
+        return
 
     url_validator = URLValidator()
     try:
