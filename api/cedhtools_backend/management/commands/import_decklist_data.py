@@ -322,9 +322,8 @@ class Command(BaseCommand):
                     logger.warning(
                         f'No card info found for card key {card_key} in board {board_key}')
                     continue
-                print("CARD INFO", card_info.get('id'))
-                card = self.get_or_create_card(card_info)
 
+                card = self.get_or_create_card(card_info)
                 board_card = MoxfieldBoardCard(
                     board=board,
                     quantity=card_data.get('quantity', 1),
@@ -356,9 +355,6 @@ class Command(BaseCommand):
         """
         Retrieves an existing MoxfieldCard or creates a new one based on the provided card_info.
         """
-        card = MoxfieldCard.objects.filter(id=card_info.get('id')).first()
-        if card:
-            return card, False
         card, created = MoxfieldCard.objects.get_or_create(
             id=card_info.get('id', ''),
             defaults={

@@ -1,6 +1,6 @@
 import logging
 import requests
-import os
+import re
 import time
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -193,7 +193,10 @@ class Command(BaseCommand):
 
                 # Validate that decklist is a Moxfield URL
                 if decklist:
-                    if not decklist.startswith('https://www.moxfield.com/decks/'):
+                    # Define a regex pattern to match valid Moxfield deck URLs
+                    pattern = r'^(https?://)?(www\.)?moxfield\.com/decks/.*$'
+
+                    if not re.match(pattern, decklist):
                         logger.warning(
                             f"Invalid decklist URL for player '{player.get('name')}' in tournament '{t.tournament_name}': {decklist}"
                         )
