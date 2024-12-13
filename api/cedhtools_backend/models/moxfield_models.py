@@ -1,5 +1,21 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+import uuid
+
+BOARD_TYPE_CHOICES = [
+    ('mainboard', 'mainboard'),
+    ('sideboard', 'sideboard'),
+    ('maybeboard', 'maybeboard'),
+    ('commanders', 'commanders'),
+    ('companions', 'companions'),
+    ('signature_spells', 'signature_spells'),
+    ('attractions', 'attractions'),
+    ('stickers', 'stickers'),
+    ('contraptions', 'contraptions'),
+    ('planes', 'planes'),
+    ('schemes', 'schemes'),
+    ('tokens', 'tokens'),
+]
 
 
 class MoxfieldAuthor(models.Model):
@@ -14,17 +30,17 @@ class MoxfieldAuthor(models.Model):
 
 class MoxfieldCard(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
-    unique_card_id = models.CharField(
-        max_length=255, null=True, blank=True)
+    unique_card_id = models.CharField(max_length=255, null=True, blank=True)
     scryfall_id = models.CharField(max_length=255, null=True, blank=True)
     set_code = models.CharField(max_length=255, null=True, blank=True)
     set_name = models.CharField(max_length=255, null=True, blank=True)
     name = models.CharField(max_length=511)
+    cn = models.CharField(max_length=15, null=True, blank=True)
+    layout = models.CharField(max_length=255, null=True, blank=True)
     cmc = models.FloatField(default=0.0)
     type = models.CharField(max_length=255, null=True, blank=True)
     type_line = models.CharField(max_length=255, null=True, blank=True)
-    oracle_text = models.TextField(
-        null=True, blank=True, max_length=2047)
+    oracle_text = models.TextField(null=True, blank=True, max_length=2047)
     mana_cost = models.CharField(max_length=255, null=True, blank=True)
     power = models.CharField(max_length=10, null=True, blank=True)
     toughness = models.CharField(max_length=10, null=True, blank=True)
@@ -57,12 +73,12 @@ class MoxfieldCard(models.Model):
     card_market_url = models.URLField(null=True, blank=True, max_length=511)
     tcgplayer_url = models.URLField(null=True, blank=True, max_length=511)
     is_arena_legal = models.BooleanField(default=False)
-    released_at = models.DateTimeField(
-        null=True, blank=True)  # Allow null and blank
+    released_at = models.DateTimeField(null=True, blank=True)
     edhrec_rank = models.IntegerField(null=True, blank=True)
     multiverse_ids = models.JSONField(default=list, blank=True)
     cardmarket_id = models.CharField(max_length=511, null=True, blank=True)
     mtgo_id = models.CharField(max_length=511, null=True, blank=True)
+    arena_id = models.CharField(max_length=511, null=True, blank=True)
     tcgplayer_id = models.CharField(max_length=511, null=True, blank=True)
     cardkingdom_id = models.CharField(max_length=511, null=True, blank=True)
     cardkingdom_foil_id = models.CharField(
@@ -72,7 +88,7 @@ class MoxfieldCard(models.Model):
     cool_stuff_inc_url = models.URLField(null=True, blank=True, max_length=500)
     cool_stuff_inc_foil_url = models.URLField(
         null=True, blank=True, max_length=511)
-    acorn = models.CharField(max_length=255, null=True, blank=True)
+    acorn = models.BooleanField(default=False)
     image_seq = models.IntegerField(null=True, blank=True)
     card_trader_url = models.URLField(null=True, blank=True, max_length=511)
     card_trader_foil_url = models.URLField(
@@ -97,6 +113,26 @@ class MoxfieldCard(models.Model):
             models.Index(fields=['scryfall_id']),
             models.Index(fields=['set_code']),
         ]
+
+
+class MoxfieldCardFace(models.Model):
+    card = models.ForeignKey(
+        MoxfieldCard,
+        related_name='card_faces',
+        on_delete=models.CASCADE
+    )
+    face_id = models.CharField(max_length=255, null=True, blank=True)
+    name = models.CharField(max_length=511)
+    mana_cost = models.CharField(max_length=255, null=True, blank=True)
+    type_line = models.CharField(max_length=255, null=True, blank=True)
+    oracle_text = models.TextField(null=True, blank=True, max_length=2047)
+    colors = models.JSONField(default=list, blank=True)
+    color_indicator = models.JSONField(default=list, blank=True)
+    flavor_text = models.TextField(null=True, blank=True)
+    image_seq = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.card.name}"
 
 
 class MoxfieldDeck(models.Model):
@@ -137,6 +173,50 @@ class MoxfieldDeck(models.Model):
         related_name='main_decks'
     )
 
+    version = models.IntegerField(default=1)
+    tokens = models.ManyToManyField(
+        'MoxfieldCard',
+        related_name='decks_as_tokens',
+        blank=True,
+        limit_choices_to={'is_token': True}
+    )
+    tokens_to_cards = models.JSONField(default=dict, blank=True)
+    cards_to_tokens = models.JSONField(default=dict, blank=True)
+    token_mappings = models.JSONField(default=dict, blank=True)
+    hubs = models.ManyToManyField(
+        'MoxfieldHub', related_name='decks', blank=True)
+    created_at_utc = models.DateTimeField(null=True, blank=True)
+    last_updated_at_utc = models.DateTimeField(null=True, blank=True)
+    export_id = models.UUIDField(null=True, unique=True)
+    author_tags = models.JSONField(default=dict, blank=True)
+    is_too_beaucoup = models.BooleanField(default=False)
+    affiliates = models.JSONField(default=dict, blank=True)
+    main_card_id_is_back_face = models.BooleanField(default=False)
+    allow_primer_clone = models.BooleanField(default=False)
+    enable_multiple_printings = models.BooleanField(default=False)
+    include_basic_lands_in_price = models.BooleanField(default=False)
+    include_commanders_in_price = models.BooleanField(default=False)
+    include_signature_spells_in_price = models.BooleanField(default=False)
+    colors = models.JSONField(default=list, blank=True)
+    color_percentages = models.JSONField(default=dict, blank=True)
+    color_identity = models.JSONField(default=list, blank=True)
+    color_identity_percentages = models.JSONField(default=dict, blank=True)
+    owner_user_id = models.CharField(max_length=255, null=True, blank=True)
+    deck_tier = models.IntegerField(default=0)
+    commander_tier = models.IntegerField(default=0)
+    deck_tier1_count = models.IntegerField(default=0)
+    deck_tier2_count = models.IntegerField(default=0)
+    deck_tier3_count = models.IntegerField(default=0)
+    deck_tier4_count = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class MoxfieldHub(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True)
+
     def __str__(self):
         return self.name
 
@@ -147,7 +227,7 @@ class MoxfieldBoard(models.Model):
         related_name='boards',
         on_delete=models.CASCADE
     )
-    key = models.CharField(max_length=255)
+    key = models.CharField(max_length=255, choices=BOARD_TYPE_CHOICES)
     count = models.IntegerField(default=0)
 
     def __str__(self):
@@ -161,7 +241,7 @@ class MoxfieldBoardCard(models.Model):
         on_delete=models.CASCADE
     )
     quantity = models.IntegerField(default=1)
-    board_type = models.CharField(max_length=127)
+    board_type = models.CharField(max_length=127, choices=BOARD_TYPE_CHOICES)
     finish = models.CharField(max_length=127)
     is_foil = models.BooleanField(default=False)
     is_alter = models.BooleanField(default=False)

@@ -4,6 +4,7 @@ import logging
 import requests
 import os
 import time
+import uuid
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from urllib.parse import urlparse
@@ -16,7 +17,8 @@ from cedhtools_backend.models import (
     MoxfieldAuthor,
     MoxfieldCard,
     MoxfieldBoard,
-    MoxfieldBoardCard
+    MoxfieldBoardCard,
+    MoxfieldHub
 )
 
 # Import tqdm for progress bars
@@ -26,13 +28,26 @@ from tqdm import tqdm
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+# Import colorlog for colorized logging
+import colorlog
+
 # Configure standard logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Create and configure the StreamHandler
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+# Create and configure the StreamHandler with colorlog
+handler = colorlog.StreamHandler()
+formatter = colorlog.ColoredFormatter(
+    '%(log_color)s%(asctime)s [%(levelname)s] %(message)s',
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'bold_red',
+    },
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 handler.setFormatter(formatter)
 
 # Remove any existing handlers to prevent duplicate logs
@@ -54,12 +69,6 @@ class Command(BaseCommand):
             default=settings.MOXFIELD_USER_AGENT
         )
         parser.add_argument(
-            '--batch-size',
-            type=int,
-            default=1000,
-            help='Number of decklists to process in each batch.'
-        )
-        parser.add_argument(
             '--start',
             type=str,
             help='Start date in YYYY-MM-DD format.',
@@ -69,12 +78,11 @@ class Command(BaseCommand):
             '--end',
             type=str,
             help='End date in YYYY-MM-DD format.',
-            default=None  # Defaults to current date if not provided
+            default=None
         )
 
     def handle(self, *args, **options):
         api_key = options['api_key']
-        batch_size = options['batch_size']
         start_str = options['start']
         end_str = options['end']
 
@@ -237,7 +245,6 @@ class Command(BaseCommand):
             username=created_by_data.get('userName', ''),
             defaults={
                 'display_name': created_by_data.get('displayName', ''),
-                # Using .get() with default
                 'profile_image_url': created_by_data.get('profileImageUrl', ''),
                 'badges': created_by_data.get('badges', [])
             }
@@ -275,11 +282,11 @@ class Command(BaseCommand):
         if main_card_data:
             main_card = self.get_or_create_card(main_card_data)
 
-        # 5. Create Deck
-        deck, created = MoxfieldDeck.objects.get_or_create(
+        # 5. Create or Update Deck
+        deck, created = MoxfieldDeck.objects.update_or_create(
             public_url=deck_data.get('publicUrl', ''),
-            id=deck_data.get('id', ''),
             defaults={
+                'id': deck_data.get('id', ''),
                 'name': deck_data.get('name', 'Unnamed Deck'),
                 'description': deck_data.get('description', ''),
                 'format': deck_data.get('format', 'Unknown Format'),
@@ -293,7 +300,34 @@ class Command(BaseCommand):
                 'is_shared': deck_data.get('isShared', False),
                 'authors_can_edit': deck_data.get('authorsCanEdit', False),
                 'created_by_user': created_by,
-                'main_card': main_card
+                'main_card': main_card,
+                'version': deck_data.get('version', 1),
+                'tokens_to_cards': deck_data.get('tokensToCards', {}),
+                'cards_to_tokens': deck_data.get('cardsToTokens', {}),
+                'token_mappings': deck_data.get('tokenMappings', {}),
+                'created_at_utc': self.parse_datetime(deck_data.get('createdAtUtc')),
+                'last_updated_at_utc': self.parse_datetime(deck_data.get('lastUpdatedAtUtc')),
+                'export_id': self.parse_uuid(deck_data.get('exportId')),
+                'author_tags': deck_data.get('authorTags', {}),
+                'is_too_beaucoup': deck_data.get('isTooBeaucoup', False),
+                'affiliates': deck_data.get('affiliates', {}),
+                'main_card_id_is_back_face': deck_data.get('mainCardIdIsBackFace', False),
+                'allow_primer_clone': deck_data.get('allowPrimerClone', False),
+                'enable_multiple_printings': deck_data.get('enableMultiplePrintings', False),
+                'include_basic_lands_in_price': deck_data.get('includeBasicLandsInPrice', False),
+                'include_commanders_in_price': deck_data.get('includeCommandersInPrice', False),
+                'include_signature_spells_in_price': deck_data.get('includeSignatureSpellsInPrice', False),
+                'colors': deck_data.get('colors', []),
+                'color_percentages': deck_data.get('colorPercentages', {}),
+                'color_identity': deck_data.get('colorIdentity', []),
+                'color_identity_percentages': deck_data.get('colorIdentityPercentages', {}),
+                'owner_user_id': deck_data.get('ownerUserId', ''),
+                'deck_tier': deck_data.get('deckTier', 0),
+                'commander_tier': deck_data.get('commanderTier', 0),
+                'deck_tier1_count': deck_data.get('deckTier1Count', 0),
+                'deck_tier2_count': deck_data.get('deckTier2Count', 0),
+                'deck_tier3_count': deck_data.get('deckTier3Count', 0),
+                'deck_tier4_count': deck_data.get('deckTier4Count', 0),
             }
         )
 
@@ -301,8 +335,35 @@ class Command(BaseCommand):
             # Assign authors and requested authors
             deck.authors.set(authors)
             deck.requested_authors.set(requested_authors)
+        else:
+            # Update authors and requested authors if deck already exists
+            deck.authors.add(*authors)
+            deck.requested_authors.add(*requested_authors)
 
-        # 6. Handle Boards
+        # 6. Handle Tokens (ManyToMany)
+        tokens = deck_data.get('tokens', [])
+        token_objects = []
+        for token_data in tokens:
+            token_card = self.get_or_create_card(token_data)
+            token_objects.append(token_card)
+        if token_objects:
+            deck.tokens.add(*token_objects)
+
+        # 7. Handle Hubs (ManyToMany)
+        hubs = deck_data.get('hubs', [])
+        hub_objects = []
+        for hub_data in hubs:
+            hub, _ = MoxfieldHub.objects.get_or_create(
+                name=hub_data.get('name', 'Unnamed Hub'),
+                defaults={
+                    'description': hub_data.get('description', '')
+                }
+            )
+            hub_objects.append(hub)
+        if hub_objects:
+            deck.hubs.add(*hub_objects)
+
+        # 8. Handle Boards
         boards = deck_data.get('boards', {})
         for board_key, board_data in boards.items():
             board, board_created = MoxfieldBoard.objects.get_or_create(
@@ -313,7 +374,7 @@ class Command(BaseCommand):
                 }
             )
 
-            # 7. Handle Board Cards
+            # 9. Handle Board Cards
             cards = board_data.get('cards', {})
             board_cards = []
             for card_key, card_data in cards.items():
@@ -363,13 +424,15 @@ class Command(BaseCommand):
                 'set_code': card_info.get('set', ''),
                 'set_name': card_info.get('set_name', ''),
                 'name': card_info.get('name', 'Unnamed Card'),
-                'cmc': card_info.get('cmc', 0),
+                'cn': card_info.get('cn', ''),
+                'layout': card_info.get('layout', ''),
+                'cmc': card_info.get('cmc', 0.0),
                 'type': card_info.get('type', ''),
                 'type_line': card_info.get('type_line', ''),
                 'oracle_text': card_info.get('oracle_text', ''),
                 'mana_cost': card_info.get('mana_cost', ''),
-                'power': card_info.get('power'),
-                'toughness': card_info.get('toughness'),
+                'power': card_info.get('power', ''),
+                'toughness': card_info.get('toughness', ''),
                 'colors': card_info.get('colors', []),
                 'color_indicator': card_info.get('color_indicator', []),
                 'color_identity': card_info.get('color_identity', []),
@@ -401,16 +464,16 @@ class Command(BaseCommand):
                 'released_at': self.parse_datetime(card_info.get('released_at')),
                 'edhrec_rank': card_info.get('edhrec_rank'),
                 'multiverse_ids': card_info.get('multiverse_ids', []),
-                'cardmarket_id': card_info.get('cardmarket_id'),
-                'mtgo_id': card_info.get('mtgo_id'),
-                'tcgplayer_id': card_info.get('tcgplayer_id'),
-                'cardkingdom_id': card_info.get('cardkingdom_id'),
-                'cardkingdom_foil_id': card_info.get('cardkingdom_foil_id'),
+                'cardmarket_id': card_info.get('cardmarket_id', ''),
+                'mtgo_id': card_info.get('mtgo_id', ''),
+                'tcgplayer_id': card_info.get('tcgplayer_id', ''),
+                'cardkingdom_id': card_info.get('cardkingdom_id', ''),
+                'cardkingdom_foil_id': card_info.get('cardkingdom_foil_id', ''),
                 'reprint': card_info.get('reprint', False),
                 'set_type': card_info.get('set_type', ''),
                 'cool_stuff_inc_url': card_info.get('coolStuffIncUrl', ''),
                 'cool_stuff_inc_foil_url': card_info.get('coolStuffIncFoilUrl', ''),
-                'acorn': card_info.get('acorn', ''),
+                'acorn': card_info.get('acorn', False),  # Ensure boolean
                 'image_seq': card_info.get('image_seq'),
                 'card_trader_url': card_info.get('cardTraderUrl', ''),
                 'card_trader_foil_url': card_info.get('cardTraderFoilUrl', ''),
@@ -446,3 +509,16 @@ class Command(BaseCommand):
                 # Convert to the default timezone if necessary
                 dt = dt.astimezone(timezone.get_current_timezone())
         return dt
+
+    def parse_uuid(self, uuid_str):
+        """
+        Parses a UUID string into a Python UUID object.
+        """
+        if not uuid_str:
+            return None
+        try:
+            return uuid.UUID(uuid_str)
+        except ValueError:
+            logger.warning(
+                f"Invalid UUID format: {uuid_str}. Skipping export_id.")
+            return None

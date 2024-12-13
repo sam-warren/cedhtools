@@ -4,6 +4,7 @@ from .moxfield_models import (
     MoxfieldDeck,
     MoxfieldBoard,
     MoxfieldBoardCard,
+    MoxfieldHub
 )
 
 from .topdeck_models import (
@@ -19,4 +20,5 @@ __all__ = [
     'MoxfieldBoardCard',
     'TopdeckTournament',
     'TopdeckPlayerStanding',
+    'MoxfieldHub'
 ]
