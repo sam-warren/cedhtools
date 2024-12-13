@@ -8,11 +8,12 @@ from django.conf import settings
 class MoxfieldClient:
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": settings.USER_AGENT})
+        self.session.headers.update(
+            {"User-Agent": settings.MOXFIELD_USER_AGENT})
 
     def fetch_deck(self, deck_id: str) -> dict:
         try:
-            url = f"{settings.BASE_URL}/decks/all/{deck_id}"
+            url = f"{settings.MOXFIELD_API_BASE_URL}/decks/all/{deck_id}"
             response = self.session.get(url)
             response.raise_for_status()
 
