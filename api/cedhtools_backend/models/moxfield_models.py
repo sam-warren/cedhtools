@@ -147,7 +147,7 @@ class MoxfieldBoard(models.Model):
         related_name='boards',
         on_delete=models.CASCADE
     )
-    key = models.CharField(max_length=255)  # e.g., 'main', 'side'
+    key = models.CharField(max_length=255)
     count = models.IntegerField(default=0)
 
     def __str__(self):

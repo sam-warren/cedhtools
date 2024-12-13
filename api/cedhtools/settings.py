@@ -157,23 +157,9 @@ LOGGING = {
             'backupCount': 5,              # Keep up to 5 backup files
             'encoding': 'utf-8',
         },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',  # Use RotatingFileHandler
-            'filename': LOGS_DIR / 'import_decklist_data.log',  # Log file path
-            'formatter': 'verbose',
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 5,              # Keep up to 5 backup files
-            'encoding': 'utf-8',
-        },
     },
     'loggers': {
         'cedhtools_backend.management.commands.import_topdeck_data': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'cedhtools_backend.management.commands.import_decklist_data': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,

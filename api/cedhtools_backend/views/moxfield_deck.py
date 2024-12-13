@@ -1,4 +1,3 @@
-# views/moxfield_deck.py
 from django.http import JsonResponse
 from django.views import View
 from ..services.moxfield import MoxfieldClient
@@ -20,5 +19,4 @@ class MoxfieldDeckView(View):
                 status=response["status"]
             )
 
-        # If success
         return JsonResponse(response["data"], status=200)
