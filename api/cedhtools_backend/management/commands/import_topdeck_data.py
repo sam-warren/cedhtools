@@ -90,7 +90,7 @@ class Command(BaseCommand):
 
     def fetch_and_store_tournaments(self, start_ts, end_ts):
         url = "https://topdeck.gg/api/v2/tournaments"
-        api_token = os.getenv('TOPDECK_API_KEY')
+        api_token = settings.TOPDECK_API_KEY
 
         if not api_token:
             logger.error(

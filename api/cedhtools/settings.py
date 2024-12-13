@@ -24,6 +24,12 @@ PG_DB_NAME = os.getenv('PG_DB_NAME')
 PG_HOST = os.getenv('PG_HOST')
 PG_PORT = os.getenv('PG_PORT')
 
+MOXFIELD_API_BASE_URL = os.getenv('MOXFIELD_API_BASE_URL')
+MOXFIELD_USER_AGENT = os.getenv('MOXFIELD_USER_AGENT')
+
+TOPDECK_API_BASE_URL = os.getenv('TOPDECK_API_BASE_URL')
+TOPDECK_API_KEY = os.getenv('TOPDECK_API_KEY')
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,6 +45,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+TIME_ZONE = 'UTC'
+USE_TZ = True
 
 # Application definition
 
@@ -149,9 +157,23 @@ LOGGING = {
             'backupCount': 5,              # Keep up to 5 backup files
             'encoding': 'utf-8',
         },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',  # Use RotatingFileHandler
+            'filename': LOGS_DIR / 'import_decklist_data.log',  # Log file path
+            'formatter': 'verbose',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,              # Keep up to 5 backup files
+            'encoding': 'utf-8',
+        },
     },
     'loggers': {
         'cedhtools_backend.management.commands.import_topdeck_data': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'cedhtools_backend.management.commands.import_decklist_data': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,

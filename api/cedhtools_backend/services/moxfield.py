@@ -2,19 +2,17 @@ import os
 import requests
 from typing import Optional
 from ..utilities.utilities import create_error_response, create_success_response
+from django.conf import settings
 
 
 class MoxfieldClient:
-    BASE_URL = os.getenv("MOXFIELD_API_BASE_URL")
-    USER_AGENT = os.getenv("MOXFIELD_USER_AGENT")
-
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": self.USER_AGENT})
+        self.session.headers.update({"User-Agent": settings.USER_AGENT})
 
     def fetch_deck(self, deck_id: str) -> dict:
         try:
-            url = f"{self.BASE_URL}/decks/all/{deck_id}"
+            url = f"{settings.BASE_URL}/decks/all/{deck_id}"
             response = self.session.get(url)
             response.raise_for_status()
 
