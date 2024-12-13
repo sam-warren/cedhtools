@@ -6,7 +6,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-from cedhtools_backend.models import Tournament, PlayerStanding
+from cedhtools_backend.models import TopdeckTournament, TopdeckPlayerStanding
 from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,7 @@ class Command(BaseCommand):
         # If the API returns a list of tournaments for this range
         for tour in data:
             # Create or update the tournament
-            t, created = Tournament.objects.update_or_create(
+            t, created = TopdeckTournament.objects.update_or_create(
                 tid=tour.get('TID'),
                 defaults={
                     'tournament_name': tour.get('tournamentName', ''),
@@ -202,8 +202,8 @@ class Command(BaseCommand):
                     # If decklist is empty, set to None (since it's nullable)
                     decklist = None
 
-                # Prepare PlayerStanding instance
-                player_objects.append(PlayerStanding(
+                # Prepare TopdeckPlayerStanding instance
+                player_objects.append(TopdeckPlayerStanding(
                     tournament=t,
                     name=player.get('name', '').strip(),
                     decklist=decklist,
@@ -222,7 +222,7 @@ class Command(BaseCommand):
 
             # Bulk create player standings for efficiency
             try:
-                PlayerStanding.objects.bulk_create(player_objects)
+                TopdeckPlayerStanding.objects.bulk_create(player_objects)
                 player_count = len(player_objects)
                 logger.info(
                     f"Added {player_count} player standings for tournament: {t.tournament_name}")

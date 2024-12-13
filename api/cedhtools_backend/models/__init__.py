@@ -1,22 +1,22 @@
 from .moxfield_models import (
     MoxfieldAuthor,
     MoxfieldCard,
-    Deck,
-    Board,
-    BoardCard,
+    MoxfieldDeck,
+    MoxfieldBoard,
+    MoxfieldBoardCard,
 )
 
 from .topdeck_models import (
-    Tournament,
-    PlayerStanding,
+    TopdeckTournament,
+    TopdeckPlayerStanding,
 )
 
 __all__ = [
     'MoxfieldAuthor',
     'MoxfieldCard',
-    'Deck',
-    'Board',
-    'BoardCard',
-    'Tournament',
-    'PlayerStanding',
+    'MoxfieldDeck',
+    'MoxfieldBoard',
+    'MoxfieldBoardCard',
+    'TopdeckTournament',
+    'TopdeckPlayerStanding',
 ]

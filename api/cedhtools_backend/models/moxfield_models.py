@@ -3,9 +3,9 @@ from django.core.exceptions import ValidationError
 
 
 class MoxfieldAuthor(models.Model):
-    username = models.CharField(max_length=500, unique=True)
-    display_name = models.CharField(max_length=200, blank=True)
-    profile_image_url = models.URLField(null=True, max_length=500, blank=True)
+    username = models.CharField(max_length=511, unique=True)
+    display_name = models.CharField(max_length=511, blank=True)
+    profile_image_url = models.URLField(null=True, max_length=511, blank=True)
     badges = models.JSONField(default=list, blank=True)
 
     def __str__(self):
@@ -17,14 +17,14 @@ class MoxfieldCard(models.Model):
     unique_card_id = models.CharField(
         max_length=255, null=True, blank=True)
     scryfall_id = models.CharField(max_length=255, null=True, blank=True)
-    set_code = models.CharField(max_length=100, null=True, blank=True)
+    set_code = models.CharField(max_length=255, null=True, blank=True)
     set_name = models.CharField(max_length=255, null=True, blank=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=511)
     cmc = models.FloatField(default=0.0)
     type = models.CharField(max_length=255, null=True, blank=True)
     type_line = models.CharField(max_length=255, null=True, blank=True)
     oracle_text = models.TextField(
-        null=True, blank=True)  # Allow null and blank
+        null=True, blank=True, max_length=2047)
     mana_cost = models.CharField(max_length=255, null=True, blank=True)
     power = models.CharField(max_length=10, null=True, blank=True)
     toughness = models.CharField(max_length=10, null=True, blank=True)
@@ -32,58 +32,58 @@ class MoxfieldCard(models.Model):
     color_indicator = models.JSONField(default=list, blank=True)
     color_identity = models.JSONField(default=list, blank=True)
     legalities = models.JSONField(default=dict, blank=True)
-    frame = models.CharField(max_length=100, null=True, blank=True)
+    frame = models.CharField(max_length=255, null=True, blank=True)
     reserved = models.BooleanField(default=False)
     digital = models.BooleanField(default=False)
     foil = models.BooleanField(default=False)
     nonfoil = models.BooleanField(default=False)
     etched = models.BooleanField(default=False)
     glossy = models.BooleanField(default=False)
-    rarity = models.CharField(max_length=50, null=True, blank=True)
-    border_color = models.CharField(max_length=50, null=True, blank=True)
+    rarity = models.CharField(max_length=127, null=True, blank=True)
+    border_color = models.CharField(max_length=63, null=True, blank=True)
     colorshifted = models.BooleanField(default=False)
     flavor_text = models.TextField(null=True, blank=True)
-    lang = models.CharField(max_length=10, null=True, blank=True)
+    lang = models.CharField(max_length=63, null=True, blank=True)
     latest = models.BooleanField(default=False)
     has_multiple_editions = models.BooleanField(default=False)
     has_arena_legal = models.BooleanField(default=False)
     prices = models.JSONField(default=dict, blank=True)
     artist = models.CharField(max_length=255, null=True, blank=True)
     promo_types = models.JSONField(default=list, blank=True)
-    card_hoarder_url = models.URLField(null=True, blank=True, max_length=500)
-    card_kingdom_url = models.URLField(null=True, blank=True, max_length=500)
+    card_hoarder_url = models.URLField(null=True, blank=True, max_length=511)
+    card_kingdom_url = models.URLField(null=True, blank=True, max_length=511)
     card_kingdom_foil_url = models.URLField(
-        null=True, blank=True, max_length=500)
-    card_market_url = models.URLField(null=True, blank=True, max_length=500)
-    tcgplayer_url = models.URLField(null=True, blank=True, max_length=500)
+        null=True, blank=True, max_length=511)
+    card_market_url = models.URLField(null=True, blank=True, max_length=511)
+    tcgplayer_url = models.URLField(null=True, blank=True, max_length=511)
     is_arena_legal = models.BooleanField(default=False)
     released_at = models.DateTimeField(
         null=True, blank=True)  # Allow null and blank
     edhrec_rank = models.IntegerField(null=True, blank=True)
     multiverse_ids = models.JSONField(default=list, blank=True)
-    cardmarket_id = models.CharField(max_length=255, null=True, blank=True)
-    mtgo_id = models.CharField(max_length=255, null=True, blank=True)
-    tcgplayer_id = models.CharField(max_length=255, null=True, blank=True)
-    cardkingdom_id = models.CharField(max_length=255, null=True, blank=True)
+    cardmarket_id = models.CharField(max_length=511, null=True, blank=True)
+    mtgo_id = models.CharField(max_length=511, null=True, blank=True)
+    tcgplayer_id = models.CharField(max_length=511, null=True, blank=True)
+    cardkingdom_id = models.CharField(max_length=511, null=True, blank=True)
     cardkingdom_foil_id = models.CharField(
-        max_length=255, null=True, blank=True)
+        max_length=511, null=True, blank=True)
     reprint = models.BooleanField(default=False)
-    set_type = models.CharField(max_length=255, null=True, blank=True)
+    set_type = models.CharField(max_length=511, null=True, blank=True)
     cool_stuff_inc_url = models.URLField(null=True, blank=True, max_length=500)
     cool_stuff_inc_foil_url = models.URLField(
-        null=True, blank=True, max_length=500)
+        null=True, blank=True, max_length=511)
     acorn = models.CharField(max_length=255, null=True, blank=True)
     image_seq = models.IntegerField(null=True, blank=True)
-    card_trader_url = models.URLField(null=True, blank=True, max_length=500)
+    card_trader_url = models.URLField(null=True, blank=True, max_length=511)
     card_trader_foil_url = models.URLField(
-        null=True, blank=True, max_length=500)
+        null=True, blank=True, max_length=511)
     content_warning = models.BooleanField(default=False)
     starcitygames_sku = models.CharField(max_length=255, null=True, blank=True)
-    starcitygames_url = models.URLField(null=True, blank=True, max_length=500)
+    starcitygames_url = models.URLField(null=True, blank=True, max_length=511)
     starcitygames_foil_sku = models.CharField(
         max_length=255, null=True, blank=True)
     starcitygames_foil_url = models.URLField(
-        null=True, blank=True, max_length=500)
+        null=True, blank=True, max_length=511)
     is_pauper_commander = models.BooleanField(default=False)
     is_token = models.BooleanField(default=False)
     default_finish = models.CharField(max_length=255, null=True, blank=True)
@@ -99,7 +99,7 @@ class MoxfieldCard(models.Model):
         ]
 
 
-class Deck(models.Model):
+class MoxfieldDeck(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     name = models.CharField(max_length=500)
     description = models.TextField(blank=True)
@@ -141,9 +141,9 @@ class Deck(models.Model):
         return self.name
 
 
-class Board(models.Model):
+class MoxfieldBoard(models.Model):
     deck = models.ForeignKey(
-        Deck,
+        MoxfieldDeck,
         related_name='boards',
         on_delete=models.CASCADE
     )
@@ -154,15 +154,15 @@ class Board(models.Model):
         return f"{self.key.capitalize()} Board for {self.deck.name}"
 
 
-class BoardCard(models.Model):
+class MoxfieldBoardCard(models.Model):
     board = models.ForeignKey(
-        Board,
+        MoxfieldBoard,
         related_name='board_cards',
         on_delete=models.CASCADE
     )
     quantity = models.IntegerField(default=1)
-    board_type = models.CharField(max_length=100)
-    finish = models.CharField(max_length=100)
+    board_type = models.CharField(max_length=127)
+    finish = models.CharField(max_length=127)
     is_foil = models.BooleanField(default=False)
     is_alter = models.BooleanField(default=False)
     is_proxy = models.BooleanField(default=False)

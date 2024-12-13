@@ -2,9 +2,9 @@ from django.db import models
 from ..validators.moxfield_url_validator import validate_moxfield_url
 
 
-class Tournament(models.Model):
-    tid = models.CharField(max_length=100, unique=True)
-    tournament_name = models.CharField(max_length=200)
+class TopdeckTournament(models. Model):
+    tid = models.CharField(max_length=255, unique=True)
+    tournament_name = models.CharField(max_length=511)
     swiss_num = models.IntegerField()
     start_date = models.BigIntegerField()
     game = models.CharField(max_length=100)
@@ -15,19 +15,19 @@ class Tournament(models.Model):
         return self.tournament_name
 
 
-class PlayerStanding(models.Model):
+class TopdeckPlayerStanding(models.Model):
     tournament = models.ForeignKey(
-        'Tournament', related_name='standings', on_delete=models.CASCADE
+        'TopdeckTournament', related_name='standings', on_delete=models.CASCADE
     )
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=511)
     decklist = models.URLField(
         null=True,
         blank=True,
-        max_length=100,
+        max_length=255,
         validators=[validate_moxfield_url]
     )
     deck = models.ForeignKey(
-        'Deck', related_name='player_standings', null=True, blank=True, on_delete=models.SET_NULL
+        'MoxfieldDeck', related_name='player_standings', null=True, blank=True, on_delete=models.SET_NULL
     )
     wins = models.IntegerField(default=0)
     wins_swiss = models.IntegerField(default=0)

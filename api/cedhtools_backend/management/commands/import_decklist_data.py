@@ -11,12 +11,12 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
 from cedhtools_backend.models import (
-    PlayerStanding,
-    Deck,
+    TopdeckPlayerStanding,
+    MoxfieldDeck,
     MoxfieldAuthor,
     MoxfieldCard,
-    Board,
-    BoardCard
+    MoxfieldBoard,
+    MoxfieldBoardCard
 )
 
 # Import tqdm for progress bars
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             raise CommandError("Start date must be earlier than end date.")
 
         # Calculate total number of decklists to process
-        unique_deck_urls = PlayerStanding.objects.exclude(decklist__isnull=True).exclude(
+        unique_deck_urls = TopdeckPlayerStanding.objects.exclude(decklist__isnull=True).exclude(
             decklist__exact='').values_list('decklist', flat=True).distinct()
         total_decks = unique_deck_urls.count()
         logger.info(f'Total unique decklist URLs to process: {total_decks}')
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                             f"Processing decklist {pbar.n + 1}/{total_decks}: {decklist_url}")
 
                         # Check if the deck is already imported
-                        if Deck.objects.filter(public_url=decklist_url).exists():
+                        if MoxfieldDeck.objects.filter(public_url=decklist_url).exists():
                             logger.info(
                                 f'Deck already exists for URL: {decklist_url}')
                             pbar.update(1)
@@ -169,8 +169,8 @@ class Command(BaseCommand):
                         with transaction.atomic():
                             deck = self.parse_deck(deck_data)
 
-                            # Associate PlayerStanding records with this deck
-                            PlayerStanding.objects.filter(
+                            # Associate TopdeckPlayerStanding records with this deck
+                            TopdeckPlayerStanding.objects.filter(
                                 decklist=decklist_url).update(deck=deck)
 
                             logger.info(
@@ -276,7 +276,7 @@ class Command(BaseCommand):
             main_card = self.get_or_create_card(main_card_data)
 
         # 5. Create Deck
-        deck, created = Deck.objects.get_or_create(
+        deck, created = MoxfieldDeck.objects.get_or_create(
             public_url=deck_data.get('publicUrl', ''),
             id=deck_data.get('id', ''),
             defaults={
@@ -305,7 +305,7 @@ class Command(BaseCommand):
         # 6. Handle Boards
         boards = deck_data.get('boards', {})
         for board_key, board_data in boards.items():
-            board, board_created = Board.objects.get_or_create(
+            board, board_created = MoxfieldBoard.objects.get_or_create(
                 deck=deck,
                 key=board_key,
                 defaults={
@@ -325,7 +325,7 @@ class Command(BaseCommand):
                 print("CARD INFO", card_info.get('id'))
                 card = self.get_or_create_card(card_info)
 
-                board_card = BoardCard(
+                board_card = MoxfieldBoardCard(
                     board=board,
                     quantity=card_data.get('quantity', 1),
                     board_type=card_data.get('boardType', ''),
@@ -347,7 +347,7 @@ class Command(BaseCommand):
 
             # Bulk create BoardCards for efficiency
             if board_cards:
-                BoardCard.objects.bulk_create(
+                MoxfieldBoardCard.objects.bulk_create(
                     board_cards, ignore_conflicts=True)
 
         return deck
