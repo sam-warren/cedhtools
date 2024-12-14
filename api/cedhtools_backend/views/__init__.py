@@ -10,8 +10,12 @@ from .test_view import (
     TestView,
 )
 
+from .commander_win_rates import (
+    CommanderWinRateView,
+)
 __all__ = [
     'MoxfieldDeckView',
     'TopdeckTournamentView',
     'TestView',
+    'CommanderWinRateView',
 ]
