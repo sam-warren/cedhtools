@@ -63,3 +63,46 @@ class TopdeckTournamentSerializer(serializers.ModelSerializer):
         model = TopdeckTournament
         fields = ['tid', 'tournament_name',
                   'start_date', 'game', 'format', 'standings']
+
+
+class ChiSquaredTestSerializer(serializers.Serializer):
+    chi2_statistic = serializers.FloatField(allow_null=True)
+    p_value = serializers.FloatField(allow_null=True)
+    degrees_of_freedom = serializers.IntegerField(allow_null=True)
+    expected_freq = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField()), allow_null=True
+    )
+
+
+class CardStatisticsSerializer(serializers.Serializer):
+    unique_card_id = serializers.CharField()
+    card_name = serializers.CharField()
+    number_of_entries = serializers.IntegerField()
+    average_card_win_rate = serializers.FloatField()
+    average_card_draw_rate = serializers.FloatField()
+    average_card_loss_rate = serializers.FloatField()  # New field
+    chi_squared_test = ChiSquaredTestSerializer()  # Added field
+
+
+class CommanderStatisticsSerializer(serializers.Serializer):
+    commander_pair_id = serializers.CharField()
+    commander_pair_name = serializers.CharField()
+    total_entries = serializers.IntegerField()
+    total_wins = serializers.IntegerField()
+    total_draws = serializers.IntegerField()
+    total_losses = serializers.IntegerField()  # Added field
+    overall_win_rate = serializers.FloatField()
+    overall_draw_rate = serializers.FloatField()
+    overall_loss_rate = serializers.FloatField()  # New field
+    popularity_over_time = serializers.ListField(
+        child=serializers.DictField(child=serializers.CharField())
+    )
+    commander_winrate_over_time = serializers.ListField(
+        child=serializers.DictField(child=serializers.CharField())
+    )
+    cards = CardStatisticsSerializer(many=True)
+    chi_squared_test = ChiSquaredTestSerializer()  # Added field
+
+
+class CommanderStatisticsResponseSerializer(serializers.Serializer):
+    commanders = CommanderStatisticsSerializer(many=True)

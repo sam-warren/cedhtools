@@ -110,8 +110,7 @@ class MoxfieldCard(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['name']),
-            models.Index(fields=['scryfall_id']),
-            models.Index(fields=['set_code']),
+            models.Index(fields=['unique_card_id']),
         ]
 
 
@@ -210,7 +209,7 @@ class MoxfieldDeck(models.Model):
     deck_tier4_count = models.IntegerField(default=0)
 
     def __str__(self):
-        return self.name
+        return f"Deck {self.id}"
 
 
 class MoxfieldHub(models.Model):
@@ -232,6 +231,11 @@ class MoxfieldBoard(models.Model):
 
     def __str__(self):
         return f"{self.key.capitalize()} Board for {self.deck.name}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['deck']),
+        ]
 
 
 class MoxfieldBoardCard(models.Model):
@@ -258,3 +262,9 @@ class MoxfieldBoardCard(models.Model):
 
     def __str__(self):
         return f"{self.quantity}x {self.card.name} on {self.board.key.capitalize()} Board"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['board']),
+            models.Index(fields=['card']),
+        ]

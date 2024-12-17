@@ -14,6 +14,14 @@ class TopdeckTournament(models. Model):
     def __str__(self):
         return self.tournament_name
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['tid']),
+            models.Index(fields=['start_date']),
+            models.Index(fields=['game']),
+            models.Index(fields=['format'])
+        ]
+
 
 class TopdeckPlayerStanding(models.Model):
     tournament = models.ForeignKey(
@@ -43,6 +51,14 @@ class TopdeckPlayerStanding(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.tournament.tournament_name}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['deck']),
+            models.Index(fields=['decklist']),
+            models.Index(fields=['tournament']),
+            models.Index(fields=['player_id'])
+        ]
 
     def clean(self):
         if self.decklist:
