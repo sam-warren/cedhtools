@@ -1,6 +1,3 @@
--- Drop the existing materialized view if necessary
-DROP MATERIALIZED VIEW IF EXISTS commander_card_stats_mv;
-
 -- Recreate the materialized view
 CREATE MATERIALIZED VIEW commander_card_stats_mv AS
 WITH deck_cards AS (
