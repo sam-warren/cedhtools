@@ -39,7 +39,8 @@ class CommanderStatisticsView(APIView):
         if end_date:
             filters &= Q(start_date__lte=int(end_date))
         if tournament_size:
-            filters &= Q(tournament_size=int(tournament_size))
+            filters &= Q(tournament_size__gte=int(
+                tournament_size))
         if top_cut:
             filters &= Q(top_cut=int(top_cut))
 
