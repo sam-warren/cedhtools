@@ -4,12 +4,16 @@ from .moxfield_models import (
     MoxfieldDeck,
     MoxfieldBoard,
     MoxfieldBoardCard,
-    MoxfieldHub
+    MoxfieldHub,
 )
 
 from .topdeck_models import (
     TopdeckTournament,
     TopdeckPlayerStanding,
+)
+
+from .cedhtools_models import (
+    CommanderCardStats,
 )
 
 __all__ = [
@@ -20,5 +24,6 @@ __all__ = [
     'MoxfieldBoardCard',
     'TopdeckTournament',
     'TopdeckPlayerStanding',
-    'MoxfieldHub'
+    'MoxfieldHub',
+    'CommanderCardStats',
 ]
