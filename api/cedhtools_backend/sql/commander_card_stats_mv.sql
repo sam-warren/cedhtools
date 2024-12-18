@@ -1,3 +1,6 @@
+-- Drop the existing materialized view if necessary
+DROP MATERIALIZED VIEW IF EXISTS commander_card_stats_mv;
+
 -- Recreate the materialized view
 CREATE MATERIALIZED VIEW commander_card_stats_mv AS
 WITH deck_cards AS (
@@ -20,6 +23,7 @@ WITH deck_cards AS (
         mb.key IN ('mainboard', 'companions')  -- Include cards from mainboard and companions
         AND c.legalities->>'commander' = 'legal'  -- Only include cards legal in Commander format
         AND ARRAY(SELECT jsonb_array_elements_text(c.color_identity)) <@ ARRAY(SELECT jsonb_array_elements_text(d.color_identity))  -- Card color identity must be a subset of the deck color identity
+        AND c.type_line NOT ILIKE 'Basic Land%'  -- Exclude basic lands
     GROUP BY
         mb.deck_id, c.id, c.name, c.color_identity, d.color_identity
 ),

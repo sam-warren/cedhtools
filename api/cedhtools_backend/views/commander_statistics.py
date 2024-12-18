@@ -33,7 +33,7 @@ class CommanderStatisticsView(APIView):
         # Build query filters dynamically using Q objects
         filters = Q()
         # Match at least one commander ID
-        filters &= Q(commander_ids__overlap=commander_ids)
+        filters &= Q(commander_ids__exact=sorted(commander_ids))
         if start_date:
             filters &= Q(start_date__gte=int(start_date))
         if end_date:
