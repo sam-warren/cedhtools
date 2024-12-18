@@ -3,6 +3,7 @@ from django.db import models
 
 
 class CommanderCardStats(models.Model):
+    deck_id = models.CharField(max_length=255)
     commander_ids = ArrayField(models.CharField(
         max_length=255))
     commander_names = models.JSONField()

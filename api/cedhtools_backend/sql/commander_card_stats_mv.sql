@@ -4,9 +4,8 @@ CREATE MATERIALIZED VIEW commander_card_stats_mv AS
 WITH deck_cards AS (
     -- Step 1: Gather cards from mainboard and companions, and ensure legality and color identity
     SELECT
-        mb.deck_id,
-        c.id AS card_id,
-        c.unique_card_id, -- Include unique_card_id
+        mb.deck_id,               -- Include deck_id here
+        c.unique_card_id,         -- Unique identifier for the card
         c.name AS card_name,
         ARRAY(SELECT jsonb_array_elements_text(c.color_identity)) AS card_color_identity,  -- Cast card color identity to array
         ARRAY(SELECT jsonb_array_elements_text(d.color_identity)) AS deck_color_identity   -- Cast deck color identity to array
@@ -24,7 +23,7 @@ WITH deck_cards AS (
         AND ARRAY(SELECT jsonb_array_elements_text(c.color_identity)) <@ ARRAY(SELECT jsonb_array_elements_text(d.color_identity))  -- Card color identity must be a subset of the deck color identity
         AND c.type_line NOT LIKE 'Basic Land —%'  -- Exclude basic lands
     GROUP BY
-        mb.deck_id, c.id, c.unique_card_id, c.name, c.color_identity, d.color_identity
+        mb.deck_id, c.unique_card_id, c.name, c.color_identity, d.color_identity
 ),
 tournament_summary AS (
     -- Step 2: Calculate tournament size dynamically
@@ -43,12 +42,11 @@ tournament_summary AS (
 
 -- Step 3: Aggregate commander-card statistics
 SELECT
+    ps.deck_id,               -- Include deck_id from player_standing_mv
     ps.commander_ids,         -- Include commander IDs
     ps.commander_names,       -- Commander names as a single entity
-    dc.card_id,
     dc.unique_card_id,        -- Include unique_card_id
     dc.card_name,
-    COUNT(*) AS total_decks,   -- Total number of decks for this commander-card pair
     AVG(ps.win_rate) AS avg_win_rate,  -- Average win rate
     AVG(ps.draw_rate) AS avg_draw_rate, -- Average draw rate
     ts.tournament_size,        -- Dynamically calculated tournament size
@@ -57,13 +55,13 @@ SELECT
 FROM
     player_standing_mv ps
 JOIN
-    deck_cards dc ON ps.deck_id = dc.deck_id
+    deck_cards dc ON ps.deck_id = dc.deck_id  -- Join on deck_id
 JOIN
     tournament_summary ts ON ps.tournament_id = ts.tournament_id
 GROUP BY
+    ps.deck_id,               -- Group by deck_id
     ps.commander_ids,
     ps.commander_names,
-    dc.card_id,
     dc.unique_card_id,
     dc.card_name,
     ts.tournament_size,
