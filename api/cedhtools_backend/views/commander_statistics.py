@@ -32,7 +32,7 @@ class CommanderStatisticsView(APIView):
 
         # Build query filters dynamically using Q objects
         filters = Q()
-        # Match at least one commander ID
+        # Match exact commander ID combinations using sorted arrays
         filters &= Q(commander_ids__exact=sorted(commander_ids))
         if start_date:
             filters &= Q(start_date__gte=int(start_date))
@@ -45,7 +45,8 @@ class CommanderStatisticsView(APIView):
 
         # Query for commander-level statistics
         commander_stats = CommanderCardStats.objects.filter(filters).aggregate(
-            total_decks=Count("card_name"),
+            # Count decks based on unique card IDs
+            total_decks=Count("unique_card_id"),
             avg_win_rate=Avg("avg_win_rate"),
             avg_draw_rate=Avg("avg_draw_rate"),
         )
@@ -57,9 +58,10 @@ class CommanderStatisticsView(APIView):
 
         # Query for individual card statistics
         card_stats = CommanderCardStats.objects.filter(filters).values(
+            "unique_card_id",
             "card_name"
         ).annotate(
-            total_decks=Count("card_name"),
+            total_decks=Count("unique_card_id"),  # Count per unique_card_id
             avg_win_rate=Avg("avg_win_rate"),
             avg_draw_rate=Avg("avg_draw_rate")
         ).order_by("-avg_win_rate")
@@ -85,8 +87,7 @@ class CommanderStatisticsView(APIView):
                 # Non-uniform expected counts: 25% wins, 0% draws, 75% losses (with epsilon adjustment)
                 expected = [
                     total_card_decks * 0.25 + epsilon,  # Expected 25% wins
-                    # Expected 0% draws (adjusted)
-                    total_card_decks * 0.0 + epsilon,
+                    total_card_decks * 0.0 + epsilon,   # Expected 0% draws
                     total_card_decks * 0.75 + epsilon   # Expected 75% losses
                 ]
 
@@ -96,6 +97,7 @@ class CommanderStatisticsView(APIView):
                 chi2, p_value = None, None
 
             card_stats_list.append({
+                "unique_card_id": card["unique_card_id"],  # Unique card ID
                 "card_name": card["card_name"],
                 "total_decks": total_card_decks,
                 "avg_win_rate": win_rate,

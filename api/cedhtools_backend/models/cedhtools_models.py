@@ -7,6 +7,7 @@ class CommanderCardStats(models.Model):
         max_length=255))
     commander_names = models.JSONField()
     card_id = models.CharField(max_length=255)
+    unique_card_id = models.CharField(max_length=255)
     card_name = models.CharField(max_length=255)
     total_decks = models.IntegerField()
     avg_win_rate = models.FloatField()

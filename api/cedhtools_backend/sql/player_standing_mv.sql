@@ -1,5 +1,5 @@
 -- Create the materialized view for player standings with commander and tournament details
-CREATE MATERIALIZED VIEW playerstanding_mv AS
+CREATE MATERIALIZED VIEW player_standing_mv AS
 
 WITH deck_commanders AS (
     -- Step 1: Identify the commander IDs and names for each deck using the commanders board

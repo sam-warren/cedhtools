@@ -7,6 +7,6 @@ urlpatterns = [
          MoxfieldDeckView.as_view(), name='moxfield_deck'),
     path('topdeck/tournament/<str:tournament_id>/',
          TopdeckTournamentView.as_view(), name='topdeck_tournament'),
-    path('cedhtools/commanders/', CommanderStatisticsView.as_view(),
+    path('cedhtools/commander/statistics/', CommanderStatisticsView.as_view(),
          name='commander-statistics'),
 ]
