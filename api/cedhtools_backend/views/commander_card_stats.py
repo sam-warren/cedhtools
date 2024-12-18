@@ -6,8 +6,6 @@ from django.db.models import Avg, Q, Count
 from scipy.stats import chi2_contingency
 from ..models import CommanderCardStats
 
-import numpy as np  # Import NumPy for epsilon handling
-
 
 class CommanderStatisticsView(APIView):
     """
