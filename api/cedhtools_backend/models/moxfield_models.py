@@ -24,6 +24,9 @@ class MoxfieldAuthor(models.Model):
     profile_image_url = models.URLField(null=True, max_length=511, blank=True)
     badges = models.JSONField(default=list, blank=True)
 
+    class Meta:
+        db_table = 'moxfield_author'
+
     def __str__(self):
         return self.username
 
@@ -108,6 +111,7 @@ class MoxfieldCard(models.Model):
         return self.name
 
     class Meta:
+        db_table = 'moxfield_card'
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['unique_card_id']),
@@ -129,6 +133,9 @@ class MoxfieldCardFace(models.Model):
     color_indicator = models.JSONField(default=list, blank=True)
     flavor_text = models.TextField(null=True, blank=True)
     image_seq = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'moxfield_card_face'
 
     def __str__(self):
         return f"{self.name} - {self.card.name}"
@@ -208,6 +215,9 @@ class MoxfieldDeck(models.Model):
     deck_tier3_count = models.IntegerField(default=0)
     deck_tier4_count = models.IntegerField(default=0)
 
+    class Meta:
+        db_table = 'moxfield_deck'
+
     def __str__(self):
         return f"Deck {self.id}"
 
@@ -215,6 +225,9 @@ class MoxfieldDeck(models.Model):
 class MoxfieldHub(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'moxfield_hub'
 
     def __str__(self):
         return self.name
@@ -233,6 +246,7 @@ class MoxfieldBoard(models.Model):
         return f"{self.key.capitalize()} Board for {self.deck.name}"
 
     class Meta:
+        db_table = 'moxfield_board'
         indexes = [
             models.Index(fields=['deck']),
         ]
@@ -264,6 +278,7 @@ class MoxfieldBoardCard(models.Model):
         return f"{self.quantity}x {self.card.name} on {self.board.key.capitalize()} Board"
 
     class Meta:
+        db_table = 'moxfield_board_card'
         indexes = [
             models.Index(fields=['board']),
             models.Index(fields=['card']),

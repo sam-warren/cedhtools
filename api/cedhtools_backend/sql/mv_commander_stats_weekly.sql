@@ -1,6 +1,6 @@
-DROP MATERIALIZED VIEW IF EXISTS commander_statistics_by_week;
+DROP MATERIALIZED VIEW IF EXISTS mv_commander_stats_weekly;
 
-CREATE MATERIALIZED VIEW commander_statistics_by_week AS
+CREATE MATERIALIZED VIEW mv_commander_stats_weekly AS
 WITH weekly_summary AS (
     SELECT
         ps.commander_ids,         -- Commander IDs array
@@ -10,7 +10,7 @@ WITH weekly_summary AS (
         AVG(ps.win_rate) AS avg_win_rate,           -- Average win rate
         AVG(ps.draw_rate) AS avg_draw_rate          -- Average draw rate
     FROM
-        player_standing_mv ps
+        mv_player_standings ps
     WHERE
         ps.deck_id IS NOT NULL  -- Exclude entries without a deck
     GROUP BY
@@ -29,3 +29,14 @@ FROM
     weekly_summary
 ORDER BY
     week, commander_names;
+
+CREATE INDEX IF NOT EXISTS idx_mv_commander_stats_weekly_week
+ON mv_commander_stats_weekly (week);
+
+CREATE INDEX IF NOT EXISTS idx_mv_commander_stats_weekly_commander_ids
+ON mv_commander_stats_weekly
+USING GIN (commander_ids);
+
+CREATE INDEX IF NOT EXISTS idx_mv_commander_stats_weekly_commander_names
+ON mv_commander_stats_weekly
+USING GIN (commander_names)

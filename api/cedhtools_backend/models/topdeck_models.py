@@ -15,6 +15,7 @@ class TopdeckTournament(models. Model):
         return self.tournament_name
 
     class Meta:
+        db_table = 'topdeck_tournament'
         indexes = [
             models.Index(fields=['tid']),
             models.Index(fields=['start_date']),
@@ -53,6 +54,7 @@ class TopdeckPlayerStanding(models.Model):
         return f"{self.name} - {self.tournament.tournament_name}"
 
     class Meta:
+        db_table = 'topdeck_player_standing'
         indexes = [
             models.Index(fields=['deck']),
             models.Index(fields=['decklist']),

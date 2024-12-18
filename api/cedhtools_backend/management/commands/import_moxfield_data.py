@@ -1,5 +1,3 @@
-# cedhtools_backend/management/commands/import_decklist_data.py
-
 import logging
 import requests
 import os

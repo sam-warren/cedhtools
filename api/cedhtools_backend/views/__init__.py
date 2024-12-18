@@ -6,7 +6,7 @@ from .topdeck_tournament import (
     TopdeckTournamentView,
 )
 
-from .commander_statistics import (
+from .commander_card_stats import (
     CommanderStatisticsView,
 )
 

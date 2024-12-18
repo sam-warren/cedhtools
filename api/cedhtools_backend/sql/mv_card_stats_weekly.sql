@@ -12,9 +12,9 @@ WITH weekly_card_summary AS (
         AVG(ps.win_rate) AS avg_win_rate,           -- Average win rate when this card is included
         AVG(ps.draw_rate) AS avg_draw_rate          -- Average draw rate when this card is included
     FROM
-        player_standing_mv ps
+        mv_player_standings ps
     JOIN
-        commander_card_stats_mv ccs ON ps.deck_id = ccs.deck_id  -- Join on deck_id
+        mv_commander_card_stats ccs ON ps.deck_id = ccs.deck_id  -- Join on deck_id
     WHERE
         ccs.deck_id IS NOT NULL  -- Exclude entries without a deck
     GROUP BY
@@ -37,3 +37,17 @@ FROM
     weekly_card_summary
 ORDER BY
     week, commander_names, card_name;
+
+CREATE INDEX IF NOT EXISTS idx_mv_card_stats_weekly_unique_card_id
+ON mv_card_stats_weekly (unique_card_id);
+
+CREATE INDEX IF NOT EXISTS idx_mv_card_stats_weekly_week
+ON mv_card_stats_weekly (week);
+
+CREATE INDEX IF NOT EXISTS idx_mv_card_stats_weekly_commander_ids
+ON mv_card_stats_weekly
+USING GIN (commander_ids);
+
+CREATE INDEX IF NOT EXISTS idx_mv_card_stats_weekly_commander_names
+ON mv_card_stats_weekly
+USING GIN (commander_names);

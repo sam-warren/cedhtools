@@ -1,5 +1,7 @@
+DROP MATERIALIZED VIEW IF EXISTS mv_player_standings;
+
 -- Create the materialized view for player standings with commander and tournament details
-CREATE MATERIALIZED VIEW player_standing_mv AS
+CREATE MATERIALIZED VIEW mv_player_standings AS
 
 WITH deck_commanders AS (
     -- Step 1: Identify the commander IDs and names for each deck using the commanders board
@@ -8,11 +10,11 @@ WITH deck_commanders AS (
         ARRAY_AGG(DISTINCT c.unique_card_id ORDER BY c.unique_card_id) AS commander_ids, -- Sorted array of commander IDs
         ARRAY_AGG(DISTINCT c.name ORDER BY c.name) AS commander_names -- Sorted array of commander names
     FROM
-        cedhtools_backend_moxfieldboard mb
+        moxfield_board mb
     JOIN
-        cedhtools_backend_moxfieldboardcard mbc ON mb.id = mbc.board_id
+        moxfield_board_card mbc ON mb.id = mbc.board_id
     JOIN
-        cedhtools_backend_moxfieldcard c ON mbc.card_id = c.id
+        moxfield_card c ON mbc.card_id = c.id
     WHERE
         mb.key = 'commanders'  -- Only consider boards with key='commanders'
     GROUP BY
@@ -26,9 +28,9 @@ tournament_summary AS (
         t.top_cut,
         COUNT(ps.id) AS num_players  -- Aggregate player count for tournament size
     FROM
-        cedhtools_backend_topdecktournament t
+        topdeck_tournament t
     LEFT JOIN
-        cedhtools_backend_topdeckplayerstanding ps ON t.id = ps.tournament_id
+        topdeck_player_standing ps ON t.id = ps.tournament_id
     GROUP BY
         t.id, t.start_date, t.top_cut
 )
@@ -55,10 +57,27 @@ SELECT
         ELSE ps.draws::FLOAT / (ps.wins + ps.draws + ps.losses)
     END AS draw_rate          -- Draw rate: draws / total rounds
 FROM
-    cedhtools_backend_topdeckplayerstanding ps
+    topdeck_player_standing ps
 LEFT JOIN
     deck_commanders dc ON ps.deck_id = dc.deck_id
 LEFT JOIN
     tournament_summary ts ON ps.tournament_id = ts.tournament_id
 WHERE
     ps.deck_id IS NOT NULL;  -- Skip player standings where deck_id is NULL
+
+CREATE INDEX IF NOT EXISTS idx_mv_player_standings_playerstanding_id
+ON mv_player_standings (playerstanding_id);
+
+CREATE INDEX IF NOT EXISTS idx_mv_player_standings_tournament_id
+ON mv_player_standings (tournament_id);
+
+CREATE INDEX IF NOT EXISTS idx_mv_player_standings_deck_id
+ON mv_player_standings (deck_id);
+
+CREATE INDEX IF NOT EXISTS idx_mv_player_standings_commander_ids
+ON mv_player_standings
+USING GIN (commander_ids);
+
+CREATE INDEX IF NOT EXISTS idx_mv_player_standings_commander_names
+ON mv_player_standings
+USING GIN (commander_names);

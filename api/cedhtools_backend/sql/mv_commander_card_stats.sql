@@ -1,6 +1,6 @@
-DROP MATERIALIZED VIEW IF EXISTS commander_card_stats_mv;
+DROP MATERIALIZED VIEW IF EXISTS mv_commander_card_stats;
 
-CREATE MATERIALIZED VIEW commander_card_stats_mv AS
+CREATE MATERIALIZED VIEW mv_commander_card_stats AS
 WITH deck_cards AS (
     -- Step 1: Gather cards from mainboard and companions, and ensure legality and color identity
     SELECT
@@ -10,13 +10,13 @@ WITH deck_cards AS (
         ARRAY(SELECT jsonb_array_elements_text(c.color_identity)) AS card_color_identity,  -- Cast card color identity to array
         ARRAY(SELECT jsonb_array_elements_text(d.color_identity)) AS deck_color_identity   -- Cast deck color identity to array
     FROM
-        cedhtools_backend_moxfieldboard mb
+        moxfield_board mb
     JOIN
-        cedhtools_backend_moxfieldboardcard mbc ON mb.id = mbc.board_id
+        moxfield_board_card mbc ON mb.id = mbc.board_id
     JOIN
-        cedhtools_backend_moxfieldcard c ON mbc.card_id = c.id
+        moxfield_card c ON mbc.card_id = c.id
     JOIN
-        cedhtools_backend_moxfielddeck d ON mb.deck_id = d.id
+        moxfield_deck d ON mb.deck_id = d.id
     WHERE
         mb.key IN ('mainboard', 'companions')  -- Include cards from mainboard and companions
         AND c.legalities->>'commander' = 'legal'  -- Only include cards legal in Commander format
@@ -33,16 +33,17 @@ tournament_summary AS (
         t.top_cut,
         COUNT(ps.id) AS tournament_size  -- Tournament size = total player standings
     FROM
-        cedhtools_backend_topdecktournament t
+        topdeck_tournament t
     LEFT JOIN
-        cedhtools_backend_topdeckplayerstanding ps ON t.id = ps.tournament_id
+        topdeck_player_standing ps ON t.id = ps.tournament_id
     GROUP BY
         t.id, t.start_date, t.top_cut
 )
 
 -- Step 3: Aggregate commander-card statistics
 SELECT
-    ps.deck_id,               -- Include deck_id from player_standing_mv
+    ps.deck_id,               -- Include deck_id from mv_player_standings
+    ps.tournament_id,         -- Include tournament_id
     ps.commander_ids,         -- Include commander IDs
     ps.commander_names,       -- Commander names as a single entity
     dc.unique_card_id,        -- Include unique_card_id
@@ -53,13 +54,14 @@ SELECT
     ts.start_date,
     ts.top_cut
 FROM
-    player_standing_mv ps
+    mv_player_standings ps
 JOIN
     deck_cards dc ON ps.deck_id = dc.deck_id  -- Join on deck_id
 JOIN
     tournament_summary ts ON ps.tournament_id = ts.tournament_id
 GROUP BY
     ps.deck_id,               -- Group by deck_id
+    ps.tournament_id,         -- Group by tournament_id
     ps.commander_ids,
     ps.commander_names,
     dc.unique_card_id,
@@ -67,3 +69,38 @@ GROUP BY
     ts.tournament_size,
     ts.start_date,
     ts.top_cut;
+
+
+-- 2.1. Index on deck_id (B-tree)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_deck_id
+ON mv_commander_card_stats (deck_id);
+
+-- 2.2. Index on tournament_id (B-tree)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_tournament_id
+ON mv_commander_card_stats (tournament_id);
+
+-- 2.3. GIN Index on commander_ids (ArrayField)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_commander_ids
+ON mv_commander_card_stats
+USING GIN (commander_ids);
+
+-- 2.4. GIN Index on commander_names (JSONField)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_commander_names
+ON mv_commander_card_stats
+USING GIN (commander_names);
+
+-- 2.5. Index on card_id (B-tree)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_card_id
+ON mv_commander_card_stats (card_id);
+
+-- 2.6. Index on unique_card_id (B-tree)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_unique_card_id
+ON mv_commander_card_stats (unique_card_id);
+
+-- 2.7. Index on start_date (B-tree)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_start_date
+ON mv_commander_card_stats (start_date);
+
+-- 2.8. Index on top_cut (B-tree)
+CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_top_cut
+ON mv_commander_card_stats (top_cut);
