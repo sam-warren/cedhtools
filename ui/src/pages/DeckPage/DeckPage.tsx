@@ -1,3 +1,4 @@
+import { Skeleton } from '@mui/joy';
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import { useEffect, useState } from 'react';
@@ -59,7 +60,7 @@ export default function DeckPage() {
             setLoading(false);
           } else {
             console.error('Failed to fetch deck statistics', response.error);
-            showAlert('Failed to fetch deck statistics', 'danger')
+            showAlert('Failed to fetch deck statistics', 'danger');
             setLoading(false);
           }
         }
@@ -71,10 +72,36 @@ export default function DeckPage() {
     }
   };
 
-  if (!deck) {
+  if (!deck || !deckStats) {
     return (
       <Box sx={{ p: 4 }}>
-        <Typography level="h2">Loading...</Typography>
+        {/* Skeleton for deck title */}
+        <Skeleton
+          variant="rectangular"
+          sx={{ width: '60%', height: '2rem', mb: 2 }}
+        />
+
+        {/* Skeleton for deck description (2 lines) */}
+        <Skeleton variant="text" sx={{ width: '90%', mb: 1 }} />
+        <Skeleton variant="text" sx={{ width: '80%', mb: 4 }} />
+
+        {/* Skeleton for "Main Deck" heading */}
+        <Skeleton
+          variant="rectangular"
+          sx={{ width: '30%', height: '1.5rem', mb: 2 }}
+        />
+
+        {/* Skeleton for a few deck cards (simulate a list of cards) */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+          <Skeleton variant="rectangular" width="63" height="88" />
+        </Box>
       </Box>
     );
   }

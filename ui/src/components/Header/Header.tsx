@@ -1,3 +1,4 @@
+import { Typography } from '@mui/joy';
 import Box from '@mui/joy/Box';
 import Button from '@mui/joy/Button';
 import Stack from '@mui/joy/Stack';
@@ -12,9 +13,11 @@ export default function Header() {
         sx={{
           justifyContent: 'center',
           alignItems: 'center',
+          gap: 2,
           display: { xs: 'none', sm: 'flex' },
         }}
       >
+        <Typography level="title-lg">cedhtools</Typography>
         <Button
           variant="plain"
           color="neutral"
@@ -23,7 +26,7 @@ export default function Header() {
           size="lg"
           sx={{ alignSelf: 'center' }}
         >
-          Home
+          search
         </Button>
       </Stack>
       <ColorSchemeToggle />
