@@ -3,15 +3,20 @@ import { useAlert } from 'contexts/AlertContext';
 import Box from '@mui/joy/Box';
 import Alert from '@mui/joy/Alert';
 import { AlertSeverity } from 'src/types';
+import { IconButton } from '@mui/joy';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import InfoIcon from '@mui/icons-material/Info';
+import DangerousIcon from '@mui/icons-material/Dangerous';
+import WarningIcon from '@mui/icons-material/Warning';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export const AppAlert: React.FC = () => {
   const { alerts, removeAlert } = useAlert();
 
   useEffect(() => {
     if (alerts.length > 0) {
-      // Auto-remove each alert after 3 seconds
       const timers = alerts.map((alert) =>
-        setTimeout(() => removeAlert(alert.id), 3000),
+        setTimeout(() => removeAlert(alert.id), 5000),
       );
       return () => timers.forEach((timer) => clearTimeout(timer));
     }
@@ -22,15 +27,15 @@ export const AppAlert: React.FC = () => {
   const getStartDecorator = (severity: AlertSeverity) => {
     switch (severity) {
       case 'primary':
-        return <Box sx={{ fontSize: 24, color: 'primary.main' }}>🚀</Box>;
+        return <InfoIcon />;
       case 'success':
-        return <Box sx={{ fontSize: 24, color: 'success.main' }}>🎉</Box>;
+        return <CheckCircleIcon />;
       case 'warning':
-        return <Box sx={{ fontSize: 24, color: 'warning.main' }}>⚠️</Box>;
+        return <WarningIcon />;
       case 'danger':
-        return <Box sx={{ fontSize: 24, color: 'error.main' }}>🚨</Box>;
+        return <DangerousIcon />;
       case 'neutral':
-        return <Box sx={{ fontSize: 24, color: 'info.main' }}>ℹ️</Box>;
+        return <InfoIcon />;
       default:
         return null;
     }
@@ -40,15 +45,14 @@ export const AppAlert: React.FC = () => {
     <Box
       sx={{
         position: 'fixed',
-        top: 80, // adjust as needed
-        left: '50%',
-        transform: 'translateX(-50%)',
+        top: 10,
+        right: 10,
         zIndex: 2000,
         display: 'flex',
         flexDirection: 'column',
         gap: 1,
-        width: 'calc(100% - 40px)',
-        maxWidth: '600px',
+        width: '350px',
+        maxWidth: '350px',
       }}
     >
       {alerts.map((alert) => (
@@ -57,7 +61,21 @@ export const AppAlert: React.FC = () => {
           variant="soft"
           color={alert.severity}
           startDecorator={getStartDecorator(alert.severity)}
-          sx={{ justifyContent: 'space-between' }}
+          endDecorator={
+            <IconButton
+              variant="soft"
+              color={alert.severity}
+              onClick={() => removeAlert(alert.id)}
+            >
+              <CloseRoundedIcon />
+            </IconButton>
+          }
+          sx={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+          }}
         >
           {alert.message}
         </Alert>

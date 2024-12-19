@@ -71,36 +71,25 @@ GROUP BY
     ts.top_cut;
 
 
--- 2.1. Index on deck_id (B-tree)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_deck_id
 ON mv_commander_card_stats (deck_id);
 
--- 2.2. Index on tournament_id (B-tree)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_tournament_id
 ON mv_commander_card_stats (tournament_id);
 
--- 2.3. GIN Index on commander_ids (ArrayField)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_commander_ids
 ON mv_commander_card_stats
 USING GIN (commander_ids);
 
--- 2.4. GIN Index on commander_names (JSONField)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_commander_names
 ON mv_commander_card_stats
 USING GIN (commander_names);
 
--- 2.5. Index on card_id (B-tree)
-CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_card_id
-ON mv_commander_card_stats (card_id);
-
--- 2.6. Index on unique_card_id (B-tree)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_unique_card_id
 ON mv_commander_card_stats (unique_card_id);
 
--- 2.7. Index on start_date (B-tree)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_start_date
 ON mv_commander_card_stats (start_date);
 
--- 2.8. Index on top_cut (B-tree)
 CREATE INDEX IF NOT EXISTS idx_mv_commander_card_stats_top_cut
 ON mv_commander_card_stats (top_cut);

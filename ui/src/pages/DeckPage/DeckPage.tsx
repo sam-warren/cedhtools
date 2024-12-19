@@ -19,54 +19,57 @@ export default function DeckPage() {
   const { showAlert } = useAlert();
 
   useEffect(() => {
-    showAlert('This is a test alert', 'danger');
-    setLoading(true);
-    if (id) {
+    if (id && !deck) {
       const fetchDeck = async () => {
         try {
+          setLoading(true);
           const response: IApiResponse<IMoxfieldDeck> =
             await getDecklistById(id);
           if (response.success) {
             setDeck(response.data);
+            fetchCommanderStats(response.data);
             addSearch({
               name: response.data.name,
               publicId: response.data.publicId,
               publicUrl: response.data.publicUrl,
             });
           } else {
-            console.error('Failed to fetch deck: ', response.error);
+            showAlert('Failed to fetch deck from Moxfield', 'danger');
+            setLoading(false);
           }
         } catch (err: any) {
-          console.error('Failed to fetch deck: ', err.message);
+          showAlert('Failed to fetch deck from Moxfield', 'danger');
+          setLoading(false);
         }
       };
       fetchDeck();
     }
   }, []);
 
-  useEffect(() => {
-    if (deck) {
+  const fetchCommanderStats = async (deck: IMoxfieldDeck) => {
+    if (!deckStats) {
       try {
         const commander_ids = Object.keys(deck.boards['commanders']['cards']);
         if (commander_ids && commander_ids.length > 0) {
-          getDeckStats(commander_ids).then(
-            (response: IApiResponse<ICommanderStats>) => {
-              if (response.success) {
-                console.log('deck stats: ', response.data);
-                setDeckStats(response.data);
-              } else {
-                console.error('Failed to fetch deck stats: ', response.error);
-              }
-            },
-          );
+          const response: IApiResponse<ICommanderStats> =
+            await getDeckStats(commander_ids);
+          if (response.success) {
+            console.log('Deck stats: ', response.data);
+            setDeckStats(response.data);
+            setLoading(false);
+          } else {
+            console.error('Failed to fetch deck statistics', response.error);
+            showAlert('Failed to fetch deck statistics', 'danger')
+            setLoading(false);
+          }
         }
       } catch (err: any) {
-        console.error('Failed to fetch deck stats: ', err.message);
-      } finally {
+        showAlert('Failed to fetch deck statistics', 'danger');
         setLoading(false);
+        console.error('Failed to fetch deck statistics', err.message);
       }
     }
-  }, [deck]);
+  };
 
   if (!deck) {
     return (

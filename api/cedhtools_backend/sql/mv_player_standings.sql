@@ -19,6 +19,7 @@ WITH deck_commanders AS (
         mb.key = 'commanders'  -- Only consider boards with key='commanders'
     GROUP BY
         mb.deck_id
+    HAVING COUNT(mbc.card_id) > 0  -- Skip boards without commanders
 ),
 tournament_summary AS (
     -- Step 2: Calculate tournament size, top cut, and start date directly
@@ -58,7 +59,7 @@ SELECT
     END AS draw_rate          -- Draw rate: draws / total rounds
 FROM
     topdeck_player_standing ps
-LEFT JOIN
+JOIN
     deck_commanders dc ON ps.deck_id = dc.deck_id
 LEFT JOIN
     tournament_summary ts ON ps.tournament_id = ts.tournament_id

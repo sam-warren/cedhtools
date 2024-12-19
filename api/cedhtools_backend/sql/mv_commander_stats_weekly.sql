@@ -18,7 +18,8 @@ WITH weekly_summary AS (
         ps.commander_names,
         week
 )
-SELECT
+select
+    ROW_NUMBER() OVER (ORDER BY week, commander_names) AS id, -- Add a synthetic primary key
     commander_ids,
     commander_names,
     week,

@@ -55,7 +55,9 @@ class PlayerStandings(models.Model):
 
 
 class CommanderStatsWeekly(models.Model):
-    commander_ids = models.JSONField()  # JSON field for array of commander IDs
+    id = models.IntegerField(primary_key=True)
+    commander_ids = ArrayField(models.CharField(
+        max_length=255))
     commander_names = models.JSONField()  # JSON field for array of commander names
     week = models.DateField()  # Weekly date
     total_decks = models.IntegerField()  # Total decks
@@ -68,7 +70,9 @@ class CommanderStatsWeekly(models.Model):
 
 
 class CardStatsWeekly(models.Model):
-    commander_ids = models.JSONField()  # JSON field for array of commander IDs
+    id = models.IntegerField(primary_key=True)
+    commander_ids = ArrayField(models.CharField(
+        max_length=255))
     commander_names = models.JSONField()  # JSON field for array of commander names
     unique_card_id = models.CharField(max_length=255)  # Unique card identifier
     card_name = models.CharField(max_length=255)  # Card name

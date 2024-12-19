@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.db.models import Avg, Q, Count
 from scipy.stats import chi2_contingency
-from ..models import CommanderCardStats
+from ..models import CommanderCardStats, CommanderStatsWeekly, CardStatsWeekly
 
 
 class CommanderStatisticsView(APIView):
@@ -80,6 +80,16 @@ class CommanderStatisticsView(APIView):
             avg_draw_rate=Avg("avg_draw_rate")
         ).order_by("-avg_win_rate")  # Order cards by descending average win rate
 
+        # Need to also fetch weekly commander stats, i.e. fetch all rows for that commander from CommanderStatsWeekly (avg_win_rate, avg_draw_rate, total_decks)
+        weekly_commander_stats = CommanderStatsWeekly.objects.filter(
+            commander_ids__exact=sorted(commander_ids)
+        ).values(
+            "week",
+            "total_decks",
+            "avg_win_rate",
+            "avg_draw_rate"
+        )
+
         # Compute Chi-squared test for each card to determine statistical significance
         card_stats_list = []  # Initialize list to store processed card statistics
         epsilon = 1e-6  # Small value to avoid division by zero or zero expected counts
@@ -113,6 +123,18 @@ class CommanderStatisticsView(APIView):
             else:
                 chi2, p_value = None, None  # No Chi-squared test if no decks include the card
 
+            # Query for weekly statistics for each card
+            # Each card will have data from every week from June 1 2022 onwards with that card's average winrate, draw rate, inclusion rate
+            card_stats_weekly = CardStatsWeekly.objects.filter(
+                commander_ids__exact=sorted(commander_ids),
+                unique_card_id=card["unique_card_id"]
+            ).values(
+                "week",
+                "total_decks",
+                "avg_win_rate",
+                "avg_draw_rate"
+            )
+
             # Add the processed card statistics to the list
             card_stats_list.append({
                 "unique_card_id": card["unique_card_id"],  # Unique card ID
@@ -122,6 +144,7 @@ class CommanderStatisticsView(APIView):
                 "avg_draw_rate": draw_rate,               # Average draw rate
                 "chi_squared": chi2,                      # Chi-squared statistic
                 "p_value": p_value,                       # P-value for the Chi-squared test
+                "card_stats_weekly": card_stats_weekly,
                 # True if p-value < 0.05
                 "statistically_significant": p_value is not None and p_value < 0.05
             })
@@ -132,5 +155,6 @@ class CommanderStatisticsView(APIView):
             "total_decks": total_decks,      # Total number of decks matching the filters
             "avg_win_rate": avg_win_rate,   # Aggregated average win rate across all decks
             "avg_draw_rate": avg_draw_rate,  # Aggregated average draw rate across all decks
+            "commander_stats_weekly": weekly_commander_stats,
             "card_statistics": card_stats_list,  # Detailed statistics for individual cards
         }, status=status.HTTP_200_OK)

@@ -1,6 +1,6 @@
-DROP MATERIALIZED VIEW IF EXISTS card_statistics_by_week;
+DROP MATERIALIZED VIEW IF EXISTS mv_card_stats_weekly;
 
-CREATE MATERIALIZED VIEW card_statistics_by_week AS
+CREATE MATERIALIZED VIEW mv_card_stats_weekly AS
 WITH weekly_card_summary AS (
     SELECT
         ccs.commander_ids,        -- Commander IDs array
@@ -25,6 +25,7 @@ WITH weekly_card_summary AS (
         week
 )
 SELECT
+    ROW_NUMBER() OVER (ORDER BY week, commander_names, card_name) AS id, -- add a synthetic primary key
     commander_ids,
     commander_names,
     unique_card_id,

@@ -24,7 +24,6 @@ export default function Search() {
   };
 
   const handleDecklist = async () => {
-    setLoading(true);
     setServerErrorMessage('');
     const valid = validateUrl(inputValue);
     setIsValid(valid);
@@ -32,6 +31,7 @@ export default function Search() {
       const id = inputValue.split('/').pop()?.toString();
       if (id) {
         try {
+          setLoading(true);
           const response: IApiResponse<IMoxfieldDeck> =
             await getDecklistById(id);
           if (response.success) {
@@ -39,13 +39,12 @@ export default function Search() {
           } else {
             setServerErrorMessage(response.error);
             setIsValid(false);
-            setLoading(false);
           }
         } catch (err: any) {
           setServerErrorMessage(err.message || 'An error occurred');
           setIsValid(false);
-          setLoading(false);
         } finally {
+          setLoading(false);
         }
       }
     }
