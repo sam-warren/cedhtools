@@ -15,7 +15,7 @@ export default function LandingPage() {
         height: '100%',
         textAlign: 'center',
         px: 2,
-        pt: 'calc(100vh * 0.15)',
+        pt: { xs: 4, sm: 8 },
       }}
     >
       <Box
@@ -50,7 +50,7 @@ export default function LandingPage() {
           width: '100%',
           height: '100%',
           px: 2,
-          pb: 'calc(100vh * 0.02)',
+          pb: 2,
         }}
       >
         <SearchHistory />

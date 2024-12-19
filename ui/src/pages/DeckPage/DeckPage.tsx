@@ -2,19 +2,25 @@ import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAlert } from 'src/contexts/AlertContext';
+import { useLoading } from 'src/contexts/LoadingContext';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
+import { getDeckStats } from 'src/services';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
-import { IApiResponse, IMoxfieldDeck } from 'src/types';
+import { IApiResponse, ICommanderStats, IMoxfieldDeck } from 'src/types';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
   const [deck, setDeck] = useState<IMoxfieldDeck | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [deckStats, setDeckStats] = useState<ICommanderStats | null>(null);
 
   const { addSearch } = useSearchHistory();
+  const { setLoading } = useLoading();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
+    showAlert('This is a test alert', 'danger');
+    setLoading(true);
     if (id) {
       const fetchDeck = async () => {
         try {
@@ -28,38 +34,44 @@ export default function DeckPage() {
               publicUrl: response.data.publicUrl,
             });
           } else {
-            setError(response.error);
+            console.error('Failed to fetch deck: ', response.error);
           }
         } catch (err: any) {
-          setError(err.message || 'An error occurred');
-        } finally {
-          // setLoading(false);
+          console.error('Failed to fetch deck: ', err.message);
         }
       };
       fetchDeck();
     }
-  }, [id, addSearch]);
+  }, []);
 
-  if (loading) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography>Loading...</Typography>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography color="danger">Error: {error}</Typography>
-      </Box>
-    );
-  }
+  useEffect(() => {
+    if (deck) {
+      try {
+        const commander_ids = Object.keys(deck.boards['commanders']['cards']);
+        if (commander_ids && commander_ids.length > 0) {
+          getDeckStats(commander_ids).then(
+            (response: IApiResponse<ICommanderStats>) => {
+              if (response.success) {
+                console.log('deck stats: ', response.data);
+                setDeckStats(response.data);
+              } else {
+                console.error('Failed to fetch deck stats: ', response.error);
+              }
+            },
+          );
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch deck stats: ', err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [deck]);
 
   if (!deck) {
     return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography color="neutral">Deck not found.</Typography>
+      <Box sx={{ p: 4 }}>
+        <Typography level="h2">Loading...</Typography>
       </Box>
     );
   }

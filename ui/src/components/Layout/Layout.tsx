@@ -10,11 +10,30 @@ function Root(props: BoxProps) {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            sm: 'minmax(64px, 200px) 1fr',
-            md: 'minmax(160px, 300px) 1fr 1fr',
+            sm: '1fr',
+            // sm: '1fr 1fr',
+            // md: 'minmax(160px, 300px) 1fr 1fr',
           },
-          gridTemplateRows: '64px 1fr 64px',
+          gridTemplateRows: '64px auto 1fr 64px',
           minHeight: '100vh',
+        },
+        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
+      ]}
+    />
+  );
+}
+
+function Loader(props: BoxProps) {
+  return (
+    <Box
+      className="AppLoader"
+      {...props}
+      sx={[
+        {
+          display: 'flex',
+          width: '100%',
+          height: '4px',
+          position: 'sticky',
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
       ]}
@@ -94,6 +113,7 @@ function Footer(props: BoxProps) {
 export default {
   Root,
   Header,
+  Loader,
   Main,
   Footer,
 };

@@ -19,8 +19,8 @@ export default function SearchHistory() {
   return (
     <Box
       sx={{
+        maxWidth: { xs: '100%', sm: '700px' },
         width: '100%',
-        maxWidth: '700px',
         mt: 4,
       }}
     >

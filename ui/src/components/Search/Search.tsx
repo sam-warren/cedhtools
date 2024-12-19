@@ -5,6 +5,7 @@ import Input from '@mui/joy/Input';
 import Typography from '@mui/joy/Typography';
 import { ChangeEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLoading } from 'src/contexts/LoadingContext';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
 import { IMoxfieldDeck } from 'src/types';
 import { IApiResponse } from 'src/types/api';
@@ -12,10 +13,10 @@ import { IApiResponse } from 'src/types/api';
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
   const [isValid, setIsValid] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [serverErrorMessage, setServerErrorMessage] = useState('');
 
   const navigate = useNavigate();
+  const { loading, setLoading } = useLoading();
 
   const validateUrl = (url: string): boolean => {
     const pattern = /^https:\/\/www\.moxfield\.com\/decks\/[A-Za-z0-9_-]+$/;
@@ -23,7 +24,7 @@ export default function Search() {
   };
 
   const handleDecklist = async () => {
-    setIsLoading(true);
+    setLoading(true);
     setServerErrorMessage('');
     const valid = validateUrl(inputValue);
     setIsValid(valid);
@@ -38,14 +39,16 @@ export default function Search() {
           } else {
             setServerErrorMessage(response.error);
             setIsValid(false);
+            setLoading(false);
           }
         } catch (err: any) {
           setServerErrorMessage(err.message || 'An error occurred');
           setIsValid(false);
+          setLoading(false);
+        } finally {
         }
       }
     }
-    setIsLoading(false);
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +72,7 @@ export default function Search() {
         placeholder="Enter a Moxfield deck link to unlock powerful data"
         startDecorator={<SearchIcon />}
         endDecorator={
-          <Button onClick={handleDecklist} loading={isLoading}>
+          <Button onClick={handleDecklist}>
             Analyze
           </Button>
         }
@@ -78,7 +81,7 @@ export default function Search() {
         sx={{
           flexGrow: 1,
           bgcolor: 'background.level1',
-          maxWidth: '700px',
+          maxWidth: { xs: '100%', sm: '700px' },
           width: '100%',
           '--Input-radius': '10px',
         }}
