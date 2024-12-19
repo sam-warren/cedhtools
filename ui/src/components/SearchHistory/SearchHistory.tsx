@@ -6,8 +6,8 @@ import ListItemButton from '@mui/joy/ListItemButton';
 import ListItemContent from '@mui/joy/ListItemContent';
 import { Link } from 'react-router-dom';
 import Button from '@mui/joy/Button';
-import { useSearchHistory } from '../../contexts/SearchHistoryContext';
-import { ISearchHistoryEntry } from '../../types';
+import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
+import { ISearchHistoryEntry } from 'src/types';
 
 export default function SearchHistory() {
   const { searchHistory, clearSearchHistory } = useSearchHistory();

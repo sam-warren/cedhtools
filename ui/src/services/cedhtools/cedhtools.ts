@@ -1,6 +1,6 @@
-import { serviceWrapper } from '../serviceWrapper';
 import axios from 'axios';
 import { IApiResponse, IMoxfieldDeck } from '../../types';
+import { serviceWrapper } from '../serviceWrapper';
 
 const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
 

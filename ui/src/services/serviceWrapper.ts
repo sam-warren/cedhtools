@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { IApiResponse, IErrorResponse } from '../types';
+import { IApiResponse, IErrorResponse } from 'src/types';
 
 /**
  * Generic service wrapper for API calls.

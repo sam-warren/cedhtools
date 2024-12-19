@@ -1,7 +1,7 @@
 import Box from '@mui/joy/Box';
-import Stack from '@mui/joy/Stack';
 import Button from '@mui/joy/Button';
-import ColorSchemeToggle from '../ColorSchemeToggle/ColorSchemeToggle';
+import Stack from '@mui/joy/Stack';
+import ColorSchemeToggle from 'src/components/ColorSchemeToggle/ColorSchemeToggle'; // Export * does not re-export a default
 
 export default function Header() {
   return (

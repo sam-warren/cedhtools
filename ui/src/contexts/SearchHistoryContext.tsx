@@ -1,11 +1,11 @@
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from 'react';
-import { ISearchHistoryContext, ISearchHistoryEntry } from '../types';
+import { ISearchHistoryContext, ISearchHistoryEntry } from 'src/types';
 
 const SearchHistoryContext = createContext<ISearchHistoryContext | undefined>(
   undefined,

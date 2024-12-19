@@ -4,10 +4,10 @@ import Button from '@mui/joy/Button';
 import Input from '@mui/joy/Input';
 import Typography from '@mui/joy/Typography';
 import { ChangeEvent, useState } from 'react';
-import { getDecklistById } from '../../services';
 import { useNavigate } from 'react-router-dom';
-import { IApiResponse } from '../../types/api';
-import { IMoxfieldDeck } from '../../types';
+import { getDecklistById } from 'src/services/moxfield/moxfield';
+import { IMoxfieldDeck } from 'src/types';
+import { IApiResponse } from 'src/types/api';
 
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
@@ -31,7 +31,8 @@ export default function Search() {
       const id = inputValue.split('/').pop()?.toString();
       if (id) {
         try {
-          const response: IApiResponse<IMoxfieldDeck> = await getDecklistById(id);
+          const response: IApiResponse<IMoxfieldDeck> =
+            await getDecklistById(id);
           if (response.success) {
             navigate(`/deck/${response.data.publicId}`); // Redirect to deck page
           } else {

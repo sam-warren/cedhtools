@@ -1,11 +1,10 @@
-import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { getDecklistById } from '../../services';
-import Typography from '@mui/joy/Typography';
 import Box from '@mui/joy/Box';
-import { IApiResponse } from '../../types/api';
-import { IMoxfieldDeck } from '../../types';
-import { useSearchHistory } from '../../contexts/SearchHistoryContext';
+import Typography from '@mui/joy/Typography';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
+import { getDecklistById } from 'src/services/moxfield/moxfield';
+import { IApiResponse, IMoxfieldDeck } from 'src/types';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +33,7 @@ export default function DeckPage() {
         } catch (err: any) {
           setError(err.message || 'An error occurred');
         } finally {
-          setLoading(false);
+          // setLoading(false);
         }
       };
       fetchDeck();

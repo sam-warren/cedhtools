@@ -1,12 +1,12 @@
 import CssBaseline from '@mui/joy/CssBaseline';
 import { CssVarsProvider } from '@mui/joy/styles';
-import Footer from './components/Footer/Footer';
-import Header from './components/Header/Header';
-import Layout from './components/Layout/Layout';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import LandingPage from './pages/LandingPage/LandingPage';
-import DeckPage from './pages/DeckPage/DeckPage';
-import { SearchHistoryProvider } from './contexts/SearchHistoryContext';
+import Footer from 'src/components/Footer/Footer';
+import Header from 'src/components/Header/Header';
+import Layout from 'src/components/Layout/Layout';
+import { SearchHistoryProvider } from 'src/contexts/SearchHistoryContext';
+import DeckPage from 'src/pages/DeckPage/DeckPage';
+import LandingPage from 'src/pages/LandingPage/LandingPage';
 
 const CEDHTools = () => {
   return (
