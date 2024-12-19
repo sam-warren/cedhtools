@@ -1,12 +1,12 @@
-export interface SuccessResponse<T> {
+export interface ISuccessResponse<T> {
   success: true;
   data: T;
 }
 
-export interface ErrorResponse {
+export interface IErrorResponse {
   success: false;
   error: string;
   statusCode: number;
 }
 
-export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+export type IApiResponse<T> = ISuccessResponse<T> | IErrorResponse;

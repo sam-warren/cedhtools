@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { ApiResponse, ErrorResponse } from '../types';
+import { IApiResponse, IErrorResponse } from '../types';
 
 /**
  * Generic service wrapper for API calls.
@@ -8,8 +8,8 @@ import { ApiResponse, ErrorResponse } from '../types';
  */
 export async function serviceWrapper<T>(
   requestFn: () => Promise<T>,
-  handleServiceErrors?: (status: number, data: any) => ErrorResponse | null
-): Promise<ApiResponse<T>> {
+  handleServiceErrors?: (status: number, data: any) => IErrorResponse | null,
+): Promise<IApiResponse<T>> {
   try {
     const data = await requestFn();
     return { success: true, data };

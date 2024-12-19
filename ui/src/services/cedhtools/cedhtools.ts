@@ -1,12 +1,12 @@
-import { serviceWrapper } from './serviceWrapper';
+import { serviceWrapper } from '../serviceWrapper';
 import axios from 'axios';
-import { ApiResponse, IMoxfieldDeck } from '../types';
+import { IApiResponse, IMoxfieldDeck } from '../../types';
 
 const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
 
-export async function getDecklistById(
+export async function getDeckStats(
   id: string,
-): Promise<ApiResponse<IMoxfieldDeck>> {
+): Promise<IApiResponse<IMoxfieldDeck>> {
   const url = `${BASE_URL}/api/moxfield/deck/${id}`;
 
   return serviceWrapper(

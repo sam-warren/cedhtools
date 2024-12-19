@@ -1,9 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { getDecklistById } from '../../services/moxfield';
+import { getDecklistById } from '../../services';
 import Typography from '@mui/joy/Typography';
 import Box from '@mui/joy/Box';
-import { ApiResponse } from '../../types/api';
+import { IApiResponse } from '../../types/api';
 import { IMoxfieldDeck } from '../../types';
 import { useSearchHistory } from '../../contexts/SearchHistoryContext';
 
@@ -19,7 +19,7 @@ export default function DeckPage() {
     if (id) {
       const fetchDeck = async () => {
         try {
-          const response: ApiResponse<IMoxfieldDeck> =
+          const response: IApiResponse<IMoxfieldDeck> =
             await getDecklistById(id);
           if (response.success) {
             setDeck(response.data);
