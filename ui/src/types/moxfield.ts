@@ -1,8 +1,8 @@
-export interface MoxfieldLegalities {
+export interface IMoxfieldLegalities {
   [key: string]: string;
 }
 
-export interface MoxfieldPrices {
+export interface IMoxfieldPrices {
   usd?: string;
   usd_foil?: string;
   eur?: string;
@@ -11,7 +11,7 @@ export interface MoxfieldPrices {
   [key: string]: string | undefined;
 }
 
-export interface MoxfieldCard {
+export interface IMoxfieldCard {
   id: string;
   uniqueCardId: string;
   scryfall_id: string;
@@ -30,7 +30,7 @@ export interface MoxfieldCard {
   colors: string[];
   color_indicator?: string[];
   color_identity: string[];
-  legalities: MoxfieldLegalities;
+  legalities: IMoxfieldLegalities;
   frame: string;
   reserved: boolean;
   digital: boolean;
@@ -46,8 +46,8 @@ export interface MoxfieldCard {
   latest: boolean;
   has_multiple_editions: boolean;
   has_arena_legal: boolean;
-  prices: MoxfieldPrices;
-  card_faces?: MoxfieldCard[];
+  prices: IMoxfieldPrices;
+  card_faces?: IMoxfieldCard[];
   artist: string;
   promo_types?: string[];
   cardHoarderUrl?: string;
@@ -89,13 +89,49 @@ export interface MoxfieldBoardCard {
   isFoil: boolean;
   isAlter: boolean;
   isProxy: boolean;
-  card: MoxfieldCard;
+  card: IMoxfieldCard;
   useCmcOverride: boolean;
   useManaCostOverride: boolean;
   useColorIdentityOverride: boolean;
   excludedFromColor: boolean;
 }
 
-export interface MoxfieldMainCard extends MoxfieldCard {
+export interface MoxfieldMainCard extends IMoxfieldCard {}
 
+export interface IMoxfieldBoard {
+  count: number;
+  cards: {
+    [key: string]: MoxfieldBoardCard;
+  };
+}
+
+export interface IMoxfieldAuthor {
+  userName: string;
+  displayName: string;
+  profileImageUrl: string;
+  badges: string[];
+}
+
+export interface IMoxfieldDeck {
+  id: string;
+  name: string;
+  description: string;
+  format: string;
+  visibility: string;
+  publicUrl: string;
+  publicId: string;
+  likeCount: number;
+  viewCount: number;
+  commentCount: number;
+  sfwCommentCount: number;
+  areCommentsEnabled: boolean;
+  isShared: boolean;
+  authorsCanEdit: boolean;
+  createdByUser: IMoxfieldAuthor;
+  authors: IMoxfieldAuthor[];
+  requestedAuthors: IMoxfieldAuthor[];
+  main: MoxfieldMainCard;
+  boards: {
+    [key: string]: IMoxfieldBoard;
+  };
 }

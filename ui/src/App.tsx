@@ -5,26 +5,31 @@ import Header from './components/Header/Header';
 import Layout from './components/Layout/Layout';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import LandingPage from './pages/LandingPage/LandingPage';
+import DeckPage from './pages/DeckPage/DeckPage';
+import { SearchHistoryProvider } from './contexts/SearchHistoryContext';
 
 const CEDHTools = () => {
   return (
     <CssVarsProvider>
       <CssBaseline />
-      <Layout.Root>
-        <Layout.Header>
-          <Header />
-        </Layout.Header>
-        <Layout.Main>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-            </Routes>
-          </BrowserRouter>
-        </Layout.Main>
-        <Layout.Footer>
-          <Footer />
-        </Layout.Footer>
-      </Layout.Root>
+      <SearchHistoryProvider>
+        <Layout.Root>
+          <Layout.Header>
+            <Header />
+          </Layout.Header>
+          <Layout.Main>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/deck/:id" element={<DeckPage />} />
+              </Routes>
+            </BrowserRouter>
+          </Layout.Main>
+          <Layout.Footer>
+            <Footer />
+          </Layout.Footer>
+        </Layout.Root>
+      </SearchHistoryProvider>
     </CssVarsProvider>
   );
 };

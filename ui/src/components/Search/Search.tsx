@@ -4,7 +4,10 @@ import Button from '@mui/joy/Button';
 import Input from '@mui/joy/Input';
 import Typography from '@mui/joy/Typography';
 import { ChangeEvent, useState } from 'react';
-import { getDecklistById } from '../../services/decklist.service';
+import { getDecklistById } from '../../services/moxfield';
+import { useNavigate } from 'react-router-dom';
+import { ApiResponse } from '../../types/api';
+import { IMoxfieldDeck } from '../../types';
 
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
@@ -12,7 +15,9 @@ export default function Search() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverErrorMessage, setServerErrorMessage] = useState('');
 
-  const validateUrl = (url: string) => {
+  const navigate = useNavigate();
+
+  const validateUrl = (url: string): boolean => {
     const pattern = /^https:\/\/www\.moxfield\.com\/decks\/[A-Za-z0-9_-]+$/;
     return pattern.test(url);
   };
@@ -20,17 +25,21 @@ export default function Search() {
   const handleDecklist = async () => {
     setIsLoading(true);
     setServerErrorMessage('');
-
     const valid = validateUrl(inputValue);
     setIsValid(valid);
     if (valid) {
       const id = inputValue.split('/').pop()?.toString();
       if (id) {
         try {
-          const decklist = await getDecklistById(id);
-          console.log(decklist);
+          const response: ApiResponse<IMoxfieldDeck> = await getDecklistById(id);
+          if (response.success) {
+            navigate(`/deck/${response.data.publicId}`); // Redirect to deck page
+          } else {
+            setServerErrorMessage(response.error);
+            setIsValid(false);
+          }
         } catch (err: any) {
-          setServerErrorMessage(err.message);
+          setServerErrorMessage(err.message || 'An error occurred');
           setIsValid(false);
         }
       }
@@ -56,7 +65,7 @@ export default function Search() {
     >
       <Input
         autoFocus
-        placeholder="Enter a Moxfield link to unlock powerful data"
+        placeholder="Enter a Moxfield deck link to unlock powerful data"
         startDecorator={<SearchIcon />}
         endDecorator={
           <Button onClick={handleDecklist} loading={isLoading}>
