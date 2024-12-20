@@ -20,6 +20,10 @@ from .cedhtools_models import (
     PlayerStandings,
 )
 
+from .scryfall_models import (
+    ScryfallCard
+)
+
 __all__ = [
     'MoxfieldAuthor',
     'MoxfieldCard',
@@ -36,4 +40,6 @@ __all__ = [
     'CommanderStatsWeekly',
     'DeckCards',
     'PlayerStandings',
+
+    'ScryfallCard'
 ]

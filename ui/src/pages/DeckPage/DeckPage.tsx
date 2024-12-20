@@ -9,6 +9,11 @@ import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { getDeckStats } from 'src/services';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
 import { IApiResponse, ICommanderStats, IMoxfieldDeck } from 'src/types';
+import { useCountUp } from 'use-count-up'; // TODO: Implement this for commander stats
+
+// TODO: Download bulk data from scryfall and implement images
+// TODO: Implement a table view
+// TODO: Link scryfall card images with the cards in the decklist -> update materialized view
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,7 +50,7 @@ export default function DeckPage() {
       };
       fetchDeck();
     }
-  }, []);
+  }, [id, deck]);
 
   const fetchCommanderStats = async (deck: IMoxfieldDeck) => {
     if (!deckStats) {
@@ -73,53 +78,122 @@ export default function DeckPage() {
   };
 
   if (!deck || !deckStats) {
+    // Skeleton loader while the deck and stats are being fetched
     return (
-      <Box sx={{ p: 4 }}>
-        {/* Skeleton for deck title */}
-        <Skeleton
-          variant="rectangular"
-          sx={{ width: '60%', height: '2rem', mb: 2 }}
-        />
+      <Box sx={{ display: 'flex', gap: 4, p: 4 }}>
+        {/* Left Side Pane Skeleton */}
+        <Box sx={{ width: '300px', flexShrink: 0 }}>
+          <Skeleton
+            variant="rectangular"
+            width={126}
+            height={176}
+            sx={{ mb: 4, borderRadius: 10 }}
+          />
+          <Skeleton variant="text" height={40} width="80%" sx={{ mb: 2 }} />
+          <Skeleton variant="text" height={20} width="90%" sx={{ mb: 2 }} />
+          <Skeleton variant="text" height={20} width="80%" sx={{ mb: 2 }} />
+          <Skeleton variant="text" height={20} width="60%" />
+        </Box>
 
-        {/* Skeleton for deck description (2 lines) */}
-        <Skeleton variant="text" sx={{ width: '90%', mb: 1 }} />
-        <Skeleton variant="text" sx={{ width: '80%', mb: 4 }} />
-
-        {/* Skeleton for "Main Deck" heading */}
-        <Skeleton
-          variant="rectangular"
-          sx={{ width: '30%', height: '1.5rem', mb: 2 }}
-        />
-
-        {/* Skeleton for a few deck cards (simulate a list of cards) */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
-          <Skeleton variant="rectangular" width="63" height="88" />
+        {/* Right Pane Skeleton */}
+        <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 4 }}>
+            {Array.from({ length: 15 }).map((_, index) => (
+              <Skeleton
+                key={index}
+                variant="rectangular"
+                width={126} // 2x the width of a playing card
+                height={176} // 2x the height of a playing card
+                sx={{
+                  borderRadius: 10,
+                }}
+              />
+            ))}
+          </Box>
         </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography level="h2" sx={{ mb: 2 }}>
-        {deck.name}
-      </Typography>
-      <Typography level="body-md" sx={{ mb: 4 }}>
-        {deck.description}
-      </Typography>
-      {/* Display more deck details here */}
-      {/* Example: List of main deck cards */}
-      <Typography level="h3" sx={{ mb: 2 }}>
-        Main Deck
-      </Typography>
-      {/* Similarly, display boards, authors, etc. */}
+    <Box sx={{ display: 'flex', gap: 4, p: 4 }}>
+      {/* Left Side Pane */}
+      <Box
+        sx={{
+          width: '300px',
+          flexShrink: 0,
+          borderRadius: 2,
+          p: 3,
+        }}
+      >
+        {/* Commander Cards */}
+        <Box sx={{ mb: 4 }}>
+          {Object.values(deck.boards['commanders']['cards']).map(
+            (commander: any, index: number) => (
+              <Box
+                key={index}
+                sx={{
+                  width: 126,
+                  height: 176,
+                  mb: 2,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                }}
+              >
+                {commander.name}
+              </Box>
+            ),
+          )}
+        </Box>
+
+        {/* Deck Title */}
+        <Typography level="h4" sx={{ mb: 2 }}>
+          {deck.name}
+        </Typography>
+
+        {/* Deck-wide Stats */}
+        <Typography level="body-sm" sx={{ mb: 2 }}>
+          Win Rate: {Math.round(deckStats.avg_win_rate * 100)}%
+        </Typography>
+        <Typography level="body-sm">
+          Draw Rate: {Math.round(deckStats.avg_draw_rate * 100)}%
+        </Typography>
+      </Box>
+
+      {/* Right Pane */}
+      <Box sx={{ flexGrow: 1 }}>
+        {/* Section Title */}
+        <Typography level="h3" sx={{ mb: 2 }}>
+          Main Deck
+        </Typography>
+
+        {/* Main Deck Cards */}
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          {Object.values(deck.boards['mainboard']['cards']).map(
+            (card: any, index: number) => (
+              <Box
+                key={index}
+                sx={{
+                  width: 126,
+                  height: 176,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                }}
+              >
+                {card.name}
+              </Box>
+            ),
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }
