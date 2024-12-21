@@ -11,9 +11,7 @@ import { getDecklistById } from 'src/services/moxfield/moxfield';
 import { IApiResponse, ICommanderStats, IMoxfieldDeck } from 'src/types';
 import { useCountUp } from 'use-count-up'; // TODO: Implement this for commander stats
 
-// TODO: Download bulk data from scryfall and implement images
 // TODO: Implement a table view
-// TODO: Link scryfall card images with the cards in the decklist -> update materialized view
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -87,7 +85,7 @@ export default function DeckPage() {
             variant="rectangular"
             width={126}
             height={176}
-            sx={{ mb: 4, borderRadius: 10 }}
+            sx={{ mb: 4, borderRadius: 7 }}
           />
           <Skeleton variant="text" height={40} width="80%" sx={{ mb: 2 }} />
           <Skeleton variant="text" height={20} width="90%" sx={{ mb: 2 }} />
@@ -105,7 +103,7 @@ export default function DeckPage() {
                 width={126} // 2x the width of a playing card
                 height={176} // 2x the height of a playing card
                 sx={{
-                  borderRadius: 10,
+                  borderRadius: 7,
                 }}
               />
             ))}

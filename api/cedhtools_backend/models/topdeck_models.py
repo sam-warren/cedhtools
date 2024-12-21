@@ -20,7 +20,8 @@ class TopdeckTournament(models. Model):
             models.Index(fields=['tid']),
             models.Index(fields=['start_date']),
             models.Index(fields=['game']),
-            models.Index(fields=['format'])
+            models.Index(fields=['format']),
+            models.Index(fields=['top_cut'])
         ]
 
 

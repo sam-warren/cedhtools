@@ -34,7 +34,7 @@ class MoxfieldAuthor(models.Model):
 class MoxfieldCard(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     unique_card_id = models.CharField(max_length=255, null=True, blank=True)
-    scryfall_id = models.CharField(max_length=255, null=True, blank=True)
+    scryfall_id = models.UUIDField(null=True, blank=True)
     set_code = models.CharField(max_length=255, null=True, blank=True)
     set_name = models.CharField(max_length=255, null=True, blank=True)
     name = models.CharField(max_length=511)
@@ -113,8 +113,17 @@ class MoxfieldCard(models.Model):
     class Meta:
         db_table = 'moxfield_card'
         indexes = [
-            models.Index(fields=['name']),
             models.Index(fields=['unique_card_id']),
+            models.Index(fields=['scryfall_id']),
+            models.Index(fields=['id']),
+            models.Index(fields=['name']),
+            models.Index(fields=['color_identity']),
+            models.Index(fields=['cmc']),
+            models.Index(fields=['oracle_text']),
+            models.Index(fields=['mana_cost']),
+            models.Index(fields=['colors']),
+            models.Index(fields=['type_line']),
+            models.Index(fields=['legalities']),
         ]
 
 
@@ -217,6 +226,11 @@ class MoxfieldDeck(models.Model):
 
     class Meta:
         db_table = 'moxfield_deck'
+        indexes = [
+            models.Index(fields=['id']),
+            models.Index(fields=['public_id']),
+            models.Index(fields=['color_identity']),
+        ]
 
     def __str__(self):
         return f"Deck {self.id}"
@@ -249,6 +263,7 @@ class MoxfieldBoard(models.Model):
         db_table = 'moxfield_board'
         indexes = [
             models.Index(fields=['deck']),
+            models.Index(fields=['key']),
         ]
 
 
@@ -282,4 +297,5 @@ class MoxfieldBoardCard(models.Model):
         indexes = [
             models.Index(fields=['board']),
             models.Index(fields=['card']),
+            models.Index(fields=['board_type']),
         ]

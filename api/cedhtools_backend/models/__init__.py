@@ -16,12 +16,12 @@ from .cedhtools_models import (
     CommanderCardStats,
     CardStatsWeekly,
     CommanderStatsWeekly,
-    DeckCards,
     PlayerStandings,
 )
 
 from .scryfall_models import (
-    ScryfallCard
+    ScryfallCard,
+    ScryfallCardFace,
 )
 
 __all__ = [
@@ -38,8 +38,8 @@ __all__ = [
     'CommanderCardStats',
     'CardStatsWeekly',
     'CommanderStatsWeekly',
-    'DeckCards',
     'PlayerStandings',
 
-    'ScryfallCard'
+    'ScryfallCard',
+    'ScryfallCardFace',
 ]
