@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 from urllib.parse import quote_plus
 from pathlib import Path
 import os
-import colorlog
 
 # Load environment variables
 load_dotenv()
@@ -61,6 +60,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    "graphene_django",
     'cedhtools_backend',
 ]
 
@@ -167,6 +167,10 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+GRAPHENE = {
+    "SCHEMA": "cedhtools_backend.schema.schema.schema"
 }
 
 

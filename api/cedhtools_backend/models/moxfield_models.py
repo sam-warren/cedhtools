@@ -127,29 +127,6 @@ class MoxfieldCard(models.Model):
         ]
 
 
-class MoxfieldCardFace(models.Model):
-    card = models.ForeignKey(
-        MoxfieldCard,
-        related_name='card_faces',
-        on_delete=models.CASCADE
-    )
-    face_id = models.CharField(max_length=255, null=True, blank=True)
-    name = models.CharField(max_length=511)
-    mana_cost = models.CharField(max_length=255, null=True, blank=True)
-    type_line = models.CharField(max_length=255, null=True, blank=True)
-    oracle_text = models.TextField(null=True, blank=True, max_length=2047)
-    colors = models.JSONField(default=list, blank=True)
-    color_indicator = models.JSONField(default=list, blank=True)
-    flavor_text = models.TextField(null=True, blank=True)
-    image_seq = models.IntegerField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'moxfield_card_face'
-
-    def __str__(self):
-        return f"{self.name} - {self.card.name}"
-
-
 class MoxfieldDeck(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     name = models.CharField(max_length=500)

@@ -450,6 +450,7 @@ class Command(BaseCommand):
                 'latest': card_info.get('latest', False),
                 'has_multiple_editions': card_info.get('has_multiple_editions', False),
                 'has_arena_legal': card_info.get('has_arena_legal', False),
+                'arena_id': card_info.get('arena_id', ''),
                 'prices': card_info.get('prices', {}),
                 'artist': card_info.get('artist', ''),
                 'promo_types': card_info.get('promo_types', []),

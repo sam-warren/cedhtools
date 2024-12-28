@@ -6,7 +6,6 @@ from .models import (
     MoxfieldBoardCard,
     MoxfieldCard,
     TopdeckTournament,
-    CommanderCardStats
 )
 import logging
 
@@ -97,9 +96,3 @@ class TopdeckTournamentSerializer(serializers.ModelSerializer):
             'format',
             'standings'
         ]
-
-
-class CommanderCardStatsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CommanderCardStats
-        fields = '__all__'  # Include all fields in the API response
