@@ -156,7 +156,7 @@ MoxfieldBoardCard:
 MoxfieldCard: 
     id: NOT REQUIRED (this describes the unique printing of the card, which we do not care about),
     uniqueCardId: REQUIRED (this key lets us link cards to boards)
-    scryfall_id: REQUIRED (this is the scryfall ID of the card, which we will use to link to scryfall for all pertinent information),
+    scryfall_id: REQUIRED (this is the scryfall ID of the card, which we will use it as a reference to a primary key on the scryfall table to link to scryfall for all pertinent information),
     set: NOT REQUIRED (we get this from scryfall),
     set_name: NOT REQUIRED (we get this from scryfall),
     name: NOT REQUIRED (we get this from scryfall),

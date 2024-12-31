@@ -5,10 +5,8 @@ from graphene_django import DjangoObjectType
 
 # Import your models from wherever they live in your project
 from ..models import (
-    MoxfieldAuthor,
     MoxfieldCard,
     MoxfieldDeck,
-    MoxfieldHub,
     MoxfieldBoard,
     MoxfieldBoardCard,
     ScryfallCard,
@@ -20,12 +18,6 @@ from ..models import (
 
 # ----- Moxfield DjangoObjectTypes -----
 
-class MoxfieldAuthorType(DjangoObjectType):
-    class Meta:
-        model = MoxfieldAuthor
-        fields = "__all__"
-
-
 class MoxfieldCardType(DjangoObjectType):
     class Meta:
         model = MoxfieldCard
@@ -35,12 +27,6 @@ class MoxfieldCardType(DjangoObjectType):
 class MoxfieldDeckType(DjangoObjectType):
     class Meta:
         model = MoxfieldDeck
-        fields = "__all__"
-
-
-class MoxfieldHubType(DjangoObjectType):
-    class Meta:
-        model = MoxfieldHub
         fields = "__all__"
 
 
@@ -89,10 +75,10 @@ class TopdeckPlayerStandingType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     # Example field to list all Moxfield authors
-    all_moxfield_authors = graphene.List(MoxfieldAuthorType)
+    all_decks = graphene.List(MoxfieldDeckType)
 
-    def resolve_all_moxfield_authors(root, info):
-        return MoxfieldAuthor.objects.all()
+    def resolve_all_moxfield_decks(root, info):
+        return MoxfieldDeck.objects.all()
 
     # Add any other queries you want (Decks, Cards, etc.)
 

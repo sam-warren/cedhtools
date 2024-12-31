@@ -1,10 +1,8 @@
 from .moxfield_models import (
-    MoxfieldAuthor,
     MoxfieldCard,
     MoxfieldDeck,
     MoxfieldBoard,
     MoxfieldBoardCard,
-    MoxfieldHub,
 )
 
 from .topdeck_models import (
@@ -18,12 +16,10 @@ from .scryfall_models import (
 )
 
 __all__ = [
-    'MoxfieldAuthor',
     'MoxfieldCard',
     'MoxfieldDeck',
     'MoxfieldBoard',
     'MoxfieldBoardCard',
-    'MoxfieldHub',
 
     'TopdeckTournament',
     'TopdeckPlayerStanding',

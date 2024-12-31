@@ -30,6 +30,8 @@ TOPDECK_API_BASE_URL = os.getenv('TOPDECK_API_BASE_URL')
 TOPDECK_API_KEY = os.getenv('TOPDECK_API_KEY')
 
 SCRYFALL_API_BASE_URL = os.getenv('SCRYFALL_API_BASE_URL')
+SCRYFALL_USER_AGENT = os.getenv(
+    'SCRYFALL_USER_AGENT') + "/" + os.getenv("APP_VERSION")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

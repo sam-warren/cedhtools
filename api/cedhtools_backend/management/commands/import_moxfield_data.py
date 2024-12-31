@@ -12,11 +12,9 @@ from django.db import transaction
 from cedhtools_backend.models import (
     TopdeckPlayerStanding,
     MoxfieldDeck,
-    MoxfieldAuthor,
     MoxfieldCard,
     MoxfieldBoard,
     MoxfieldBoardCard,
-    MoxfieldHub
 )
 
 # Import tqdm for progress bars
@@ -234,51 +232,6 @@ class Command(BaseCommand):
         Parses the deck data from Moxfield API and stores it in the database.
         Returns the Deck instance.
         """
-        # 1. Handle Created By User
-        created_by_data = deck_data.get('createdByUser')
-        if not created_by_data:
-            raise ValueError('Deck data missing "createdByUser" field.')
-
-        created_by, created = MoxfieldAuthor.objects.get_or_create(
-            username=created_by_data.get('userName', ''),
-            defaults={
-                'display_name': created_by_data.get('displayName', ''),
-                'profile_image_url': created_by_data.get('profileImageUrl', ''),
-                'badges': created_by_data.get('badges', [])
-            }
-        )
-
-        # 2. Handle Authors
-        authors = []
-        for author_data in deck_data.get('authors', []):
-            author, _ = MoxfieldAuthor.objects.get_or_create(
-                username=author_data.get('userName', ''),
-                defaults={
-                    'display_name': author_data.get('displayName', ''),
-                    'profile_image_url': author_data.get('profileImageUrl', ''),
-                    'badges': author_data.get('badges', [])
-                }
-            )
-            authors.append(author)
-
-        # 3. Handle Requested Authors
-        requested_authors = []
-        for author_data in deck_data.get('requestedAuthors', []):
-            author, _ = MoxfieldAuthor.objects.get_or_create(
-                username=author_data.get('userName', ''),
-                defaults={
-                    'display_name': author_data.get('displayName', ''),
-                    'profile_image_url': author_data.get('profileImageUrl', ''),
-                    'badges': author_data.get('badges', [])
-                }
-            )
-            requested_authors.append(author)
-
-        # 4. Handle Main Card
-        main_card_data = deck_data.get('main')
-        main_card = None
-        if main_card_data:
-            main_card = self.get_or_create_card(main_card_data)
 
         # 5. Create or Update Deck
         deck, created = MoxfieldDeck.objects.update_or_create(
@@ -297,8 +250,6 @@ class Command(BaseCommand):
                 'are_comments_enabled': deck_data.get('areCommentsEnabled', True),
                 'is_shared': deck_data.get('isShared', False),
                 'authors_can_edit': deck_data.get('authorsCanEdit', False),
-                'created_by_user': created_by,
-                'main_card': main_card,
                 'version': deck_data.get('version', 1),
                 'tokens_to_cards': deck_data.get('tokensToCards', {}),
                 'cards_to_tokens': deck_data.get('cardsToTokens', {}),
@@ -328,38 +279,6 @@ class Command(BaseCommand):
                 'deck_tier4_count': deck_data.get('deckTier4Count', 0),
             }
         )
-
-        if created:
-            # Assign authors and requested authors
-            deck.authors.set(authors)
-            deck.requested_authors.set(requested_authors)
-        else:
-            # Update authors and requested authors if deck already exists
-            deck.authors.add(*authors)
-            deck.requested_authors.add(*requested_authors)
-
-        # 6. Handle Tokens (ManyToMany)
-        tokens = deck_data.get('tokens', [])
-        token_objects = []
-        for token_data in tokens:
-            token_card = self.get_or_create_card(token_data)
-            token_objects.append(token_card)
-        if token_objects:
-            deck.tokens.add(*token_objects)
-
-        # 7. Handle Hubs (ManyToMany)
-        hubs = deck_data.get('hubs', [])
-        hub_objects = []
-        for hub_data in hubs:
-            hub, _ = MoxfieldHub.objects.get_or_create(
-                name=hub_data.get('name', 'Unnamed Hub'),
-                defaults={
-                    'description': hub_data.get('description', '')
-                }
-            )
-            hub_objects.append(hub)
-        if hub_objects:
-            deck.hubs.add(*hub_objects)
 
         # 8. Handle Boards
         boards = deck_data.get('boards', {})
