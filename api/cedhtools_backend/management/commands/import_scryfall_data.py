@@ -2,6 +2,7 @@ import requests
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from ...models import ScryfallCard, ScryfallCardFace
+from ...constants import CardLayout
 
 
 class Command(BaseCommand):
@@ -163,69 +164,260 @@ class Command(BaseCommand):
         return response.json()
 
     def process_card(self, card):
-        # Insert or update the main card
+        layout = card.get("layout")
+        # if layout:
+        # if layout is CardLayout.REVERSIBLE_CARD:
+        # cmc, colors, mana_cost, oracle_text, power, toughness, type_line MISSING from core fields, present on each of the card_faces objects.
+        # id, name, uri, layout, color_identity, keywords, legalities,
+        # Special case for reversible cards. Reversible cards have the shape:
+        # {
+        #     "id": "018830b2-dff9-45f3-9cc2-dc5b2eec0e54", NOTE PRESENT
+        #     "name": "Jinnie Fay, Jetmir's Second // Jinnie Fay, Jetmir's Second", NOTE PRESENT
+        #     "uri": "https://api.scryfall.com/cards/018830b2-dff9-45f3-9cc2-dc5b2eec0e54", NOTE PRESENT
+        #     "layout": "reversible_card", NOTE PRESENT
+        #     "color_identity": [ NOTE PRESENT
+        #         "G",
+        #         "R",
+        #         "W"
+        #     ],
+        #     "keywords": [], NOTE PRESENT
+        #     NOTE: cmc MISSING from core fields
+        #     NOTE: colors MISSING from core fields
+        #     NOTE: mana_cost MISSING from core fields
+        #     NOTE: oracle_text MISSING from core fields
+        #     NOTE: power MISSING from core fields
+        #     NOTE: toughness MISSING from core fields
+        #     NOTE: type_line MISSING from core fields
+        #     "card_faces": [
+        #         {
+        #             "object": "card_face",
+        #             "oracle_id": "61fbaaf2-4286-4e9a-b9cb-aa31262b596a",
+        #             "layout": "normal",
+        #             "name": "Jinnie Fay, Jetmir's Second",
+        #             "mana_cost": "{R/G}{G}{G/W}", NOTE mana_cost defined HERE
+        #             "cmc": 3.0, NOTE cmc defined HERE
+        #             "type_line": "Legendary Creature — Elf Druid", NOTE type_line defined HERE
+        #             "oracle_text": "If you would create one or more tokens, you may instead create that many 2/2 green Cat creature tokens with haste or that many 3/1 green Dog creature tokens with vigilance.", NOTE oracle_text defined HERE
+        #             "colors": [ NOTE colors defined HERE
+        #                 "G",
+        #                 "R",
+        #                 "W"
+        #             ],
+        #             "power": "3", NOTE power defined HERE
+        #             "toughness": "3", NOTE toughness defined HERE
+        #             "flavor_text": "\"Raffine, Xander, Falco, Ziatora, Jetmir—heel!\"",
+        #             "artist": "Jack Hughes",
+        #             "artist_id": "ac1a1722-4d2b-499b-b8a9-2d642d3292cc",
+        #             "illustration_id": "6b8fb6bb-c0d1-4715-a4df-e4f4695c6130",
+        #             "image_uris": {
+        #                 "small": "https://cards.scryfall.io/small/front/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "normal": "https://cards.scryfall.io/normal/front/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "large": "https://cards.scryfall.io/large/front/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "png": "https://cards.scryfall.io/png/front/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.png?1705792310",
+        #                 "art_crop": "https://cards.scryfall.io/art_crop/front/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "border_crop": "https://cards.scryfall.io/border_crop/front/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310"
+        #             }
+        #         },
+        #         {
+        #             "object": "card_face",
+        #             "oracle_id": "61fbaaf2-4286-4e9a-b9cb-aa31262b596a",
+        #             "layout": "normal",
+        #             "name": "Jinnie Fay, Jetmir's Second",
+        #             "mana_cost": "{R/G}{G}{G/W}",
+        #             "cmc": 3.0,
+        #             "type_line": "Legendary Creature — Elf Druid",
+        #             "oracle_text": "If you would create one or more tokens, you may instead create that many 2/2 green Cat creature tokens with haste or that many 3/1 green Dog creature tokens with vigilance.",
+        #             "colors": [
+        #                 "G",
+        #                 "R",
+        #                 "W"
+        #             ],
+        #             "power": "3",
+        #             "toughness": "3",
+        #             "flavor_text": "\"Mister Mittens, you would not be-*lieve* the day I had.\"",
+        #             "artist": "Jack Hughes",
+        #             "artist_id": "ac1a1722-4d2b-499b-b8a9-2d642d3292cc",
+        #             "illustration_id": "faebc2ac-9b6e-477d-869e-cee314d26cc0",
+        #             "image_uris": {
+        #                 "small": "https://cards.scryfall.io/small/back/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "normal": "https://cards.scryfall.io/normal/back/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "large": "https://cards.scryfall.io/large/back/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "png": "https://cards.scryfall.io/png/back/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.png?1705792310",
+        #                 "art_crop": "https://cards.scryfall.io/art_crop/back/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310",
+        #                 "border_crop": "https://cards.scryfall.io/border_crop/back/c/6/c6fb38a7-f453-44e4-b876-6d542d6c2a85.jpg?1705792310"
+        #             }
+        #         }
+        #     ],
+        #     "all_parts": [
+        #         {
+        #             "object": "related_card",
+        #             "id": "018830b2-dff9-45f3-9cc2-dc5b2eec0e54",
+        #             "component": "combo_piece",
+        #             "name": "Jinnie Fay, Jetmir's Second // Jinnie Fay, Jetmir's Second",
+        #             "type_line": "Legendary Creature — Elf Druid // Legendary Creature — Elf Druid",
+        #             "uri": "https://api.scryfall.com/cards/018830b2-dff9-45f3-9cc2-dc5b2eec0e54"
+        #         },
+        #         {
+        #             "object": "related_card",
+        #             "id": "53f30e6b-602d-4e7d-b217-8c8d6b9ecc27",
+        #             "component": "token",
+        #             "name": "Dog",
+        #             "type_line": "Token Creature — Dog",
+        #             "uri": "https://api.scryfall.com/cards/53f30e6b-602d-4e7d-b217-8c8d6b9ecc27"
+        #         },
+        #         {
+        #             "object": "related_card",
+        #             "id": "687bbd21-ae87-43b9-9d32-e981e7a78d76",
+        #             "component": "token",
+        #             "name": "Cat",
+        #             "type_line": "Token Creature — Cat",
+        #             "uri": "https://api.scryfall.com/cards/687bbd21-ae87-43b9-9d32-e981e7a78d76"
+        #         }
+        #     ],
+        #     "legalities": { NOTE PRESENT
+        #         "standard": "not_legal",
+        #         "future": "not_legal",
+        #         "historic": "legal",
+        #         "timeless": "legal",
+        #         "gladiator": "legal",
+        #         "pioneer": "legal",
+        #         "explorer": "legal",
+        #         "modern": "legal",
+        #         "legacy": "legal",
+        #         "pauper": "not_legal",
+        #         "vintage": "legal",
+        #         "penny": "legal",
+        #         "commander": "legal",
+        #         "oathbreaker": "legal",
+        #         "standardbrawl": "not_legal",
+        #         "brawl": "legal",
+        #         "alchemy": "not_legal",
+        #         "paupercommander": "not_legal",
+        #         "duel": "legal",
+        #         "oldschool": "not_legal",
+        #         "premodern": "not_legal",
+        #         "predh": "not_legal"
+        #     },
+        #     "games": [
+        #         "paper"
+        #     ],
+        #     "reserved": false,
+        #     "foil": false,
+        #     "nonfoil": true,
+        #     "finishes": [
+        #         "nonfoil"
+        #     ],
+        #     "oversized": false,
+        #     "promo": false,
+        #     "reprint": true,
+        #     "variation": false,
+        #     "set_id": "4d92a8a7-ccb0-437d-abdc-9d70fc5ed672",
+        #     "set": "sld",
+        #     "set_name": "Secret Lair Drop",
+        #     "set_type": "box",
+        #     "set_uri": "https://api.scryfall.com/sets/4d92a8a7-ccb0-437d-abdc-9d70fc5ed672",
+        #     "set_search_uri": "https://api.scryfall.com/cards/search?order=set&q=e%3Asld&unique=prints",
+        #     "scryfall_set_uri": "https://scryfall.com/sets/sld?utm_source=api",
+        #     "rulings_uri": "https://api.scryfall.com/cards/018830b2-dff9-45f3-9cc2-dc5b2eec0e54/rulings",
+        #     "prints_search_uri": "https://api.scryfall.com/cards/search?order=released&q=oracleid%3A61fbaaf2-4286-4e9a-b9cb-aa31262b596a&unique=prints",
+        #     "collector_number": "1556",
+        #     "digital": false,
+        #     "rarity": "rare",
+        #     "artist": "Jack Hughes",
+        #     "artist_ids": [
+        #         "ac1a1722-4d2b-499b-b8a9-2d642d3292cc"
+        #     ],
+        #     "border_color": "borderless",
+        #     "frame": "2015",
+        #     "frame_effects": [
+        #         "legendary",
+        #         "inverted"
+        #     ],
+        #     "security_stamp": "oval",
+        #     "full_art": false,
+        #     "textless": false,
+        #     "booster": false,
+        #     "story_spotlight": false,
+        #     "promo_types": [
+        #         "thick"
+        #     ],
+        #     "edhrec_rank": 2962,
+        #     "penny_rank": 4127,
+        #     "prices": {
+        #         "usd": "2.01",
+        #         "usd_foil": null,
+        #         "usd_etched": null,
+        #         "eur": null,
+        #         "eur_foil": null,
+        #         "tix": null
+        #     },
+        #     "related_uris": {
+        #         "tcgplayer_infinite_articles": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=infinite&u=https%3A%2F%2Finfinite.tcgplayer.com%2Fsearch%3FcontentMode%3Darticle%26game%3Dmagic%26partner%3Dscryfall%26q%3DJinnie%2BFay%252C%2BJetmir%2527s%2BSecond%2B%252F%252F%2BJinnie%2BFay%252C%2BJetmir%2527s%2BSecond",
+        #         "tcgplayer_infinite_decks": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=infinite&u=https%3A%2F%2Finfinite.tcgplayer.com%2Fsearch%3FcontentMode%3Ddeck%26game%3Dmagic%26partner%3Dscryfall%26q%3DJinnie%2BFay%252C%2BJetmir%2527s%2BSecond%2B%252F%252F%2BJinnie%2BFay%252C%2BJetmir%2527s%2BSecond",
+        #         "edhrec": "https://edhrec.com/route/?cc=Jinnie+Fay%2C+Jetmir%27s+Second+%2F%2F+Jinnie+Fay%2C+Jetmir%27s+Second"
+        #     },
+        #     "purchase_uris": {
+        #         "tcgplayer": "https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F533913%3Fpage%3D1",
+        #         "cardmarket": "https://www.cardmarket.com/en/Magic/Products/Search?referrer=scryfall&searchString=Jinnie+Fay%2C+Jetmir%27s+Second+%2F%2F+Jinnie+Fay%2C+Jetmir%27s+Second&utm_campaign=card_prices&utm_medium=text&utm_source=scryfall",
+        #         "cardhoarder": "https://www.cardhoarder.com/cards?affiliate_id=scryfall&data%5Bsearch%5D=Jinnie+Fay%2C+Jetmir%27s+Second+%2F%2F+Jinnie+Fay%2C+Jetmir%27s+Second&ref=card-profile&utm_campaign=affiliate&utm_medium=card&utm_source=scryfall"
+        #     }
+        # }
+        # if (layout):
+        #     if (layout in [CardLayout.SPLIT, CardLayout.FLIP, CardLayout.TRANSFORM, CardLayout.DOUBLE_FACED_TOKEN]):
+        # Will have card_layout property describing distinct faces
+
         scryfall_card, _ = ScryfallCard.objects.update_or_create(
-            scryfall_id=card["id"],
+            id=card["id"],
             defaults={
-                "oracle_id": card.get("oracle_id"),
-                "name": card["name"],
-                "lang": card.get("lang"),
-                "released_at": card.get("released_at"),
-                "set_id": card.get("set_id"),
-                "set_name": card.get("set_name"),
-                "collector_number": card.get("collector_number"),
-                "rarity": card.get("rarity"),
                 "layout": card.get("layout"),
                 "uri": card.get("uri"),
-                "scryfall_uri": card.get("scryfall_uri"),
-                "cmc": card.get("cmc", 0.0),
-                "colors": card.get("colors", []),
+                "cmc": card.get("cmc"),
                 "color_identity": card.get("color_identity", []),
-                "legalities": card.get("legalities", {}),
+                "colors": card.get("colors", []),
+                "defense": card.get("defense"),
                 "keywords": card.get("keywords", []),
-                "prices": card.get("prices", {}),
-                "digital": card.get("digital", False),
-                "reprint": card.get("reprint", False),
-                "full_art": card.get("full_art", False),
-                "textless": card.get("textless", False),
-                "story_spotlight": card.get("story_spotlight", False),
+                "legalities": card.get("legalities", {}),
+                "loyalty": card.get("loyalty"),
+                "mana_cost": card.get("mana_cost"),
+                "name": card["name"],
+                "oracle_text": card.get("oracle_text"),
+                "power": card.get("power"),
+                "toughness": card.get("toughness"),
+                "type_line": card.get("type_line"),
+                "collector_number": card.get("collector_number"),
+                "highres_image": card.get("highres_image"),
+                "illustration_id": card.get("illustration_id"),
+                "image_status": card.get("image_status"),
+                "image_uris": card.get("image_uris", {}),
+                "released_at": card.get("released_at"),
+                "reprint": card.get("reprint"),
+                "variation": card.get("variation"),
+                "variation_of": card.get("variation_of"),
             },
         )
 
         # Process card faces
-        if card.get("layout") in ["modal_dfc", "transform", "adventure"]:
-            card_faces = card.get("card_faces", [])
+        card_faces = card.get("card_faces", [])
+        if card_faces:
             for face_data in card_faces:
                 ScryfallCardFace.objects.update_or_create(
-                    card=scryfall_card,
-                    name=face_data.get("name"),
+                    parent_card=scryfall_card,
                     defaults={
+                        "cmc": face_data.get("cmc"),
+                        "colors": face_data.get("colors", []),
+                        "defense": face_data.get("defense"),
+                        "illustration_id": face_data.get("illustration_id"),
+                        "image_uris": face_data.get("image_uris", {}),
+                        "layout": face_data.get("layout"),
+                        "loyalty": face_data.get("loyalty"),
                         "mana_cost": face_data.get("mana_cost"),
-                        "type_line": face_data.get("type_line"),
+                        "name": face_data.get("name"),
                         "oracle_text": face_data.get("oracle_text"),
                         "power": face_data.get("power"),
                         "toughness": face_data.get("toughness"),
-                        "loyalty": face_data.get("loyalty"),
-                        "colors": face_data.get("colors", []),
-                        "image_uris": face_data.get("image_uris", {}),
+                        "type_line": face_data.get("type_line"),
                     },
                 )
-        else:
-            # Single-faced cards can have a default face entry if needed
-            ScryfallCardFace.objects.update_or_create(
-                card=scryfall_card,
-                name=card["name"],
-                defaults={
-                    "mana_cost": card.get("mana_cost"),
-                    "type_line": card.get("type_line"),
-                    "oracle_text": card.get("oracle_text"),
-                    "power": card.get("power"),
-                    "toughness": card.get("toughness"),
-                    "loyalty": card.get("loyalty"),
-                    "colors": card.get("colors", []),
-                    "image_uris": card.get("image_uris", {}),
-                },
-            )
 
     def handle(self, *args, **kwargs):
         self.stdout.write("Fetching bulk data URL...")

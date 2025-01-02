@@ -126,8 +126,8 @@ class ScryfallCard(models.Model):
     #     help_text='A link to this card’s rulings list on Scryfall’s API.')
     # scryfall_uri = models.URLField(
     #     help_text='A link to this card’s permapage on Scryfall’s website.')
-    # uri = models.URLField(
-    #     help_text='A link to this card object on Scryfall’s API.')
+    uri = models.URLField(
+        help_text='A link to this card object on Scryfall’s API.')
 
     # --- Gameplay Fields ---
 
@@ -137,8 +137,8 @@ class ScryfallCard(models.Model):
         help_text='The card’s mana value. Note that some funny cards have fractional mana costs.')
     color_identity = ArrayField(models.CharField(),
                                 help_text='This card’s color identity.')
-    color_indicator = ArrayField(
-        models.CharField(max_length=25), null=True, blank=True, help_text='The colors in this card’s color indicator, if any. A null value for this field indicates the card does not have one.')
+    # color_indicator = ArrayField(
+    #     models.CharField(max_length=25), null=True, blank=True, help_text='The colors in this card’s color indicator, if any. A null value for this field indicates the card does not have one.')
     colors = ArrayField(
         models.CharField(max_length=25), null=True, blank=True, help_text='This card’s colors, if the overall card has colors defined by the rules. Otherwise the colors will be on the card_faces objects, see below.')
     defense = models.CharField(
@@ -186,8 +186,8 @@ class ScryfallCard(models.Model):
     #     help_text='Whether this card is found in boosters.')
     # border_color = models.CharField(max_length=10, choices=border_color_choices,
     #                                 help_text='This card’s border color: black, white, borderless, silver, or gold.')
-    card_back_id = models.UUIDField(
-        help_text='The Scryfall ID for the card back design present on this card.')
+    # card_back_id = models.UUIDField(
+    #     help_text='The Scryfall ID for the card back design present on this card.')
     collector_number = models.CharField(
         max_length=10, help_text='This card’s collector number. Note that collector numbers can contain non-numeric characters, such as letters or ★.')
     # content_warning = models.BooleanField(
@@ -285,15 +285,16 @@ class ScryfallCardFace(models.Model):
     # artist_id = models.UUIDField(
     #     null=True, blank=True, help_text='The ID of the illustrator of this card face. Newly spoiled cards may not have this field yet.')
     cmc = models.FloatField(
+        null=True, blank=True,
         help_text='The mana value of this particular face, if the card is reversible.')
-    color_indicator = ArrayField(models.CharField(
-        max_length=25), null=True, blank=True, help_text='The colors in this face’s color indicator, if any.')
+    # color_indicator = ArrayField(models.CharField(
+    #     max_length=25), null=True, blank=True, help_text='The colors in this face’s color indicator, if any.')
     colors = ArrayField(models.CharField(max_length=25), null=True, blank=True,
                         help_text='This face’s colors, if the game defines colors for the individual face of this card.')
     defense = models.CharField(max_length=25, null=True, blank=True,
                                help_text='This face’s defense, if the game defines colors for the individual face of this card.')
-    flavor_text = models.TextField(
-        null=True, blank=True, help_text='The flavor text printed on this face, if any.')
+    # flavor_text = models.TextField(
+    #     null=True, blank=True, help_text='The flavor text printed on this face, if any.')
     illustration_id = models.UUIDField(null=True, blank=True,
                                        help_text='A unique identifier for the card face artwork that remains consistent across reprints. Newly spoiled cards may not have this field yet.')
     image_uris = models.JSONField(
