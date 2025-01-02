@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    "graphene_django",
     'cedhtools_backend',
 ]
 
@@ -170,11 +169,6 @@ LOGGING = {
         },
     },
 }
-
-GRAPHENE = {
-    "SCHEMA": "cedhtools_backend.schema.schema.schema"
-}
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

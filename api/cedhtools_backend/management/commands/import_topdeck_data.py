@@ -16,7 +16,6 @@ class Command(BaseCommand):
     help = 'Fetch tournaments data from topdeck.gg API in 6-month batches starting from June 1, 2022.'
 
     def add_arguments(self, parser):
-        # Optionally allow passing custom start and end dates through command line arguments.
         parser.add_argument(
             '--start', help='Start date in YYYY-MM-DD format', default='2022-06-01')
         parser.add_argument(
@@ -54,17 +53,13 @@ class Command(BaseCommand):
             logger.error("Start date must be earlier than end date.")
             raise CommandError("Start date must be earlier than end date.")
 
-        # We will fetch data in 1-month batches
         current_start = start_date
         current_end = start_date + relativedelta(months=1)
 
-        # Loop until we surpass the end_date
         while current_start < end_date:
-            # Make sure we don't go beyond the defined end_date
             if current_end > end_date:
                 current_end = end_date
 
-            # Convert to Unix timestamps (seconds)
             start_ts = int(time.mktime(current_start.timetuple()))
             end_ts = int(time.mktime(current_end.timetuple()))
 
@@ -79,17 +74,15 @@ class Command(BaseCommand):
             except CommandError as ce:
                 logger.error(
                     f"Failed to fetch/store tournaments for period {current_start.date()} to {current_end.date()}: {ce}")
-                # Depending on requirements, you might choose to continue or abort
                 continue
 
-            # Move to the next 1-month interval
             current_start = current_end
             current_end = current_start + relativedelta(months=1)
 
         logger.info("All tournament data imported/updated successfully.")
 
     def fetch_and_store_tournaments(self, start_ts, end_ts):
-        url = "https://topdeck.gg/api/v2/tournaments"
+        url = settings.TOPDECK_API_BASE_URL + '/v2/tournaments'
         api_token = settings.TOPDECK_API_KEY
 
         if not api_token:
@@ -98,7 +91,6 @@ class Command(BaseCommand):
             raise CommandError("TOPDECK_API_KEY is not set.")
 
         headers = {
-            # Adjust the format as per API requirements
             'Authorization': f'{api_token}',
             'Content-Type': 'application/json'
         }
@@ -109,21 +101,10 @@ class Command(BaseCommand):
             "start": start_ts,
             "end": end_ts,
             "columns": [
-                "name",
                 "decklist",
-                "deckSnapshot",
-                "commanders",
                 "wins",
-                "winsSwiss",
-                "winsBracket",
-                "winRate",
-                "winRateSwiss",
-                "winRateBracket",
                 "draws",
                 "losses",
-                "lossesSwiss",
-                "lossesBracket",
-                "id"
             ]
         }
 
@@ -146,95 +127,85 @@ class Command(BaseCommand):
 
         tournaments_processed = 0
 
-        # If the API returns a list of tournaments for this range
         for tour in data:
-            # Create or update the tournament
             t, created = TopdeckTournament.objects.update_or_create(
                 tid=tour.get('TID'),
                 defaults={
-                    'tournament_name': tour.get('tournamentName', ''),
                     'swiss_num': tour.get('swissNum', 0),
                     'start_date': tour.get('startDate', 0),
-                    'game': tour.get('game', ''),
-                    'format': tour.get('format', ''),
-                    'top_cut': tour.get('topCut', 0)
+                    'top_cut': tour.get('topCut', 0),
                 }
             )
             if created:
                 logger.info(
-                    f"Created new tournament: {t.tournament_name} (TID: {t.tid})")
+                    f"Created new tournament: {t.tid}")
             else:
                 logger.info(
-                    f"Updated tournament: {t.tournament_name} (TID: {t.tid})")
+                    f"Updated tournament: {t.tid}")
 
-            # Clear old standings before re-importing to avoid duplicates
             previous_standings_count = t.standings.count()
             t.standings.all().delete()
             if previous_standings_count > 0:
                 logger.info(
-                    f"Deleted {previous_standings_count} previous standings for tournament: {t.tournament_name}")
+                    f"Deleted {previous_standings_count} previous standings for tournament: {t.tid}")
 
-            # Insert player standings
             player_objects = []
             for player in tour.get('standings', []):
-                # Safely get and process 'decklist'
-                decklist_raw = player.get('decklist')
-                if decklist_raw is not None:
-                    decklist = decklist_raw.strip()
-                else:
-                    decklist = ''
-
-                # Safely get and process 'id'
-                player_id_raw = player.get('id')
-                if player_id_raw is not None:
-                    player_id = player_id_raw.strip()
-                else:
-                    player_id = ''
-
-                # Validate that decklist is a Moxfield URL
+                decklist = player.get('decklist')
                 if decklist:
-                    # Define a regex pattern to match valid Moxfield deck URLs
                     pattern = r'^(https?://)?(www\.)?moxfield\.com/decks/.*$'
 
                     if not re.match(pattern, decklist):
                         logger.warning(
-                            f"Invalid decklist URL for player '{player.get('name')}' in tournament '{t.tournament_name}': {decklist}"
+                            f"Invalid decklist URL for player '{player.get('name')}' in tournament '{t.tid}': {decklist}"
                         )
-                        continue  # Skip this player
+                        continue
                 else:
-                    # If decklist is empty, set to None (since it's nullable)
-                    decklist = None
+                    continue
 
-                # Prepare TopdeckPlayerStanding instance
-                player_objects.append(TopdeckPlayerStanding(
-                    tournament=t,
-                    name=player.get('name', '').strip(),
-                    decklist=decklist,
-                    wins=player.get('wins', 0),
-                    wins_swiss=player.get('winsSwiss', 0),
-                    wins_bracket=player.get('winsBracket', 0),
-                    win_rate=player.get('winRate'),
-                    win_rate_swiss=player.get('winRateSwiss'),
-                    win_rate_bracket=player.get('winRateBracket'),
-                    draws=player.get('draws', 0),
-                    losses=player.get('losses', 0),
-                    losses_swiss=player.get('lossesSwiss', 0),
-                    losses_bracket=player.get('lossesBracket', 0),
-                    player_id=player_id if player_id else None
-                ))
+                wins = player.get('wins')
+                draws = player.get('draws')
+                losses = player.get('losses')
 
-            # Bulk create player standings for efficiency
+                if (wins is None) or (draws is None) or (losses is None):
+                    logger.warning(
+                        f"Invalid wins/draws/losses for player '{player.get('name')}' in tournament '{t.tid}': {wins}-{draws}-{losses}"
+                    )
+                    continue
+                else:
+                    total_games = wins + draws + losses
+                    if total_games == 0:
+                        logger.warning(
+                            f"Player '{player.get('name')}' in tournament '{t.tid}' has 0 total games played."
+                        )
+                        continue
+
+                    else:
+                        win_rate = wins / total_games
+                        draw_rate = draws / total_games
+                        loss_rate = losses / total_games
+                    player_objects.append(TopdeckPlayerStanding(
+                        tournament=t,
+                        decklist=decklist,
+                        wins=wins,
+                        draws=draws,
+                        losses=losses,
+                        win_rate=win_rate,
+                        draw_rate=draw_rate,
+                        loss_rate=loss_rate
+                    ))
+
             try:
                 TopdeckPlayerStanding.objects.bulk_create(player_objects)
                 player_count = len(player_objects)
                 logger.info(
-                    f"Added {player_count} player standings for tournament: {t.tournament_name}")
+                    f"Added {player_count} player standings for tournament: {t.tid}")
                 tournaments_processed += 1
             except ValidationError as ve:
                 logger.error(
-                    f"Validation error while adding player standings for tournament '{t.tournament_name}': {ve}")
+                    f"Validation error while adding player standings for tournament '{t.tid}': {ve}")
             except Exception as e:
                 logger.error(
-                    f"Unexpected error while adding player standings for tournament '{t.tournament_name}': {e}")
+                    f"Unexpected error while adding player standings for tournament '{t.tid}': {e}")
 
         return tournaments_processed

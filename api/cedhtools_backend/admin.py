@@ -3,11 +3,6 @@ from .models import *
 
 admin.site.register(MoxfieldCard)
 admin.site.register(MoxfieldDeck)
-admin.site.register(MoxfieldBoard)
-admin.site.register(MoxfieldBoardCard)
 
 admin.site.register(TopdeckTournament)
 admin.site.register(TopdeckPlayerStanding)
-
-admin.site.register(ScryfallCard)
-admin.site.register(ScryfallCardFace)
