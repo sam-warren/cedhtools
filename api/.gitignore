@@ -1,3 +1,4 @@
 .env
 logs/
+dumps/
 db_seed.gz
