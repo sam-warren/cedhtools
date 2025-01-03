@@ -163,12 +163,23 @@ class Command(BaseCommand):
         commander_legality = card_data.get(
             'legalities', {}).get('commander', 'not_legal')
 
+        released_at_str = card_data.get('released_at')
+        try:
+            released_at = datetime.strptime(
+                released_at_str, '%Y-%m-%d').date() if released_at_str else None
+        except ValueError:
+            logger.warning(
+                f"Invalid release date format for card {card_data.get('name')}: {released_at_str}")
+            released_at = None
+
         defaults = {
             'id': card_data['id'],
             'name': card_data['name'],
             'scryfall_uri': card_data.get('scryfall_uri', ''),
             'layout': layout,
             'legality': commander_legality,
+            'released_at': released_at,
+            'collector_number': card_data.get('collector_number', ''),
         }
 
         defaults.update(self._process_card_layout(layout, card_data))

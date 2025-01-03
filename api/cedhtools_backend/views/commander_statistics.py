@@ -1,4 +1,4 @@
-from django.db.models import Avg, F, Q, Count
+from django.db.models import Avg, F, Q, Count, OuterRef, Subquery
 from django.db.models.functions import Sqrt
 from django.db.models.functions import PercentRank
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -38,10 +38,7 @@ class CommanderStatisticsView(APIView):
 
             stats = self._calculate_card_statistics(commanders)
 
-            # Enrich statistics with Scryfall data TODO: Finish implementing this.
-            enriched_stats = self._enrich_with_scryfall_data(stats)
-
-            return Response(enriched_stats, status=status.HTTP_200_OK)
+            return Response(stats, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {"error": str(e)},
@@ -113,11 +110,14 @@ class CommanderStatisticsView(APIView):
         }
 
     def _calculate_per_card_stats(self, matching_decks, meta_stats):
-        """Calculate detailed statistics for each card."""
-        cards_query = MoxfieldCard.objects.filter(
+        """Calculate detailed statistics for each card, aggregated by unique_card_id."""
+
+        # First calculate all statistics grouped by unique_card_id
+        stats_by_unique_id = MoxfieldCard.objects.filter(
             moxfielddeckcard__deck__in=matching_decks,
             moxfielddeckcard__board='mainboard'
-        ).annotate(
+        ).values('unique_card_id').annotate(
+            # Aggregated statistics across ALL printings
             decks_with_card=Count('moxfielddeckcard__deck', distinct=True),
             avg_win_rate=Avg(
                 'moxfielddeckcard__deck__player_standings__win_rate'),
@@ -125,7 +125,28 @@ class CommanderStatisticsView(APIView):
                 'moxfielddeckcard__deck__player_standings__draw_rate'),
             avg_loss_rate=Avg(
                 'moxfielddeckcard__deck__player_standings__loss_rate')
-        ).select_related('scryfall_card').values(
+        )
+
+        # Convert to dictionary for easy lookup
+        stats_lookup = {
+            stat['unique_card_id']: {
+                'decks_with_card': stat['decks_with_card'],
+                'avg_win_rate': stat['avg_win_rate'],
+                'avg_draw_rate': stat['avg_draw_rate'],
+                'avg_loss_rate': stat['avg_loss_rate']
+            } for stat in stats_by_unique_id
+        }
+
+        # Subquery to get the latest printing for each unique_card_id
+        latest_printing = MoxfieldCard.objects.filter(
+            unique_card_id=OuterRef('unique_card_id')
+        ).order_by('-scryfall_card__released_at', 'scryfall_card__collector_number').values('scryfall_card_id')[:1]
+
+        # Now get one representative card (with Scryfall data) for each unique_card_id
+        representative_cards = MoxfieldCard.objects.filter(
+            unique_card_id__in=stats_lookup.keys(),
+            scryfall_card_id=Subquery(latest_printing)
+        ).values(
             'unique_card_id',
             'scryfall_card__id',
             'scryfall_card__name',
@@ -134,15 +155,13 @@ class CommanderStatisticsView(APIView):
             'scryfall_card__image_uris',
             'scryfall_card__legality',
             'scryfall_card__mana_cost',
-            'scryfall_card__scryfall_uri',
-            'decks_with_card',
-            'avg_win_rate',
-            'avg_draw_rate',
-            'avg_loss_rate'
+            'scryfall_card__scryfall_uri'
         )
 
+        # Combine the statistics with the representative card data
         card_stats = []
-        for card in cards_query:
+        for card in representative_cards:
+            stats = stats_lookup[card['unique_card_id']]
             card_stats.append({
                 'unique_card_id': card['unique_card_id'],
                 'scryfall_id': str(card['scryfall_card__id']),
@@ -154,18 +173,13 @@ class CommanderStatisticsView(APIView):
                 'mana_cost': card['scryfall_card__mana_cost'],
                 'scryfall_uri': card['scryfall_card__scryfall_uri'],
                 'sample_size': {
-                    'decks': card['decks_with_card'],
+                    'decks': stats['decks_with_card'],
                 },
                 'performance': {
-                    'win_rate': card['avg_win_rate'],
-                    'draw_rate': card['avg_draw_rate'],
-                    'loss_rate': card['avg_loss_rate']
+                    'win_rate': stats['avg_win_rate'],
+                    'draw_rate': stats['avg_draw_rate'],
+                    'loss_rate': stats['avg_loss_rate']
                 },
             })
 
         return card_stats
-
-    def _enrich_with_scryfall_data(self, stats):
-        """Enrich card statistics with Scryfall data."""
-
-        return stats

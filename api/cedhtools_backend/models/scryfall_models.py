@@ -13,11 +13,14 @@ class ScryfallCard(models.Model):
     cmc = models.FloatField()
     legality = models.CharField(max_length=50)
     image_uris = models.JSONField(max_length=500, null=True, blank=True)
+    released_at = models.DateField(null=True, db_index=True)
+    collector_number = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = 'scryfall_card'
         indexes = [
             models.Index(fields=['name']),
+            models.Index(fields=['released_at', 'collector_number']),
         ]
 
     def __str__(self):
