@@ -15,6 +15,7 @@ from cedhtools_backend.models import (
     MoxfieldDeck,
     MoxfieldCard,
     MoxfieldDeckCard,
+    ScryfallCard
 )
 from tqdm import tqdm
 from django.utils import timezone
@@ -91,7 +92,10 @@ class Command(BaseCommand):
                         deck_id = self.get_deck_id(decklist_url)
                         if not deck_id:
                             logger.error(
-                                f'Failed to extract deck ID from URL: {decklist_url}')
+                                f'Failed to extract deck ID from URL: {decklist_url}. Deleting associated player standing.')
+                            TopdeckPlayerStanding.objects.filter(
+                                decklist=decklist_url).delete()
+
                             pbar.update(1)
                             continue
 
@@ -130,14 +134,20 @@ class Command(BaseCommand):
                                 f"HTTP error occurred for URL {decklist_url}: {http_err}")
                     except requests.exceptions.RequestException as e:
                         logger.error(
-                            f"Request error for URL {decklist_url}: {e}")
+                            f"Request error for URL {decklist_url}: {e}. Deleting associated player standing.")
+                        TopdeckPlayerStanding.objects.filter(
+                            decklist=decklist_url).delete()
+
                     except Exception as e:
                         logger.exception(
-                            f"Unexpected error for URL {decklist_url}: {e}")
+                            f"Unexpected error for URL {decklist_url}: {e}. Deleting associated player standing.")
+                        TopdeckPlayerStanding.objects.filter(
+                            decklist=decklist_url).delete()
+
                     finally:
                         pbar.update(1)
 
-                    time.sleep(1)  # Maintain 1 request per second rate limit
+                    time.sleep(0.5)
             except KeyboardInterrupt:
                 logger.warning("Import process interrupted by user.")
                 self.stdout.write(self.style.WARNING(
@@ -169,13 +179,13 @@ class Command(BaseCommand):
     def parse_deck(self, deck_data):
         """
         Parses the deck data from Moxfield API and stores it in the database.
-        Returns the Deck instance.
+        Returns None if any card in the deck lacks a valid Scryfall reference.
         """
-
         format = deck_data.get('format')
         if format != 'commander':
-            print(
-                f"Deck {deck_data.get('publicUrl')} is not a commander deck, deleting the player standings associated")
+            logger.info(
+                f"Deck {deck_data.get('publicUrl')} is not a commander deck, deleting the player standings associated"
+            )
             return None
 
         boards = deck_data.get('boards', {})
@@ -184,63 +194,101 @@ class Command(BaseCommand):
         companions_count = boards.get('companions', {}).get('count', 0)
 
         if mainboard_count + commanders_count + companions_count != 100:
-            print(
-                f"Deck {deck_data.get('publicUrl')} does not have exactly 100 cards, deleting the player standings associated")
-            return
+            logger.info(
+                f"Deck {deck_data.get('publicUrl')} does not have exactly 100 cards"
+            )
+            return None
 
-        deck, created = MoxfieldDeck.objects.update_or_create(
-            id=deck_data.get('id'),
-            defaults={
-                'public_id': deck_data.get('publicId'),
-            }
-        )
+        with transaction.atomic():
+            deck, created = MoxfieldDeck.objects.get_or_create(
+                id=deck_data.get('id'),
+                defaults={
+                    'public_id': deck_data.get('publicId'),
+                }
+            )
 
-        for board_name, board_data in boards.items():
-            if board_name not in ['mainboard', 'commanders', 'companions']:
-                continue
+            valid_cards = True
+            for board_name, board_data in boards.items():
+                if board_name not in ['mainboard', 'commanders', 'companions']:
+                    continue
 
-            for card_key, card_data in board_data.get('cards', {}).items():
-                card_info = card_data.get('card')
-                quantity = card_data.get('quantity', 1)
-                self.get_or_create_card(
-                    card_info=card_info,
-                    deck=deck,
-                    board_name=board_name,
-                    quantity=quantity
-                )
+                for card_key, card_data in board_data.get('cards', {}).items():
+                    card_info = card_data.get('card')
+                    quantity = card_data.get('quantity', 1)
+                    card = self.get_or_create_card(
+                        card_info=card_info,
+                        deck=deck,
+                        board_name=board_name,
+                        quantity=quantity
+                    )
 
-        return deck
+                    if card is None:
+                        valid_cards = False
+                        break
+
+                if not valid_cards:
+                    break
+
+            if not valid_cards:
+                # Clean up the invalid deck
+                deck.delete()
+                return None
+
+            return deck
 
     def get_or_create_card(self, card_info, deck, board_name, quantity=1):
         """
         Retrieves an existing MoxfieldCard or creates a new one and associates it with the deck.
-
-        Args:
-            card_info: Dictionary containing card information from Moxfield API
-            deck: MoxfieldDeck instance
-            board_name: String indicating which part of the deck (mainboard, commanders, etc.)
-            quantity: Integer representing how many copies of this card to add
+        Returns None if the card's Scryfall reference is invalid, indicating the deck should be removed.
         """
-        card, created = MoxfieldCard.objects.get_or_create(
-            id=card_info.get('id', ''),
-            defaults={
-                'unique_card_id': card_info.get('uniqueCardId', ''),
-                'scryfall_id': self.parse_uuid(card_info.get('scryfall_id', '')),
-            }
-        )
+        from cedhtools_backend.models import ScryfallCard  # Add this import at the top of the file
 
-        deck_card, created = MoxfieldDeckCard.objects.get_or_create(
-            deck=deck,
-            card=card,
-            board=board_name,
-            defaults={'quantity': quantity}
-        )
+        scryfall_id = self.parse_uuid(card_info.get('scryfall_id', ''))
 
-        if not created:
-            deck_card.quantity = quantity
-            deck_card.save()
+        if not scryfall_id:
+            logger.warning(
+                f"Invalid Scryfall ID for card {card_info.get('id')}")
+            return None
 
-        return card
+        # Verify card exists in Scryfall database
+        try:
+            scryfall_card = ScryfallCard.objects.get(id=scryfall_id)
+            if scryfall_card.legality == 'not_legal':
+                logger.warning(
+                    f"Card {card_info.get('id')} is not legal in Commander format: {scryfall_card.name}"
+                )
+                return None
+        except ScryfallCard.DoesNotExist:
+            logger.warning(
+                f"Card {card_info.get('id')} references non-existent Scryfall ID: {scryfall_id}"
+            )
+            return None
+
+        try:
+            card, created = MoxfieldCard.objects.get_or_create(
+                id=card_info.get('id', ''),
+                defaults={
+                    'unique_card_id': card_info.get('uniqueCardId', ''),
+                    'scryfall_card': scryfall_card,
+                }
+            )
+
+            deck_card, created = MoxfieldDeckCard.objects.get_or_create(
+                deck=deck,
+                card=card,
+                board=board_name,
+                defaults={'quantity': quantity}
+            )
+
+            if not created:
+                deck_card.quantity = quantity
+                deck_card.save()
+
+            return card
+        except Exception as e:
+            logger.error(
+                f"Error creating card {card_info.get('id')}: {str(e)}")
+            return None
 
     def parse_uuid(self, uuid_str):
         """

@@ -6,7 +6,13 @@ from django.contrib.postgres.fields import ArrayField
 class MoxfieldCard(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     unique_card_id = models.CharField(max_length=255, null=True, blank=True)
-    scryfall_id = models.UUIDField()
+    scryfall_card = models.ForeignKey(
+        'ScryfallCard',
+        on_delete=models.SET_NULL,
+        null=True,
+        db_column='scryfall_id',
+        related_name='moxfield_cards'
+    )
     decks = models.ManyToManyField(
         'MoxfieldDeck', through='MoxfieldDeckCard', related_name='cards')
 
@@ -14,7 +20,6 @@ class MoxfieldCard(models.Model):
         db_table = 'moxfield_card'
         indexes = [
             models.Index(fields=['unique_card_id']),
-            models.Index(fields=['scryfall_id']),
             models.Index(fields=['id']),
         ]
 

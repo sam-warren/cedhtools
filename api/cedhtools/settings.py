@@ -17,39 +17,31 @@ import os
 # Load environment variables
 load_dotenv()
 
+# Database Configuration
 PG_USER = quote_plus(os.getenv('PG_USER'))
 PG_PASSWORD = quote_plus(os.getenv('PG_PASSWORD'))
 PG_DB_NAME = os.getenv('PG_DB_NAME')
 PG_HOST = os.getenv('PG_HOST')
 PG_PORT = os.getenv('PG_PORT')
 
+# Moxfield API Configuration
 MOXFIELD_API_BASE_URL = os.getenv('MOXFIELD_API_BASE_URL')
 MOXFIELD_USER_AGENT = os.getenv('MOXFIELD_USER_AGENT')
 
+# TopDeck API Configuration
 TOPDECK_API_BASE_URL = os.getenv('TOPDECK_API_BASE_URL')
 TOPDECK_API_KEY = os.getenv('TOPDECK_API_KEY')
 
+# Scryfall API Configuration
 SCRYFALL_API_BASE_URL = os.getenv('SCRYFALL_API_BASE_URL')
-SCRYFALL_USER_AGENT = os.getenv(
-    'SCRYFALL_USER_AGENT') + "/" + os.getenv("APP_VERSION")
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+SCRYFALL_USER_AGENT = f"{os.getenv('SCRYFALL_USER_AGENT')}/{os.getenv('APP_VERSION')}"
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-lk%1i@m7+_ajxnr*)hvic%z6@j^$&l619%=2+z2p!2mz_ic-we'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY', 'django-insecure-lk%1i@m7+_ajxnr*)hvic%z6@j^$&l619%=2+z2p!2mz_ic-we')
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = []
-
-TIME_ZONE = 'UTC'
-USE_TZ = True
 
 # Application definition
 
@@ -77,9 +69,6 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-# ]
 
 CORS_ALLOW_CREDENTIALS = True
 
