@@ -22,7 +22,14 @@ export default function Footer() {
             rel="noopener noreferrer"
           >
             Moxfield
-          </Link>{' '}
+          </Link>{', '}
+          <Link
+            href="https://www.scryfall.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Scryfall
+          </Link>{', '}
           and{' '}
           <Link
             href="https://www.topdeck.gg"

@@ -12,6 +12,7 @@ import { IApiResponse, ICommanderStats, IMoxfieldDeck } from 'src/types';
 import { useCountUp } from 'use-count-up'; // TODO: Implement this for commander stats
 
 // TODO: Implement a table view
+// FIXME: Queries are being fired off twice on page load
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -53,19 +54,17 @@ export default function DeckPage() {
   const fetchCommanderStats = async (deck: IMoxfieldDeck) => {
     if (!deckStats) {
       try {
-        const commander_ids = Object.keys(deck.boards['commanders']['cards']);
-        if (commander_ids && commander_ids.length > 0) {
-          const response: IApiResponse<ICommanderStats> =
-            await getDeckStats(commander_ids);
-          if (response.success) {
-            console.log('Deck stats: ', response.data);
-            setDeckStats(response.data);
-            setLoading(false);
-          } else {
-            console.error('Failed to fetch deck statistics', response.error);
-            showAlert('Failed to fetch deck statistics', 'danger');
-            setLoading(false);
-          }
+        const response: IApiResponse<ICommanderStats> = await getDeckStats(
+          deck.publicId,
+        );
+        if (response.success) {
+          console.log('Deck stats: ', response.data);
+          setDeckStats(response.data);
+          setLoading(false);
+        } else {
+          console.error('Failed to fetch deck statistics', response.error);
+          showAlert('Failed to fetch deck statistics', 'danger');
+          setLoading(false);
         }
       } catch (err: any) {
         showAlert('Failed to fetch deck statistics', 'danger');

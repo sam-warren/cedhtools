@@ -34,6 +34,7 @@ class MoxfieldDeckCard(models.Model):
         db_table = 'moxfield_deck_card'
         indexes = [
             models.Index(fields=['deck', 'card']),
+            models.Index(fields=['board']),
         ]
 
 

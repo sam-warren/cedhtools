@@ -1,7 +1,6 @@
 # cedhtools_backend/api/urls.py
 from django.urls import path
-from ..views import MoxfieldDeckView, TopdeckTournamentView, CommanderStatisticsView
-from graphene_django.views import GraphQLView
+from ..views import MoxfieldDeckView, TopdeckTournamentView, CommanderStatisticsView, DatabaseStatisticsView
 
 urlpatterns = [
     path('moxfield/deck/<str:deck_id>/',
@@ -11,4 +10,7 @@ urlpatterns = [
     path('commander-statistics/<str:deck_id>/',
          CommanderStatisticsView.as_view(),
          name='commander_statistics'),
+    path('database-statistics/', DatabaseStatisticsView.as_view(),
+         name='database-statistics'),
+
 ]

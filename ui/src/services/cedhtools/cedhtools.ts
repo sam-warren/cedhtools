@@ -5,18 +5,16 @@ import { serviceWrapper } from '../serviceWrapper';
 const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
 
 export async function getDeckStats(
-  commander_ids: string[],
+  deck_id: string,
   start_date?: Date,
   end_date?: Date,
   tournament_size?: number,
   top_cut?: number,
 ): Promise<IApiResponse<ICommanderStats>> {
-  const url = `${BASE_URL}/api/cedhtools/commander/statistics`;
+
+  const url = `${BASE_URL}/api/commander-statistics/${deck_id}`;
 
   const params = new URLSearchParams();
-  if (commander_ids.length > 0) {
-    commander_ids.forEach((id) => params.append('commander_ids', id));
-  }
   if (start_date)
     params.append('start_date', (start_date.getTime() / 1000).toString());
   if (end_date)
