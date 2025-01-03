@@ -125,9 +125,16 @@ class CommanderStatisticsView(APIView):
                 'moxfielddeckcard__deck__player_standings__draw_rate'),
             avg_loss_rate=Avg(
                 'moxfielddeckcard__deck__player_standings__loss_rate')
-        ).values(
+        ).select_related('scryfall_card').values(
             'unique_card_id',
-            'scryfall_id',
+            'scryfall_card__id',
+            'scryfall_card__name',
+            'scryfall_card__type_line',
+            'scryfall_card__cmc',
+            'scryfall_card__image_uris',
+            'scryfall_card__legality',
+            'scryfall_card__mana_cost',
+            'scryfall_card__scryfall_uri',
             'decks_with_card',
             'avg_win_rate',
             'avg_draw_rate',
@@ -138,7 +145,14 @@ class CommanderStatisticsView(APIView):
         for card in cards_query:
             card_stats.append({
                 'unique_card_id': card['unique_card_id'],
-                'scryfall_id': str(card['scryfall_id']),
+                'scryfall_id': str(card['scryfall_card__id']),
+                'name': card['scryfall_card__name'],
+                'type_line': card['scryfall_card__type_line'],
+                'cmc': card['scryfall_card__cmc'],
+                'image_uris': card['scryfall_card__image_uris'],
+                'legality': card['scryfall_card__legality'],
+                'mana_cost': card['scryfall_card__mana_cost'],
+                'scryfall_uri': card['scryfall_card__scryfall_uri'],
                 'sample_size': {
                     'decks': card['decks_with_card'],
                 },
