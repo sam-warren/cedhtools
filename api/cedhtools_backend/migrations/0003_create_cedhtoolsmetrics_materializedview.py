@@ -22,6 +22,7 @@ class Migration(migrations.Migration):
         WHERE mc.unique_card_id IS NOT NULL
     )
     SELECT 
+        1 as id,  -- Static ID since we'll only have one row
         deck_metrics.total_decks,
         tournament_metrics.total_tournaments,
         card_metrics.total_unique_cards
@@ -30,7 +31,7 @@ class Migration(migrations.Migration):
         tournament_metrics,
         card_metrics;
 
-    CREATE UNIQUE INDEX cedhtools_metrics_unique_idx ON cedhtools_metrics (total_decks);
+    CREATE UNIQUE INDEX cedhtools_metrics_id_idx ON cedhtools_metrics (id);
     """
 
     reverse_sql = """

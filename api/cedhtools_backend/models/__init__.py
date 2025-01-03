@@ -13,6 +13,10 @@ from .scryfall_models import (
     ScryfallCard,
 )
 
+from .materialized_view_models import (
+    CEDHToolsMetrics,
+)
+
 __all__ = [
     'MoxfieldCard',
     'MoxfieldDeck',
@@ -21,5 +25,7 @@ __all__ = [
     'TopdeckTournament',
     'TopdeckPlayerStanding',
 
-    'ScryfallCard'
+    'ScryfallCard',
+
+    'CEDHToolsMetrics',
 ]
