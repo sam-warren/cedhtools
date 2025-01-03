@@ -68,6 +68,7 @@ class Migration(migrations.Migration):
             sc.collector_number ASC
     )
     SELECT 
+        ROW_NUMBER() OVER (ORDER BY ds.unique_card_id, ds.commander_list::text) as id,
         ds.commander_list,
         ds.unique_card_id,
         rc.card_id,
@@ -86,6 +87,10 @@ class Migration(migrations.Migration):
     JOIN representative_cards rc ON ds.unique_card_id = rc.unique_card_id
     WHERE ds.deck_count >= 5;  -- Only include cards with meaningful sample size
 
+    -- Create unique index for concurrent refresh
+    CREATE UNIQUE INDEX card_stats_id_idx ON card_statistics_by_commander(id);
+    
+    -- Keep existing indexes for query performance
     CREATE INDEX card_stats_commander_list_idx ON card_statistics_by_commander USING gin(commander_list);
     CREATE INDEX card_stats_unique_card_idx ON card_statistics_by_commander(unique_card_id);
     """
