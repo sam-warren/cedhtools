@@ -145,74 +145,107 @@ class CommanderStatisticsView(APIView):
         }
 
     def _calculate_per_card_stats(self, matching_decks, meta_stats):
-        """Get card statistics from the materialized view."""
+        """Get card statistics and calculate chi-squared test for each card."""
         commander_list = list(CommanderDeckRelationships.objects.filter(
             deck_id=matching_decks.first().id
         ).values_list('commander_list', flat=True))[0]
 
-        stats_by_unique_id = CardStatisticsByCommander.objects.filter(
-            commander_list=commander_list
+        # Get deck performances including both rates and raw counts
+        deck_performances = TopdeckPlayerStanding.objects.filter(
+            deck__in=matching_decks
         ).values(
-            'unique_card_id',
-            'deck_count',
-            'avg_win_rate',
-            'avg_draw_rate',
-            'avg_loss_rate'
+            'deck_id',
+            'win_rate',
+            'draw_rate',
+            'loss_rate',
+            'wins',
+            'draws',
+            'losses'
         )
 
-        # Convert to dictionary for easy lookup
-        stats_lookup = {
-            stat['unique_card_id']: {
-                'decks_with_card': stat['deck_count'],
-                'avg_win_rate': stat['avg_win_rate'],
-                'avg_draw_rate': stat['avg_draw_rate'],
-                'avg_loss_rate': stat['avg_loss_rate']
-            } for stat in stats_by_unique_id
+        # Get all deck-card relationships in one query
+        deck_cards = MoxfieldDeck.objects.filter(
+            id__in=matching_decks
+        ).values(
+            'id',
+            'moxfielddeckcard__card__unique_card_id'
+        ).distinct()
+
+        # Create lookup dictionaries for faster processing
+        deck_perf_lookup = {
+            perf['deck_id']: perf for perf in deck_performances
         }
 
-        # Subquery to get the latest printing for each unique_card_id
-        latest_printing = MoxfieldCard.objects.filter(
-            unique_card_id=OuterRef('unique_card_id')
-        ).order_by('-scryfall_card__released_at', 'scryfall_card__collector_number').values('scryfall_card_id')[:1]
+        deck_card_lookup = {}
+        for dc in deck_cards:
+            card_id = dc['moxfielddeckcard__card__unique_card_id']
+            if card_id:
+                if card_id not in deck_card_lookup:
+                    deck_card_lookup[card_id] = set()
+                deck_card_lookup[card_id].add(dc['id'])
 
-        # Now get one representative card (with Scryfall data) for each unique_card_id
-        representative_cards = MoxfieldCard.objects.filter(
-            unique_card_id__in=stats_lookup.keys(),
-            scryfall_card_id=Subquery(latest_printing)
-        ).values(
-            'unique_card_id',
-            'scryfall_card__id',
-            'scryfall_card__name',
-            'scryfall_card__type_line',
-            'scryfall_card__cmc',
-            'scryfall_card__image_uris',
-            'scryfall_card__legality',
-            'scryfall_card__mana_cost',
-            'scryfall_card__scryfall_uri'
-        )
-
-        # Combine the statistics with the representative card data
+        # Calculate statistics for each card
         card_stats = []
-        for card in representative_cards:
-            stats = stats_lookup[card['unique_card_id']]
-            card_stats.append({
-                'unique_card_id': card['unique_card_id'],
-                'scryfall_id': str(card['scryfall_card__id']),
-                'name': card['scryfall_card__name'],
-                'type_line': card['scryfall_card__type_line'],
-                'cmc': card['scryfall_card__cmc'],
-                'image_uris': card['scryfall_card__image_uris'],
-                'legality': card['scryfall_card__legality'],
-                'mana_cost': card['scryfall_card__mana_cost'],
-                'scryfall_uri': card['scryfall_card__scryfall_uri'],
-                'sample_size': {
-                    'decks': stats['decks_with_card'],
-                },
-                'performance': {
-                    'win_rate': stats['avg_win_rate'],
-                    'draw_rate': stats['avg_draw_rate'],
-                    'loss_rate': stats['avg_loss_rate']
-                },
-            })
+        for unique_card_id, deck_ids in deck_card_lookup.items():
+            decks_with_card = []
+            decks_without_card = []
+
+            # Split decks into with/without card and collect their performances
+            for deck_id, perf in deck_perf_lookup.items():
+                if deck_id in deck_ids:
+                    decks_with_card.append(perf)
+                else:
+                    decks_without_card.append(perf)
+
+            # Calculate average rates
+            win_rate_with = np.mean(
+                [d['win_rate'] for d in decks_with_card]) if decks_with_card else 0
+            win_rate_without = np.mean(
+                [d['win_rate'] for d in decks_without_card]) if decks_without_card else 0
+
+            # Create contingency table for chi-squared test using raw counts
+            # [wins, draws, losses] for [with_card, without_card]
+            with_card = np.zeros((2, 3))
+            for perf in decks_with_card:
+                with_card[0] += [perf['wins'], perf['draws'], perf['losses']]
+            for perf in decks_without_card:
+                with_card[1] += [perf['wins'], perf['draws'], perf['losses']]
+
+            # Calculate chi-squared test
+            try:
+                if np.all(with_card.sum(axis=0) > 0) and np.all(with_card.sum(axis=1) > 0):
+                    chi2, p_value = stats.chi2_contingency(with_card)[:2]
+                else:
+                    chi2, p_value = 0.0, 1.0
+            except Exception:
+                chi2, p_value = 0.0, 1.0
+
+            # Get card details and create response
+            card_details = MoxfieldCard.objects.filter(
+                unique_card_id=unique_card_id
+            ).select_related('scryfall_card').first()
+
+            if card_details and card_details.scryfall_card:
+                card_stats.append({
+                    'unique_card_id': unique_card_id,
+                    'scryfall_id': str(card_details.scryfall_card.id),
+                    'name': card_details.scryfall_card.name,
+                    'type_line': card_details.scryfall_card.type_line,
+                    'cmc': card_details.scryfall_card.cmc,
+                    'image_uris': card_details.scryfall_card.image_uris,
+                    'legality': card_details.scryfall_card.legality,
+                    'mana_cost': card_details.scryfall_card.mana_cost,
+                    'scryfall_uri': card_details.scryfall_card.scryfall_uri,
+                    'sample_size': {
+                        'decks_with_card': len(decks_with_card),
+                        'decks_without_card': len(decks_without_card)
+                    },
+                    'performance': {
+                        'win_rate_with_card': float(win_rate_with),
+                        'win_rate_without_card': float(win_rate_without),
+                        'chi_squared': float(chi2),
+                        'p_value': float(p_value)
+                    }
+                })
 
         return card_stats
