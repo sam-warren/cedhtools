@@ -15,6 +15,8 @@ from .scryfall_models import (
 
 from .materialized_view_models import (
     CEDHToolsMetrics,
+    CommanderDeckRelationships,
+    CardStatisticsByCommander,
 )
 
 __all__ = [
@@ -28,4 +30,6 @@ __all__ = [
     'ScryfallCard',
 
     'CEDHToolsMetrics',
+    'CommanderDeckRelationships',
+    'CardStatisticsByCommander',
 ]

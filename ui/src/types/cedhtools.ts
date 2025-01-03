@@ -16,3 +16,9 @@ export interface ICardStats {
   p_value: number;
   statistically_significant: boolean;
 }
+
+export interface IDatabaseMetrics {
+  total_decks: number;
+  total_tournaments: number;
+  total_unique_cards: number;
+}

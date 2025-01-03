@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { IApiResponse, ICommanderStats } from '../../types';
+import { IApiResponse, ICommanderStats, IDatabaseMetrics } from '../../types';
 import { serviceWrapper } from '../serviceWrapper';
 
 const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
@@ -30,6 +30,33 @@ export async function getDeckStats(
           withCredentials: true,
           params,
         })
+        .then((response) => response.data),
+    (status, data) => {
+      const errorMessages: Record<number, string> = {
+        500:
+          data?.error ||
+          'An internal server error occurred. Please try again later.',
+      };
+      if (errorMessages[status]) {
+        return {
+          success: false,
+          error: errorMessages[status],
+          statusCode: status,
+        };
+      }
+      return null;
+    },
+  );
+}
+
+export async function getDatabaseMetrics(): Promise<IApiResponse<IDatabaseMetrics>> {
+
+  const url = `${BASE_URL}/api/metrics`;
+
+  return serviceWrapper(
+    () =>
+      axios
+        .get<IDatabaseMetrics>(url, { withCredentials: true })
         .then((response) => response.data),
     (status, data) => {
       const errorMessages: Record<number, string> = {
