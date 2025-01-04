@@ -56,7 +56,7 @@ function Header(props: BoxProps) {
           borderBottom: '1px solid',
           borderColor: 'divider',
           height: '64px',
-          flexShrink: 0, // Prevent header from shrinking
+          flexShrink: 0,
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
       ]}

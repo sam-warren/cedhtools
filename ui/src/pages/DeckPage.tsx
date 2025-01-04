@@ -11,6 +11,8 @@ import { getDecklistById } from 'src/services/moxfield/moxfield';
 import { ICommanderStatisticsResponse, IMoxfieldDeck } from 'src/types';
 import CommanderCard from 'src/components/Deck/CommanderCard';
 import DeckGrid from 'src/components/Deck/DeckGrid';
+import CommanderStack from 'src/components/Deck/CommanderStack';
+import DeckBanner from 'src/components/Deck/DeckBanner';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -209,15 +211,18 @@ export default function DeckPage() {
       <Box sx={layoutStyles.leftPane}>
         {/* Commander Cards */}
         <Box sx={{ mb: 3 }}>
-          {commanders.map((commander) => (
-            <Box
-              key={commander.unique_card_id}
-              sx={{ mb: 2, '&:last-child': { mb: 0 } }}
-            >
+        {commanders.length === 2 ? (
+          // For exactly two, stack them
+          <CommanderStack commanders={commanders} />
+        ) : (
+          // Otherwise render them normally
+          commanders.map((commander) => (
+            <Box key={commander.unique_card_id} sx={{ mb: 2 }}>
               <CommanderCard card={commander} />
             </Box>
-          ))}
-        </Box>
+          ))
+        )}
+      </Box>
 
         {/* Deck Info */}
         <Typography level="h4" sx={{ mb: 2 }}>
