@@ -10,15 +10,19 @@ interface DeckBannerProps extends BoxProps {
   deckStats: ICommanderStatisticsResponse;
 }
 
-export default function DeckBanner({ deck, ...props }: DeckBannerProps) {
+export default function DeckBanner({
+  deck,
+  deckStats,
+  ...props
+}: DeckBannerProps) {
   return (
     <Box
       {...props}
       sx={[
         {
           position: 'sticky',
-          top: '64px', // same height as your header
-          zIndex: 1100, // put it above main content but below a popover, for example
+          top: '64px', // Align just below the header
+          zIndex: 1100,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -26,18 +30,16 @@ export default function DeckBanner({ deck, ...props }: DeckBannerProps) {
           borderBottom: '1px solid',
           borderColor: 'divider',
           padding: 2,
+          boxSizing: 'border-box',
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
       ]}
     >
-      {/* Left side: Deck Name */}
       <Typography level="h2">{deck.name}</Typography>
 
-      {/* Right side: placeholder for future filters */}
       <Box>
-        {/* Place your filter components or placeholders here */}
         <Typography level="body-sm" sx={{ opacity: 0.5 }}>
-          [Filters Coming Soon]
+          Total Decks: {deckStats.meta_statistics.sample_size.total_decks}
         </Typography>
       </Box>
     </Box>
