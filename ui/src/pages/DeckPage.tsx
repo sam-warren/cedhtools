@@ -16,6 +16,10 @@ import {
 import CommanderCard from 'src/components/Deck/CommanderCard';
 import DeckGrid from 'src/components/Deck/DeckGrid';
 import CommanderStack from 'src/components/Deck/CommanderStack';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import BalanceIcon from '@mui/icons-material/Balance';
+import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -237,6 +241,7 @@ export default function DeckPage() {
               size="md"
               variant="soft"
               color="primary"
+              startDecorator={<MilitaryTechIcon />}
               sx={{ mb: 1, mr: 1 }}
             >
               {commander.name}
@@ -246,6 +251,7 @@ export default function DeckPage() {
         <Chip
           size="md"
           variant="soft"
+          startDecorator={<EmojiEventsIcon />}
           color={
             deckStats.meta_statistics.baseline_performance.win_rate * 100 < 15
               ? 'danger'
@@ -261,13 +267,13 @@ export default function DeckPage() {
             deckStats.meta_statistics.baseline_performance.win_rate,
           )}
         </Chip>
-        <Chip size="md" variant="soft" color="neutral" sx={{ mb: 1, mr: 1 }}>
+        <Chip size="md" variant="soft" color="neutral" startDecorator={<BalanceIcon/>} sx={{ mb: 1, mr: 1 }}>
           Draw Rate:{' '}
           {formatPercentage(
             deckStats.meta_statistics.baseline_performance.draw_rate,
           )}
         </Chip>
-        <Chip size="md" variant="soft" color="neutral" sx={{ mb: 1, mr: 1 }}>
+        <Chip size="md" variant="soft" color="neutral" startDecorator={<Inventory2Icon/>} sx={{ mb: 1, mr: 1 }}>
           Total Decks: {deckStats.meta_statistics.sample_size.total_decks}
         </Chip>
       </Box>
