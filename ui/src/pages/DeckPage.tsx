@@ -20,6 +20,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import BalanceIcon from '@mui/icons-material/Balance';
 import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
+import DeckSection from 'src/components/Deck/DeckSection';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -282,6 +283,9 @@ export default function DeckPage() {
       <Box sx={layoutStyles.rightPane}>
         <Box sx={layoutStyles.rightPane}>
           <DeckGrid cardStatistics={deckStats.card_statistics.main} />
+          <DeckSection typeCode='0' cards={deckStats.card_statistics.other.sort(
+            (a, b) => b.performance.card_win_rate - a.performance.card_win_rate
+          )} />
         </Box>
       </Box>
     </Box>

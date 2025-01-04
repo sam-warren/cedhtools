@@ -20,6 +20,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
   cards,
 }) => {
   const typeNameMap: Record<string, string> = {
+    '0': 'Other Cards',
     '1': 'Battles',
     '2': 'Planeswalkers',
     '3': 'Creatures',
