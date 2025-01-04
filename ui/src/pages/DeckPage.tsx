@@ -283,9 +283,10 @@ export default function DeckPage() {
       <Box sx={layoutStyles.rightPane}>
         <Box sx={layoutStyles.rightPane}>
           <DeckGrid cardStatistics={deckStats.card_statistics.main} />
-          <DeckSection typeCode='0' cards={deckStats.card_statistics.other.sort(
-            (a, b) => b.performance.card_win_rate - a.performance.card_win_rate
-          )} />
+        <DeckSection typeCode='0' cards={deckStats.card_statistics.other.sort(
+            (a, b) => b.decks_with_card - a.decks_with_card,
+          ).filter((card) => card.decks_with_card / deckStats.meta_statistics.sample_size.total_decks > 0.01)
+          } />
         </Box>
       </Box>
     </Box>

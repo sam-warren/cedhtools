@@ -136,7 +136,7 @@ class CommanderStatisticsView(APIView):
 
         # Calculate per-card statistics
         card_stats = self._calculate_per_card_stats(
-            matching_decks, meta_stats, deck_structure)
+            matching_decks, meta_stats, deck_structure, commander_ids)
 
         return {
             "meta_statistics": meta_stats,
@@ -173,7 +173,7 @@ class CommanderStatisticsView(APIView):
             }
         }
 
-    def _calculate_per_card_stats(self, matching_decks, meta_stats, deck_structure):
+    def _calculate_per_card_stats(self, matching_decks, meta_stats, deck_structure, commander_ids):
         """
         Get card statistics and calculate chi-squared test for each card.
         Also organizes the final data into 'main' (grouped by type) and 'other' (cards not in the submitted deck structure).
@@ -219,6 +219,9 @@ class CommanderStatisticsView(APIView):
 
         # Calculate statistics for each unique_card_id
         for unique_card_id, deck_ids_with_card in deck_card_lookup.items():
+            # Skip commanders
+            if unique_card_id in commander_ids:
+                continue
             decks_with = deck_ids_with_card & deck_ids
             decks_without = deck_ids - decks_with
 

@@ -87,7 +87,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
               color={color}
               fontWeight="lg"
             >
-              {sign}{winRateDiff}%
+              {sign}{winRateDiff}% | In {card.decks_with_card} deck{card.decks_with_card > 1 ? 's' : ''}
             </Typography>
           </Box>
         )}
