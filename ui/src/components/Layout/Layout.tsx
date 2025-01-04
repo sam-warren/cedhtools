@@ -76,6 +76,7 @@ function Main(props: BoxProps) {
           flexGrow: 1,
           overflow: 'auto', // Enable scrolling
           position: 'relative',
+          '--ScrollArea-radius': '0', // This might help if MUI Joy is applying custom scrollbar styles
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
       ]}

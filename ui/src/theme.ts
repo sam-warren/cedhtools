@@ -5,11 +5,7 @@ const theme = extendTheme({
     light: {
       palette: {
         background: {
-          // Typically, Joy uses `background.body` for the full page background.
           body: '#f6f7f9', 
-          // You can also change other surfaces if you want, e.g.:
-          // surface: '#ffffff',
-          // level1: '#f0f0f0', 
         },
       },
     },
@@ -21,6 +17,25 @@ const theme = extendTheme({
       },
     },
   },
+  components: {
+    JoySheet: {
+      styleOverrides: {
+        root: {
+          '--ScrollArea-radius': '0',
+          // Reset any custom scrollbar styles
+          '::-webkit-scrollbar': {
+            width: 'auto',
+            height: 'auto',
+            backgroundColor: 'transparent'
+          },
+          '::-webkit-scrollbar-thumb': {
+            backgroundColor: 'auto',
+            borderRadius: 'auto'
+          }
+        }
+      }
+    }
+  }
 });
 
 export default theme;
