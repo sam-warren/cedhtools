@@ -20,9 +20,10 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
   const CARD_WIDTH = 200;
   const CARD_GAP = 16;
 
-  // Memoize the sorted sections
+  // Memoize the sorted sections, filtering out empty sections
   const sortedSections = useMemo(() => 
     Object.entries(cardStatistics)
+      .filter(([, cards]) => cards.length > 0) // Filter out sections with no cards
       .sort(([aCode], [bCode]) => parseInt(aCode) - parseInt(bCode))
       .map(([typeCode, cards]) => ({ typeCode, cards })),
     [cardStatistics]
@@ -69,6 +70,11 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
       updateCardsPerRow.cancel();
     };
   }, []);
+
+  // If there are no sections with cards, return null
+  if (sortedSections.length === 0) {
+    return null;
+  }
 
   return (
     <Box 
