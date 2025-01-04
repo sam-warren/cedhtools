@@ -105,13 +105,6 @@ export interface IMoxfieldBoard {
   };
 }
 
-export interface IMoxfieldAuthor {
-  userName: string;
-  displayName: string;
-  profileImageUrl: string;
-  badges: string[];
-}
-
 export interface IMoxfieldDeck {
   id: string;
   name: string;
@@ -127,9 +120,6 @@ export interface IMoxfieldDeck {
   areCommentsEnabled: boolean;
   isShared: boolean;
   authorsCanEdit: boolean;
-  createdByUser: IMoxfieldAuthor;
-  authors: IMoxfieldAuthor[];
-  requestedAuthors: IMoxfieldAuthor[];
   main: MoxfieldMainCard;
   boards: {
     [key: string]: IMoxfieldBoard;

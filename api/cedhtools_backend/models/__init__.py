@@ -1,10 +1,7 @@
 from .moxfield_models import (
-    MoxfieldAuthor,
     MoxfieldCard,
     MoxfieldDeck,
-    MoxfieldBoard,
-    MoxfieldBoardCard,
-    MoxfieldHub,
+    MoxfieldDeckCard,
 )
 
 from .topdeck_models import (
@@ -14,20 +11,25 @@ from .topdeck_models import (
 
 from .scryfall_models import (
     ScryfallCard,
-    ScryfallCardFace,
+)
+
+from .materialized_view_models import (
+    CEDHToolsMetrics,
+    CommanderDeckRelationships,
+    CardStatisticsByCommander,
 )
 
 __all__ = [
-    'MoxfieldAuthor',
     'MoxfieldCard',
     'MoxfieldDeck',
-    'MoxfieldBoard',
-    'MoxfieldBoardCard',
-    'MoxfieldHub',
+    'MoxfieldDeckCard',
 
     'TopdeckTournament',
     'TopdeckPlayerStanding',
 
     'ScryfallCard',
-    'ScryfallCardFace',
+
+    'CEDHToolsMetrics',
+    'CommanderDeckRelationships',
+    'CardStatisticsByCommander',
 ]

@@ -156,7 +156,7 @@ MoxfieldBoardCard:
 MoxfieldCard: 
     id: NOT REQUIRED (this describes the unique printing of the card, which we do not care about),
     uniqueCardId: REQUIRED (this key lets us link cards to boards)
-    scryfall_id: REQUIRED (this is the scryfall ID of the card, which we will use to link to scryfall for all pertinent information),
+    scryfall_id: REQUIRED (this is the scryfall ID of the card, which we will use it as a reference to a primary key on the scryfall table to link to scryfall for all pertinent information),
     set: NOT REQUIRED (we get this from scryfall),
     set_name: NOT REQUIRED (we get this from scryfall),
     name: NOT REQUIRED (we get this from scryfall),
@@ -218,3 +218,174 @@ MoxfieldCard:
     isPauperCommander: NOT REQUIRED (we get this from scryfall),
     isToken: NOT REQUIRED (we get this from scryfall),
     defaultFinish: NOT REQUIRED (we get this from scryfall),
+
+
+
+
+
+
+     # in deck_response, we can go into the two main boards, and look at each card object's "type". this will inform how we structure our response data.
+            # using deck_response, index into boards -> (each board key of mainboard, companions) -> cards -> (each card key), from here we can get that card's unique_card_id and type properties
+            # currently this view returns something along the lines of:
+            # using this knoweldge, we will have a structure like this:
+            # {
+            #     "meta_statistics": {
+            #         "sample_size": {
+            #             "total_decks": 1099
+            #         },
+            #         "baseline_performance": {
+            #             "win_rate": 0.22932363616663878,
+            #             "draw_rate": 0.14419524351264945,
+            #             "loss_rate": 0.6264811203207099
+            #         }
+            #     },
+            #     "card_statistics": [
+            #         {
+            #             "unique_card_id": "kAV1J",
+            #             "scryfall_id": "f85ab5f9-508e-45de-8fa1-ce1f16552ffc",
+            #             "name": "Lotus Petal",
+            #             "type_line": "Artifact",
+            #             "cmc": 0.0,
+            #             "image_uris": {
+            #                 "png": "https://cards.scryfall.io/png/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.png?1701537448",
+            #                 "large": "https://cards.scryfall.io/large/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+            #                 "small": "https://cards.scryfall.io/small/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+            #                 "normal": "https://cards.scryfall.io/normal/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+            #                 "art_crop": "https://cards.scryfall.io/art_crop/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+            #                 "border_crop": "https://cards.scryfall.io/border_crop/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448"
+            #             },
+            #             "legality": "legal",
+            #             "mana_cost": "{0}",
+            #             "scryfall_uri": "https://scryfall.com/card/tpr/225/lotus-petal?utm_source=api",
+            #             "decks_with_card": 1097,
+            #             "performance": {
+            #                 "card_win_rate": 0.2152074199476205,
+            #                 "chi_squared": 2.6375436828328445,
+            #                 "p_value": 0.2674635880323467
+            #             }
+            #         },
+            #         (...)
+            #     ],
+            #     "commanders": [
+            #         {
+            #             "unique_card_id": "YdlZG",
+            #             "scryfall_id": "bb16341a-f793-4b0e-b4ef-3fc56aae3807",
+            #             "name": "Rograkh, Son of Rohgahh",
+            #             "type_line": "Legendary Creature — Kobold Warrior",
+            #             "cmc": 0.0,
+            #             "image_uris": {
+            #                 "png": "https://cards.scryfall.io/png/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.png?1649275850",
+            #                 "large": "https://cards.scryfall.io/large/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "small": "https://cards.scryfall.io/small/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "normal": "https://cards.scryfall.io/normal/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "art_crop": "https://cards.scryfall.io/art_crop/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "border_crop": "https://cards.scryfall.io/border_crop/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850"
+            #             },
+            #             "legality": "legal",
+            #             "mana_cost": "{0}",
+            #             "scryfall_uri": "https://scryfall.com/card/sld/9996/rograkh-son-of-rohgahh?utm_source=api"
+            #         },
+            #         (...),
+            #     ]
+            # }
+
+            # But what we actually want is a structure like this:
+            # {
+    #             "meta_statistics": {
+    #     "sample_size": {
+    #         "total_decks": 1099
+    #     },
+    #     "baseline_performance": {
+    #         "win_rate": 0.22932363616663878,
+    #         "draw_rate": 0.14419524351264945,
+    #         "loss_rate": 0.6264811203207099
+    #     }
+    # },
+            #     "commanders": [
+            #         {
+            #             "unique_card_id": "YdlZG",
+            #             "scryfall_id": "bb16341a-f793-4b0e-b4ef-3fc56aae3807",
+            #             "name": "Rograkh, Son of Rohgahh",
+            #             "type_line": "Legendary Creature — Kobold Warrior",
+            #             "cmc": 0.0,
+            #             "image_uris": {
+            #                 "png": "https://cards.scryfall.io/png/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.png?1649275850",
+            #                 "large": "https://cards.scryfall.io/large/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "small": "https://cards.scryfall.io/small/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "normal": "https://cards.scryfall.io/normal/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "art_crop": "https://cards.scryfall.io/art_crop/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850",
+            #                 "border_crop": "https://cards.scryfall.io/border_crop/front/b/b/bb16341a-f793-4b0e-b4ef-3fc56aae3807.jpg?1649275850"
+            #             },
+            #             "legality": "legal",
+            #             "mana_cost": "{0}",
+            #             "scryfall_uri": "https://scryfall.com/card/sld/9996/rograkh-son-of-rohgahh?utm_source=api"
+            #         },
+            #         {
+            #             "unique_card_id": "EgVRr",
+            #             "scryfall_id": "79b50fc8-9658-4837-ade8-2f34d12d3cc7",
+            #             "name": "Silas Renn, Seeker Adept",
+            #             "type_line": "Legendary Artifact Creature — Human",
+            #             "cmc": 3.0,
+            #             "image_uris": {
+            #                 "png": "https://cards.scryfall.io/png/front/7/9/79b50fc8-9658-4837-ade8-2f34d12d3cc7.png?1673300622",
+            #                 "large": "https://cards.scryfall.io/large/front/7/9/79b50fc8-9658-4837-ade8-2f34d12d3cc7.jpg?1673300622",
+            #                 "small": "https://cards.scryfall.io/small/front/7/9/79b50fc8-9658-4837-ade8-2f34d12d3cc7.jpg?1673300622",
+            #                 "normal": "https://cards.scryfall.io/normal/front/7/9/79b50fc8-9658-4837-ade8-2f34d12d3cc7.jpg?1673300622",
+            #                 "art_crop": "https://cards.scryfall.io/art_crop/front/7/9/79b50fc8-9658-4837-ade8-2f34d12d3cc7.jpg?1673300622",
+            #                 "border_crop": "https://cards.scryfall.io/border_crop/front/7/9/79b50fc8-9658-4837-ade8-2f34d12d3cc7.jpg?1673300622"
+            #             },
+            #             "legality": "legal",
+            #             "mana_cost": "{1}{U}{B}",
+            #             "scryfall_uri": "https://scryfall.com/card/brc/129/silas-renn-seeker-adept?utm_source=api"
+            #         }
+            #     ],
+            #     "mainboard": [
+            #         "battle": [(...)],
+            #         "planeswalker": [(...)],
+            #         "creature": [(...)],
+            #         "sorcery": [(...)],
+            #         "instant": [(...)],
+            #         "artifact": [
+                #           {
+                #             "unique_card_id": "kAV1J",
+                #             "scryfall_id": "f85ab5f9-508e-45de-8fa1-ce1f16552ffc",
+                #             "name": "Lotus Petal",
+                #             "type_line": "Artifact",
+                #             "cmc": 0.0,
+                #             "image_uris": {
+                #                 "png": "https://cards.scryfall.io/png/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.png?1701537448",
+                #                 "large": "https://cards.scryfall.io/large/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+                #                 "small": "https://cards.scryfall.io/small/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+                #                 "normal": "https://cards.scryfall.io/normal/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+                #                 "art_crop": "https://cards.scryfall.io/art_crop/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448",
+                #                 "border_crop": "https://cards.scryfall.io/border_crop/front/f/8/f85ab5f9-508e-45de-8fa1-ce1f16552ffc.jpg?1701537448"
+                #             },
+                #             "legality": "legal",
+                #             "mana_cost": "{0}",
+                #             "scryfall_uri": "https://scryfall.com/card/tpr/225/lotus-petal?utm_source=api",
+                #             "decks_with_card": 1097,
+                #             "performance": {
+                #                 "card_win_rate": 0.2152074199476205,
+                #                 "chi_squared": 2.6375436828328445,
+                #                 "p_value": 0.2674635880323467
+                #             }
+                #         },
+                #         (...)
+            #         ],
+            #         "enchantment": [(...)],
+            #         "land": [(...)]
+            #     ],
+            #     "other": [
+                # (every card we fetched statistics for that didn't match one of the cards in the deck)
+            #      ]
+            # }
+
+            # Moxfield Derived Card Types:
+            # battle: 1
+            # planeswalker: 2
+            # creature: 3
+            # sorcery: 4
+            # instant: 5
+            # artifact: 6
+            # enchantment: 7
+            # land: 8
