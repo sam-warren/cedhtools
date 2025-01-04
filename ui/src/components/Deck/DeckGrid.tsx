@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Box } from '@mui/joy';
 import { ICardStat } from 'src/types';
-import DeckSection from '../DeckSection/DeckSection';
+import DeckSection from './DeckSection';
 import _ from 'lodash';
 
 interface DeckGridProps {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/joy';
 import { ICardStat } from 'src/types';
-import DeckCard from 'src/components/DeckCard/DeckCard';
+import DeckCard from 'src/components/Deck/DeckCard';
 
 interface DeckSectionProps {
   /**

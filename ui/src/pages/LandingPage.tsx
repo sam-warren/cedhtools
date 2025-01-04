@@ -1,7 +1,7 @@
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import Search from 'src/components/Search/Search';
-import SearchHistory from 'src/components/SearchHistory/SearchHistory';
+import SearchHistory from 'src/components/Search/SearchHistory';
 
 export default function LandingPage() {
   return (

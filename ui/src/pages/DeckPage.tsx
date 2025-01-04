@@ -9,8 +9,8 @@ import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { getDeckStats } from 'src/services';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
 import { ICommanderStatisticsResponse, IMoxfieldDeck } from 'src/types';
-import CommanderCard from 'src/components/CommanderCard/CommanderCard';
-import DeckGrid from 'src/components/DeckGrid/DeckGrid';
+import CommanderCard from 'src/components/Deck/CommanderCard';
+import DeckGrid from 'src/components/Deck/DeckGrid';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();

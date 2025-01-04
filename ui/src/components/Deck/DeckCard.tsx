@@ -64,7 +64,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
               left: 0,
               right: 0,
               height: `${BANNER_HEIGHT + CORNER_HEIGHT}px`,
-              bgcolor: `${color}.softActiveBg`,
+              bgcolor: `${color}.softBg`,
               borderTopLeftRadius: `${CORNER_RADIUS_RATIO * 100}%`,
               borderTopRightRadius: `${CORNER_RADIUS_RATIO * 100}%`,
               display: 'flex',
