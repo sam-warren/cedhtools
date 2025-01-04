@@ -36,8 +36,10 @@ class CommanderStatisticsView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            deck_structure = self._get_deck_structure(deck_response["data"])
+
             stats = self._calculate_card_statistics(
-                commander_info["commander_ids"])
+                commander_info["commander_ids"], deck_structure)
 
             # Add commander details to the response
             stats["commanders"] = commander_info["commander_details"]
@@ -48,6 +50,32 @@ class CommanderStatisticsView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def _get_deck_structure(self, deck_data):
+        """
+        Build a lookup table that categorizes each card's board name
+        and numeric type (1 = battle, 2 = planeswalker, etc.),
+        but only from the 'mainboard' and 'companions' boards.
+        """
+        deck_structure = {}
+        # Restrict to specific boards
+        valid_boards = {"mainboard", "companions"}
+
+        for board_name, board_data in deck_data.get("boards", {}).items():
+            # Skip boards not in valid_boards
+            if board_name not in valid_boards:
+                continue
+
+            for card_data in board_data.get("cards", {}).values():
+                card_info = card_data.get("card", {})
+                unique_id = card_info.get("uniqueCardId")
+                if unique_id:
+                    deck_structure[unique_id] = {
+                        "board": board_name,
+                        "type": card_info["type"]
+                    }
+
+        return deck_structure
 
     def _extract_commanders(self, deck_data):
         """Extract commander card IDs and their Scryfall details from deck data."""
@@ -99,7 +127,7 @@ class CommanderStatisticsView(APIView):
             "commander_details": sorted(commander_details, key=lambda x: x['name'])
         }
 
-    def _calculate_card_statistics(self, commander_ids):
+    def _calculate_card_statistics(self, commander_ids, deck_structure):
         """Calculate comprehensive statistics for each card played with these commanders."""
         matching_decks = self._find_matching_commander_decks(commander_ids)
 
@@ -107,7 +135,8 @@ class CommanderStatisticsView(APIView):
         meta_stats = self._calculate_meta_statistics(matching_decks)
 
         # Calculate per-card statistics
-        card_stats = self._calculate_per_card_stats(matching_decks, meta_stats)
+        card_stats = self._calculate_per_card_stats(
+            matching_decks, meta_stats, deck_structure)
 
         return {
             "meta_statistics": meta_stats,
@@ -144,79 +173,83 @@ class CommanderStatisticsView(APIView):
             }
         }
 
-    def _calculate_per_card_stats(self, matching_decks, meta_stats):
-        """Get card statistics and calculate chi-squared test for each card."""
-        # Get deck performances first
-        deck_performances = list(TopdeckPlayerStanding.objects.filter(
-            deck__in=matching_decks
-        ).values(
-            'deck_id',
-            'win_rate',
-            'wins',
-            'draws',
-            'losses'
-        ))
+    def _calculate_per_card_stats(self, matching_decks, meta_stats, deck_structure):
+        """
+        Get card statistics and calculate chi-squared test for each card.
+        Also organizes the final data into 'main' (grouped by type) and 'other' (cards not in the submitted deck structure).
+        """
+        # Pull all the deck performances
+        deck_performances = list(
+            TopdeckPlayerStanding.objects.filter(deck__in=matching_decks)
+            .values('deck_id', 'win_rate', 'wins', 'draws', 'losses')
+        )
 
-        # Create performance lookup
-        deck_perf_lookup = {
-            perf['deck_id']: perf for perf in deck_performances
-        }
+        # Create a lookup from deck_id -> performance info
+        deck_perf_lookup = {perf['deck_id']: perf for perf in deck_performances}
 
-        # Get card-deck relationships
-        deck_cards = list(MoxfieldDeck.objects.filter(
-            id__in=matching_decks
-        ).values(
-            'id',
-            'moxfielddeckcard__card__unique_card_id'
-        ).distinct())
+        # Get the unique_card_ids used across these decks
+        deck_cards = list(
+            MoxfieldDeck.objects.filter(id__in=matching_decks)
+            .values('id', 'moxfielddeckcard__card__unique_card_id')
+            .distinct()
+        )
 
-        # Create card-deck lookup
+        deck_ids = set(deck_perf_lookup.keys())
         deck_card_lookup = {}
+
         for dc in deck_cards:
             card_id = dc['moxfielddeckcard__card__unique_card_id']
             if card_id:
-                if card_id not in deck_card_lookup:
-                    deck_card_lookup[card_id] = set()
-                deck_card_lookup[card_id].add(dc['id'])
+                deck_card_lookup.setdefault(card_id, set()).add(dc['id'])
 
-        # Get card details in bulk
         unique_card_ids = list(deck_card_lookup.keys())
-        cards_query = MoxfieldCard.objects.filter(
-            unique_card_id__in=unique_card_ids
-        ).select_related('scryfall_card')
 
-        # Create card details lookup (taking first card for each unique_card_id)
+        # Use our helper to get the earliest printing
         card_details_lookup = {}
-        for card in cards_query:
-            if card.unique_card_id not in card_details_lookup:
-                card_details_lookup[card.unique_card_id] = card
+        for uc_id in unique_card_ids:
+            earliest_card = self._get_earliest_printing(uc_id)
+            if earliest_card:
+                card_details_lookup[uc_id] = earliest_card
 
-        # Calculate statistics
-        card_stats = []
-        deck_ids = set(deck_perf_lookup.keys())
+        # Prepare the final structure
+        # 'main_cards' is a dict with keys "1" through "8", each an empty list
+        main_cards = {str(i): [] for i in range(1, 9)}
+        other_cards = []
 
+        # Calculate statistics for each unique_card_id
         for unique_card_id, deck_ids_with_card in deck_card_lookup.items():
             decks_with = deck_ids_with_card & deck_ids
             decks_without = deck_ids - decks_with
 
-            perfs_with = [deck_perf_lookup[d_id] for d_id in decks_with]
-            perfs_without = [deck_perf_lookup[d_id] for d_id in decks_without]
+            # Performance info
+            perfs_with = [deck_perf_lookup[d_id]
+                          for d_id in decks_with if d_id in deck_perf_lookup]
+            perfs_without = [deck_perf_lookup[d_id]
+                             for d_id in decks_without if d_id in deck_perf_lookup]
 
-            if not perfs_with:  # Skip if no performance data
+            # If no performance data with the card, skip
+            if not perfs_with:
                 continue
 
-            # Calculate win rate
+            # Calculate raw average win rate of the decks that run this card
             win_rate = np.mean([p['win_rate'] for p in perfs_with])
 
-            # Chi-squared calculation using numpy arrays for better performance
-            game_results = np.array([[sum(p['wins'] for p in perfs_with),
-                                    sum(p['draws'] for p in perfs_with),
-                                    sum(p['losses'] for p in perfs_with)],
-                                     [sum(p['wins'] for p in perfs_without),
-                                    sum(p['draws'] for p in perfs_without),
-                                    sum(p['losses'] for p in perfs_without)]])
+            # Build a contingency table for chi-squared
+            game_results = np.array([
+                [
+                    sum(p['wins'] for p in perfs_with),
+                    sum(p['draws'] for p in perfs_with),
+                    sum(p['losses'] for p in perfs_with)
+                ],
+                [
+                    sum(p['wins'] for p in perfs_without),
+                    sum(p['draws'] for p in perfs_without),
+                    sum(p['losses'] for p in perfs_without)
+                ]
+            ])
 
             try:
+                # Only do chi2 if none of the row/col sums are zero
                 if np.all(game_results.sum(axis=0) > 0) and np.all(game_results.sum(axis=1) > 0):
                     chi2, p_value = stats.chi2_contingency(game_results)[:2]
                 else:
@@ -224,10 +257,10 @@ class CommanderStatisticsView(APIView):
             except Exception:
                 chi2, p_value = 0.0, 1.0
 
-            # Get card details from lookup
             card_details = card_details_lookup.get(unique_card_id)
             if card_details and card_details.scryfall_card:
-                card_stats.append({
+                # Build the card stat object
+                card_stat = {
                     'unique_card_id': unique_card_id,
                     'scryfall_id': str(card_details.scryfall_card.id),
                     'name': card_details.scryfall_card.name,
@@ -239,10 +272,60 @@ class CommanderStatisticsView(APIView):
                     'scryfall_uri': card_details.scryfall_card.scryfall_uri,
                     'decks_with_card': len(decks_with),
                     'performance': {
+                        'deck_win_rate': meta_stats['baseline_performance']['win_rate'],
                         'card_win_rate': float(win_rate),
                         'chi_squared': float(chi2),
                         'p_value': float(p_value)
                     }
-                })
+                }
 
-        return card_stats
+                # Check if this card is part of the submitted deck_structure
+                if unique_card_id in deck_structure:
+                    # It's in the user's deck, so we place it under main -> <type_code>
+                    type_code = deck_structure[unique_card_id].get("type", "0")
+
+                    # Make sure we have a key for that type_code. If not, either create it or skip it.
+                    if type_code not in main_cards:
+                        main_cards[type_code] = []
+
+                    main_cards[type_code].append(card_stat)
+                else:
+                    # Not in the user's deck structure, so it belongs in 'other'
+                    other_cards.append(card_stat)
+
+         # -----------------------------------------
+        # Sort each type's array by CMC, then by name
+        # -----------------------------------------
+        for type_code, card_list in main_cards.items():
+            card_list.sort(
+                key=lambda c: (
+                    (c['cmc'] if c['cmc'] is not None else 0), c['name'].lower())
+            )
+
+        # If you also want to sort 'other' by CMC then name (not by type, but globally):
+        other_cards.sort(
+            key=lambda c: (
+                (c['cmc'] if c['cmc'] is not None else 0), c['name'].lower())
+        )
+
+        # Return the reorganized and sorted card statistics
+        return {
+            "main": main_cards,
+            "other": other_cards
+        }
+
+    def _get_earliest_printing(self, unique_card_id):
+        """Get the earliest printing of a card with the most relevant Scryfall details 
+        and return the MoxfieldCard object (including its related ScryfallCard)."""
+        earliest_card = MoxfieldCard.objects.filter(
+            unique_card_id=unique_card_id
+        ).order_by(
+            'scryfall_card__released_at',
+            'scryfall_card__collector_number'
+        ).select_related('scryfall_card').first()
+
+        if not earliest_card or not earliest_card.scryfall_card:
+            return None
+
+        # Return the MoxfieldCard, which includes .scryfall_card
+        return earliest_card
