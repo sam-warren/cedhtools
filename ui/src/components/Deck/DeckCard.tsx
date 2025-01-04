@@ -129,7 +129,6 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
         <Box 
           sx={{ 
             width: '100%',
-            mt: 1,
             display: 'flex',
             justifyContent: 'center'
           }}
