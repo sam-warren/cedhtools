@@ -1,6 +1,6 @@
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
-import { Skeleton } from '@mui/joy';
+import { Chip, Skeleton } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAlert } from 'src/contexts/AlertContext';
@@ -8,11 +8,14 @@ import { useLoading } from 'src/contexts/LoadingContext';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { getDeckStats } from 'src/services';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
-import { ICommanderStatisticsResponse, IMoxfieldDeck } from 'src/types';
+import {
+  ICommanderDetail,
+  ICommanderStatisticsResponse,
+  IMoxfieldDeck,
+} from 'src/types';
 import CommanderCard from 'src/components/Deck/CommanderCard';
 import DeckGrid from 'src/components/Deck/DeckGrid';
 import CommanderStack from 'src/components/Deck/CommanderStack';
-import DeckBanner from 'src/components/Deck/DeckBanner';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -211,38 +214,62 @@ export default function DeckPage() {
       <Box sx={layoutStyles.leftPane}>
         {/* Commander Cards */}
         <Box sx={{ mb: 3 }}>
-        {commanders.length === 2 ? (
-          // For exactly two, stack them
-          <CommanderStack commanders={commanders} />
-        ) : (
-          // Otherwise render them normally
-          commanders.map((commander) => (
-            <Box key={commander.unique_card_id} sx={{ mb: 2 }}>
-              <CommanderCard card={commander} />
-            </Box>
-          ))
-        )}
-      </Box>
+          {commanders.length === 2 ? (
+            // For exactly two, stack them
+            <CommanderStack commanders={commanders} />
+          ) : (
+            // Otherwise render them normally
+            commanders.map((commander) => (
+              <Box key={commander.unique_card_id} sx={{ mb: 2 }}>
+                <CommanderCard card={commander} />
+              </Box>
+            ))
+          )}
+        </Box>
 
         {/* Deck Info */}
         <Typography level="h4" sx={{ mb: 2 }}>
-          {deck.name}
+          Deck: {deck.name}
         </Typography>
-        <Typography level="body-sm" sx={{ mb: 2 }}>
-          Total Decks: {deckStats.meta_statistics.sample_size.total_decks}
-        </Typography>
-        <Typography level="body-sm" sx={{ mb: 2 }}>
+        {deckStats.commanders.map((commander: ICommanderDetail) => {
+          return (
+            <Chip
+              size="md"
+              variant="soft"
+              color="primary"
+              sx={{ mb: 1, mr: 1 }}
+            >
+              {commander.name}
+            </Chip>
+          );
+        })}
+        <Chip
+          size="md"
+          variant="soft"
+          color={
+            deckStats.meta_statistics.baseline_performance.win_rate * 100 < 15
+              ? 'danger'
+              : deckStats.meta_statistics.baseline_performance.win_rate * 100 <
+                  20
+                ? 'warning'
+                : 'success'
+          }
+          sx={{ mb: 1, mr: 1 }}
+        >
           Win Rate:{' '}
           {formatPercentage(
             deckStats.meta_statistics.baseline_performance.win_rate,
           )}
-        </Typography>
-        <Typography level="body-sm">
+        </Chip>
+        <Chip size="md" variant="soft" color="neutral" sx={{ mb: 1, mr: 1 }}>
           Draw Rate:{' '}
           {formatPercentage(
             deckStats.meta_statistics.baseline_performance.draw_rate,
           )}
-        </Typography>
+        </Chip>
+        <Chip size="md" variant="soft" color="neutral" sx={{ mb: 1, mr: 1 }}>
+          Total Decks: {deckStats.meta_statistics.sample_size.total_decks}
+        </Chip>
       </Box>
 
       {/* RIGHT PANE */}

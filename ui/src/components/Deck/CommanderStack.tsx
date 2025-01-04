@@ -29,10 +29,7 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
     <Box 
       sx={{ 
         position: 'relative',
-        // Adjust height so both cards fit in a stacked overlap
-        // For example, if each card is ~300px tall, let’s set 420px, etc.
-        // The second card is offset, so the total container is cardHeight + offset
-        height: 420, 
+        height: 400, 
         mb: 2 
       }}
     >
@@ -47,7 +44,7 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
           position: 'absolute',
           // Lower = bigger overlap. 
           // e.g., '15%' means only 15% below the top of the parent => ~85% overlap.
-          top: '15%', 
+          top: '10%', 
           left: 0,
           // Possibly set a zIndex if you want the second on top visually
           zIndex: 1

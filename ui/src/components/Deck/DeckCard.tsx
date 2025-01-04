@@ -34,9 +34,10 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
   const BANNER_HEIGHT = 24; // px
   const CORNER_HEIGHT = 200; // % of width to px estimation
 
-  const winRateDiff = ((card.performance.card_win_rate - card.performance.deck_win_rate) * 100).toFixed(1);
-  const sign = Number(winRateDiff) >= 0 ? '+' : '';
-  const color = Number(winRateDiff) >= 0 ? 'success' : 'danger';
+  const winRateDiff = ((card.performance.card_win_rate - card.performance.deck_win_rate) * 100).toFixed(2);
+  const sign = Number(winRateDiff) > 0 ? '+' : Number(winRateDiff) === 0 ? '' :  '';
+  const color = Number(winRateDiff) > 0 ? 'success' : Number(winRateDiff) === 0 ? 'primary' : 'danger';
+
 
   return (
     <Box 

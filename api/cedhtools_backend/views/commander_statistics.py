@@ -185,7 +185,8 @@ class CommanderStatisticsView(APIView):
         )
 
         # Create a lookup from deck_id -> performance info
-        deck_perf_lookup = {perf['deck_id']: perf for perf in deck_performances}
+        deck_perf_lookup = {perf['deck_id']
+            : perf for perf in deck_performances}
 
         # Get the unique_card_ids used across these decks
         deck_cards = list(
@@ -207,7 +208,7 @@ class CommanderStatisticsView(APIView):
         # Use our helper to get the earliest printing
         card_details_lookup = {}
         for uc_id in unique_card_ids:
-            earliest_card = self._get_earliest_printing(uc_id)
+            earliest_card = self._get_latest_printing(uc_id)
             if earliest_card:
                 card_details_lookup[uc_id] = earliest_card
 
@@ -232,7 +233,15 @@ class CommanderStatisticsView(APIView):
                 continue
 
             # Calculate raw average win rate of the decks that run this card
-            win_rate = np.mean([p['win_rate'] for p in perfs_with])
+            total_wins_with = sum(p['wins'] for p in perfs_with)
+            total_draws_with = sum(p['draws'] for p in perfs_with)
+            total_losses_with = sum(p['losses'] for p in perfs_with)
+            total_games_with = total_wins_with + total_draws_with + total_losses_with
+
+            if total_games_with > 0:
+                win_rate = total_wins_with / total_games_with
+            else:
+                win_rate = 0.0
 
             # Build a contingency table for chi-squared
             game_results = np.array([
@@ -329,3 +338,39 @@ class CommanderStatisticsView(APIView):
 
         # Return the MoxfieldCard, which includes .scryfall_card
         return earliest_card
+
+    # FIXME: This is horrendously slow. It's a nice feature though, should plan on optimizing.
+    def _get_most_popular_printing(self, unique_card_id):
+        """
+        Return the MoxfieldCard object (including its related ScryfallCard) 
+        that is used by the greatest number of decks.
+        """
+        from django.db.models import Count
+
+        most_popular_card = (
+            MoxfieldCard.objects.filter(unique_card_id=unique_card_id)
+            .annotate(deck_count=Count('moxfielddeckcard__deck', distinct=True))
+            .order_by('-deck_count')  # Sort descending by usage
+            .select_related('scryfall_card')
+            .first()
+        )
+
+        if not most_popular_card or not most_popular_card.scryfall_card:
+            return None
+
+        return most_popular_card
+
+    def _get_latest_printing(self, unique_card_id):
+        """Get the most recent printing of a card with the most relevant Scryfall details 
+        and return the MoxfieldCard object (including its related ScryfallCard)."""
+        latest_card = MoxfieldCard.objects.filter(
+            unique_card_id=unique_card_id
+        ).order_by(
+            '-scryfall_card__released_at',
+            '-scryfall_card__collector_number'
+        ).select_related('scryfall_card').first()
+
+        if not latest_card or not latest_card.scryfall_card:
+            return None
+
+        return latest_card
