@@ -9,7 +9,7 @@ from scipy import stats
 import numpy as np
 from ..services.moxfield import MoxfieldClient
 from ..services.scryfall import ScryfallClient
-from ..models import MoxfieldDeck, MoxfieldCard, TopdeckPlayerStanding, CommanderDeckRelationships, CardStatisticsByCommander
+from ..models import MoxfieldDeck, MoxfieldCard, TopdeckPlayerStanding, CommanderDeckRelationships, CardStatisticsByCommander, CardPrintings
 
 
 class CommanderStatisticsView(APIView):
@@ -83,44 +83,45 @@ class CommanderStatisticsView(APIView):
         commander_details = []
         commander_board = deck_data.get("boards", {}).get("commanders", {})
 
-        # Subquery to get the latest printing for each unique_card_id
-        latest_printing = MoxfieldCard.objects.filter(
-            unique_card_id=OuterRef('unique_card_id')
-        ).order_by('-scryfall_card__released_at', 'scryfall_card__collector_number').values('scryfall_card_id')[:1]
-
         for card_data in commander_board.get("cards", {}).values():
             card_info = card_data.get("card", {})
             if card_info.get("uniqueCardId"):
                 commander_ids.append(card_info["uniqueCardId"])
 
-                # Get Scryfall details for this commander
-                commander_card = MoxfieldCard.objects.filter(
-                    unique_card_id=card_info["uniqueCardId"],
-                    scryfall_card_id=Subquery(latest_printing)
-                ).values(
-                    'unique_card_id',
-                    'scryfall_card__id',
-                    'scryfall_card__name',
-                    'scryfall_card__type_line',
-                    'scryfall_card__cmc',
-                    'scryfall_card__image_uris',
-                    'scryfall_card__legality',
-                    'scryfall_card__mana_cost',
-                    'scryfall_card__scryfall_uri'
+                # Get the most popular printing from our materialized view
+                popular_printing = CardPrintings.objects.filter(
+                    unique_card_id=card_info["uniqueCardId"]
                 ).first()
 
-                if commander_card:
-                    commander_details.append({
-                        'unique_card_id': commander_card['unique_card_id'],
-                        'scryfall_id': str(commander_card['scryfall_card__id']),
-                        'name': commander_card['scryfall_card__name'],
-                        'type_line': commander_card['scryfall_card__type_line'],
-                        'cmc': commander_card['scryfall_card__cmc'],
-                        'image_uris': commander_card['scryfall_card__image_uris'],
-                        'legality': commander_card['scryfall_card__legality'],
-                        'mana_cost': commander_card['scryfall_card__mana_cost'],
-                        'scryfall_uri': commander_card['scryfall_card__scryfall_uri']
-                    })
+                if popular_printing:
+                    # Get Scryfall details for this commander
+                    commander_card = MoxfieldCard.objects.filter(
+                        unique_card_id=card_info["uniqueCardId"],
+                        scryfall_card_id=popular_printing.most_common_printing
+                    ).values(
+                        'unique_card_id',
+                        'scryfall_card__id',
+                        'scryfall_card__name',
+                        'scryfall_card__type_line',
+                        'scryfall_card__cmc',
+                        'scryfall_card__image_uris',
+                        'scryfall_card__legality',
+                        'scryfall_card__mana_cost',
+                        'scryfall_card__scryfall_uri'
+                    ).first()
+
+                    if commander_card:
+                        commander_details.append({
+                            'unique_card_id': commander_card['unique_card_id'],
+                            'scryfall_id': str(commander_card['scryfall_card__id']),
+                            'name': commander_card['scryfall_card__name'],
+                            'type_line': commander_card['scryfall_card__type_line'],
+                            'cmc': commander_card['scryfall_card__cmc'],
+                            'image_uris': commander_card['scryfall_card__image_uris'],
+                            'legality': commander_card['scryfall_card__legality'],
+                            'mana_cost': commander_card['scryfall_card__mana_cost'],
+                            'scryfall_uri': commander_card['scryfall_card__scryfall_uri']
+                        })
 
         return {
             "commander_ids": sorted(commander_ids),
@@ -208,7 +209,7 @@ class CommanderStatisticsView(APIView):
         # Use our helper to get the earliest printing
         card_details_lookup = {}
         for uc_id in unique_card_ids:
-            earliest_card = self._get_latest_printing(uc_id)
+            earliest_card = self._get_most_popular_printing(uc_id)
             if earliest_card:
                 card_details_lookup[uc_id] = earliest_card
 
@@ -342,18 +343,25 @@ class CommanderStatisticsView(APIView):
         # Return the MoxfieldCard, which includes .scryfall_card
         return earliest_card
 
-    # FIXME: This is horrendously slow. It's a nice feature though, should plan on optimizing.
     def _get_most_popular_printing(self, unique_card_id):
         """
         Return the MoxfieldCard object (including its related ScryfallCard) 
-        that is used by the greatest number of decks.
+        that is used by the greatest number of decks, using the materialized view.
         """
-        from django.db.models import Count
+        # Get the most common printing from our materialized view
+        popular_printing = CardPrintings.objects.filter(
+            unique_card_id=unique_card_id
+        ).first()
 
+        if not popular_printing:
+            return None
+
+        # Get the MoxfieldCard with the related ScryfallCard
         most_popular_card = (
-            MoxfieldCard.objects.filter(unique_card_id=unique_card_id)
-            .annotate(deck_count=Count('moxfielddeckcard__deck', distinct=True))
-            .order_by('-deck_count')  # Sort descending by usage
+            MoxfieldCard.objects.filter(
+                unique_card_id=unique_card_id,
+                scryfall_card_id=popular_printing.most_common_printing
+            )
             .select_related('scryfall_card')
             .first()
         )

@@ -37,12 +37,14 @@ class MoxfieldClient:
         if data.get("format") != "commander":
             return create_error_response("Deck must be in Commander format.", 400)
 
-        mainboard_count = len(data.get("boards", {}).get(
-            "mainboard", {}).get("cards", {}))
-        commanders_count = len(data.get("boards", {}).get(
-            "commanders", {}).get("cards", {}))
+        mainboard_count = data.get("boards", {}).get(
+            "mainboard", {}).get("count", {})
+        commanders_count = data.get("boards", {}).get(
+            "commanders", {}).get("count", {})
+        companions_count = data.get("boards", {}).get(
+            "companions", {}).get("count", {})
 
-        if mainboard_count + commanders_count != 100:
+        if mainboard_count + commanders_count + companions_count != 100:
             return create_error_response("Deck must contain exactly 100 cards.", 400)
 
         return None

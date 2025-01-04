@@ -218,7 +218,7 @@ export default function DeckPage() {
       {/* LEFT PANE */}
       <Box sx={layoutStyles.leftPane}>
         {/* Commander Cards */}
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 4 }}>
           {commanders.length === 2 ? (
             // For exactly two, stack them
             <CommanderStack commanders={commanders} />

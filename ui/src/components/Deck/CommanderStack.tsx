@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box } from '@mui/joy';
 import CommanderCard from 'src/components/Deck/CommanderCard';
 import { ICommanderDetail } from 'src/types';
@@ -7,13 +7,10 @@ interface CommanderStackProps {
   commanders: ICommanderDetail[];
 }
 
-/**
- * Displays exactly two commanders with the second overlapping the first
- * by ~85%. The container ensures there’s enough height to push content below.
- */
 const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
+  const [topCommanderIndex, setTopCommanderIndex] = useState(1);
+
   if (commanders.length !== 2) {
-    // Fallback: if there's 1 or more than 2, just map in normal flow
     return (
       <>
         {commanders.map((cmdr) => (
@@ -25,6 +22,10 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
     );
   }
 
+  const handleMouseLeave = () => {
+    setTopCommanderIndex(1);
+  };
+
   return (
     <Box 
       sx={{ 
@@ -32,26 +33,27 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
         height: 400, 
         mb: 2 
       }}
+      onMouseLeave={handleMouseLeave}
     >
-      {/* First commander in normal flow */}
-      <Box>
-        <CommanderCard card={commanders[0]} />
-      </Box>
-
-      {/* Second commander, absolutely positioned so it overlaps */}
-      <Box
-        sx={{
-          position: 'absolute',
-          // Lower = bigger overlap. 
-          // e.g., '15%' means only 15% below the top of the parent => ~85% overlap.
-          top: '10%', 
-          left: 0,
-          // Possibly set a zIndex if you want the second on top visually
-          zIndex: 1
-        }}
-      >
-        <CommanderCard card={commanders[1]} />
-      </Box>
+      {commanders.map((commander, index) => (
+        <Box
+          key={commander.unique_card_id}
+          sx={{
+            position: 'absolute',
+            top: index === 0 ? 0 : '8%',
+            left: 0,
+            zIndex: index === topCommanderIndex ? 2 : 1,
+            transition: 'all 0.1s ease-in-out',
+            transform: `translateY(${index === 0 ? 0 : '2%'})`,
+            '&:hover': {
+              zIndex: 2
+            }
+          }}
+          onMouseEnter={() => setTopCommanderIndex(index)}
+        >
+          <CommanderCard card={commander} />
+        </Box>
+      ))}
     </Box>
   );
 };

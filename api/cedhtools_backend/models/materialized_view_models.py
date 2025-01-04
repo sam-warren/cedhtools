@@ -33,3 +33,19 @@ class CardStatisticsByCommander(models.Model):
     class Meta:
         managed = False
         db_table = 'card_statistics_by_commander'
+
+
+class CardPrintings(models.Model):
+    unique_card_id = models.CharField(max_length=255, primary_key=True)
+    most_common_printing = models.UUIDField()
+    usage_count = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'card_printings'
+
+    @classmethod
+    def refresh(cls):
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('REFRESH MATERIALIZED VIEW card_printings;')
