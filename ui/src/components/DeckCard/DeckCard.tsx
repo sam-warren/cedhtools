@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, useTheme, Skeleton } from '@mui/joy';
-import { ICardStat, } from 'src/types';
+import { ICardStat } from 'src/types';
 import { useInView } from 'react-intersection-observer';
 
 interface DeckCardProps {
@@ -8,10 +8,7 @@ interface DeckCardProps {
   showDetails?: boolean;
 }
 
-const DeckCard: React.FC<DeckCardProps> = ({ 
-  card, 
-  showDetails = true, 
-}) => {
+const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const { ref, inView } = useInView({ 
     threshold: 0,
@@ -29,23 +26,17 @@ const DeckCard: React.FC<DeckCardProps> = ({
       const img = new Image();
       img.src = card.image_uris.normal;
       img.onload = handleImageLoad;
-
-      return () => {
-        img.onload = null;
-      };
+      return () => { img.onload = null; };
     }
   }, [card.image_uris.normal, handleImageLoad, inView, isLoaded]);
 
   const CORNER_RADIUS_RATIO = 2.5 / 63;
+  const BANNER_HEIGHT = 24; // px
+  const CORNER_HEIGHT = 200; // % of width to px estimation
 
   const winRateDiff = ((card.performance.card_win_rate - card.performance.deck_win_rate) * 100).toFixed(1);
   const sign = Number(winRateDiff) >= 0 ? '+' : '';
-  
-  // Determine color based on positive/negative difference
   const color = Number(winRateDiff) >= 0 ? 'success' : 'danger';
-
-  const BANNER_HEIGHT = '24px'; // Increased height for better text visibility
-  const BANNER_OVERLAP = '3px';
 
   return (
     <Box 
@@ -55,50 +46,52 @@ const DeckCard: React.FC<DeckCardProps> = ({
         flexDirection: 'column',
         width: '100%',
         alignItems: 'center',
-        paddingTop: showDetails ? `calc(${BANNER_HEIGHT} - ${BANNER_OVERLAP})` : 0,
+        mt: showDetails ? `${BANNER_HEIGHT}px` : 0,
       }}
     >
-      <Box sx={{ width: '100%', position: 'relative' }}>
+      <Box 
+        sx={{ 
+          width: '100%', 
+          position: 'relative',
+        }}
+      >
         {/* Win rate difference banner */}
         {isLoaded && showDetails && (
           <Box
             sx={{
               position: 'absolute',
-              top: `-${BANNER_HEIGHT}`,
+              top: `-${BANNER_HEIGHT}px`,
               left: 0,
               right: 0,
-              height: BANNER_HEIGHT,
+              height: `${BANNER_HEIGHT + CORNER_HEIGHT}px`,
               bgcolor: `${color}.softActiveBg`,
               borderTopLeftRadius: `${CORNER_RADIUS_RATIO * 100}%`,
               borderTopRightRadius: `${CORNER_RADIUS_RATIO * 100}%`,
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start', // Align to top
               justifyContent: 'center',
-              zIndex: 1, // Ensure banner stays above other cards
-              '&::before': {
-                // Extension block that connects with the card
-                content: '""',
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '6px', // Taller extension to ensure connection
-                bgcolor: 'inherit',
-              }
+              paddingTop: '4px', // Adjust text position from top
+              clipPath: `
+                polygon(
+                  0 0,
+                  100% 0,
+                  100% 100%,
+                  0 100%
+                )
+              `,
             }}
           >
             <Typography
               level="body-xs"
               color={color}
               fontWeight="lg"
-              sx={{ transform: 'translateY(-1px)' }} // Slight adjustment for visual centering
             >
               {sign}{winRateDiff}%
             </Typography>
           </Box>
         )}
         
-        {/* Card image */}
+        {/* Card image container */}
         <Box
           sx={{
             position: 'relative',
