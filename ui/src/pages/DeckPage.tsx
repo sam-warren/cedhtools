@@ -285,7 +285,9 @@ export default function DeckPage() {
           <DeckGrid cardStatistics={deckStats.card_statistics.main} />
         <DeckSection typeCode='0' cards={deckStats.card_statistics.other.sort(
             (a, b) => b.decks_with_card - a.decks_with_card,
-          ).filter((card) => card.decks_with_card / deckStats.meta_statistics.sample_size.total_decks > 0.05)
+          ).filter((card) => {
+            return (card.decks_with_card / deckStats.meta_statistics.sample_size.total_decks) > 0.05 && card.legality === 'legal'
+          })
           } />
         </Box>
       </Box>
