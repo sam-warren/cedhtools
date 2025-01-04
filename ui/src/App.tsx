@@ -11,38 +11,39 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import AppLoader from './components/AppLoader/AppLoader';
 import { AlertProvider } from './contexts/AlertContext';
 import { AppAlert } from './components/AppAlert/AppAlert';
+import theme from './theme';
 
 const CEDHTools = () => {
   return (
-    <CssVarsProvider>
-      <CssBaseline />
-      <LoadingProvider>
-        <AlertProvider>
-          <SearchHistoryProvider>
-            <Layout.Root>
-              <AppAlert />
-              <Layout.Header>
-                <Header />
-              </Layout.Header>
-              <Layout.Loader>
-                <AppLoader />
-              </Layout.Loader>
-              <Layout.Main>
-                <BrowserRouter>
+    <BrowserRouter>
+      <CssVarsProvider theme={theme}>
+        <CssBaseline />
+        <LoadingProvider>
+          <AlertProvider>
+            <SearchHistoryProvider>
+              <Layout.Root>
+                <AppAlert />
+                <Layout.Header>
+                  <Header />
+                </Layout.Header>
+                <Layout.Loader>
+                  <AppLoader />
+                </Layout.Loader>
+                <Layout.Main>
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/deck/:id" element={<DeckPage />} />
                   </Routes>
-                </BrowserRouter>
-              </Layout.Main>
-              <Layout.Footer>
-                <Footer />
-              </Layout.Footer>
-            </Layout.Root>
-          </SearchHistoryProvider>
-        </AlertProvider>
-      </LoadingProvider>
-    </CssVarsProvider>
+                </Layout.Main>
+                <Layout.Footer>
+                  <Footer />
+                </Layout.Footer>
+              </Layout.Root>
+            </SearchHistoryProvider>
+          </AlertProvider>
+        </LoadingProvider>
+      </CssVarsProvider>
+    </BrowserRouter>
   );
 };
 

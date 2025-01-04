@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { IApiResponse, ICommanderStats, IDatabaseMetrics } from '../../types';
+import { IApiResponse, ICommanderStatisticsResponse, IDatabaseMetrics } from '../../types';
 import { serviceWrapper } from '../serviceWrapper';
 
 const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
@@ -10,7 +10,7 @@ export async function getDeckStats(
   end_date?: Date,
   tournament_size?: number,
   top_cut?: number,
-): Promise<IApiResponse<ICommanderStats>> {
+): Promise<IApiResponse<ICommanderStatisticsResponse>> {
 
   const url = `${BASE_URL}/api/commander-statistics/${deck_id}`;
 
@@ -26,7 +26,7 @@ export async function getDeckStats(
   return serviceWrapper(
     () =>
       axios
-        .get<ICommanderStats>(url, {
+        .get<ICommanderStatisticsResponse>(url, {
           withCredentials: true,
           params,
         })

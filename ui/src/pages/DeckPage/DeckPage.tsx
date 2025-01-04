@@ -1,110 +1,187 @@
-import { Skeleton } from '@mui/joy';
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
+import { Skeleton } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import DeckCard from 'src/components/DeckCard/DeckCard';
 import { useAlert } from 'src/contexts/AlertContext';
 import { useLoading } from 'src/contexts/LoadingContext';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { getDeckStats } from 'src/services';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
-import { IApiResponse, ICommanderStats, IMoxfieldDeck } from 'src/types';
-import { useCountUp } from 'use-count-up'; // TODO: Implement this for commander stats
-
-// TODO: Implement a table view
-// FIXME: Queries are being fired off twice on page load
+import {
+  ICommanderStatisticsResponse,
+  IMoxfieldDeck,
+} from 'src/types';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
   const [deck, setDeck] = useState<IMoxfieldDeck | null>(null);
-  const [deckStats, setDeckStats] = useState<ICommanderStats | null>(null);
+  const [deckStats, setDeckStats] = useState<ICommanderStatisticsResponse | null>(null);
 
   const { addSearch } = useSearchHistory();
   const { setLoading } = useLoading();
   const { showAlert } = useAlert();
 
   useEffect(() => {
-    if (id && !deck) {
-      const fetchDeck = async () => {
-        try {
-          setLoading(true);
-          const response: IApiResponse<IMoxfieldDeck> =
-            await getDecklistById(id);
-          if (response.success) {
-            setDeck(response.data);
-            fetchCommanderStats(response.data);
-            addSearch({
-              name: response.data.name,
-              publicId: response.data.publicId,
-              publicUrl: response.data.publicUrl,
-            });
-          } else {
-            showAlert('Failed to fetch deck from Moxfield', 'danger');
-            setLoading(false);
-          }
-        } catch (err: any) {
-          showAlert('Failed to fetch deck from Moxfield', 'danger');
-          setLoading(false);
-        }
-      };
-      fetchDeck();
-    }
-  }, [id, deck]);
+    let isMounted = true;
 
-  const fetchCommanderStats = async (deck: IMoxfieldDeck) => {
-    if (!deckStats) {
+    const fetchData = async () => {
+      if (!id || deck) return;
+
       try {
-        const response: IApiResponse<ICommanderStats> = await getDeckStats(
-          deck.publicId,
-        );
-        if (response.success) {
-          console.log('Deck stats: ', response.data);
-          setDeckStats(response.data);
-          setLoading(false);
-        } else {
-          console.error('Failed to fetch deck statistics', response.error);
-          showAlert('Failed to fetch deck statistics', 'danger');
+        console.log('Starting data fetch');
+        setLoading(true);
+
+        // Fetch deck
+        console.log('Fetching deck data...');
+        const deckResponse = await getDecklistById(id);
+        
+        if (!isMounted) return;
+        
+        if (!deckResponse.success) {
+          throw new Error('Failed to fetch deck');
+        }
+
+        console.log('Deck data received');
+        setDeck(deckResponse.data);
+        
+        addSearch({
+          name: deckResponse.data.name,
+          publicId: deckResponse.data.publicId,
+          publicUrl: deckResponse.data.publicUrl,
+        });
+
+        // Fetch stats
+        console.log('Fetching deck stats...');
+        const statsResponse = await getDeckStats(deckResponse.data.publicId);
+        
+        if (!isMounted) return;
+
+        if (!statsResponse.success) {
+          throw new Error('Failed to fetch stats');
+        }
+
+        console.log('Stats data received');
+        setDeckStats(statsResponse.data);
+
+        console.log('All data loaded, cleaning up...');
+        
+        // Ensure state updates have processed before removing loading state
+        requestAnimationFrame(() => {
+          if (isMounted) {
+            setLoading(false);
+            console.log('Loading complete');
+          }
+        });
+
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        if (isMounted) {
+          showAlert('Failed to fetch deck data', 'danger');
           setLoading(false);
         }
-      } catch (err: any) {
-        showAlert('Failed to fetch deck statistics', 'danger');
-        setLoading(false);
-        console.error('Failed to fetch deck statistics', err.message);
       }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const formatPercentage = (value: number) => (value * 100).toFixed(2) + '%';
+  const layoutStyles = {
+    wrapper: {
+      display: 'flex',
+      gap: 4,
+      minHeight: 0,
+      height: '100%', // Take full height of main content area
+    },
+    leftPane: {
+      width: '300px',
+      flexShrink: 0,
+      p: 3,
+      position: 'sticky',
+      top: 0,
+      height: 'fit-content',
+      alignSelf: 'flex-start'
+    },
+    rightPane: {
+      flexGrow: 1,
+      minWidth: 0,
+      pb: '64px',
+      pt: 2,
+      pr: 4,
+      overflow: 'auto', // Enable scrolling for right pane only
+    },
+    cardGrid: {
+      display: 'grid',
+      gap: 2,
+      gridTemplateColumns: 'repeat(auto-fill, 200px)',
+      justifyContent: 'start',
     }
   };
 
+  // 1) If not loaded, show skeleton
   if (!deck || !deckStats) {
-    // Skeleton loader while the deck and stats are being fetched
     return (
-      <Box sx={{ display: 'flex', gap: 4, p: 4 }}>
+      <Box sx={layoutStyles.wrapper}>
         {/* Left Side Pane Skeleton */}
-        <Box sx={{ width: '300px', flexShrink: 0 }}>
-          <Skeleton
-            variant="rectangular"
-            width={126}
-            height={176}
-            sx={{ mb: 4, borderRadius: 7 }}
-          />
-          <Skeleton variant="text" height={40} width="80%" sx={{ mb: 2 }} />
-          <Skeleton variant="text" height={20} width="90%" sx={{ mb: 2 }} />
-          <Skeleton variant="text" height={20} width="80%" sx={{ mb: 2 }} />
-          <Skeleton variant="text" height={20} width="60%" />
+        <Box sx={layoutStyles.leftPane}>
+          {/* Commander Card Skeleton */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ mb: 2 }}>
+              <Skeleton 
+                variant="rectangular" 
+                width="100%" 
+                sx={{ 
+                  aspectRatio: '63/88',
+                  borderRadius: `${(2.5 / 63) * 100}%`,
+                  display: 'block',
+                }} 
+              />
+            </Box>
+          </Box>
+          
+          {/* Info Skeletons */}
+          <Skeleton variant="text" level="h4" sx={{ mb: 2, width: '80%' }} />
+          <Skeleton variant="text" level="body-sm" sx={{ mb: 2, width: '90%' }} />
+          <Skeleton variant="text" level="body-sm" sx={{ mb: 2, width: '80%' }} />
+          <Skeleton variant="text" level="body-sm" sx={{ width: '60%' }} />
         </Box>
 
         {/* Right Pane Skeleton */}
-        <Box sx={{ flexGrow: 1 }}>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 4 }}>
+        <Box sx={layoutStyles.rightPane}>
+          <Skeleton level="h3" variant="text" sx={{ mb: 3, width: '200px' }} />
+          <Box sx={layoutStyles.cardGrid}>
             {Array.from({ length: 15 }).map((_, index) => (
-              <Skeleton
-                key={index}
-                variant="rectangular"
-                width={126} // 2x the width of a playing card
-                height={176} // 2x the height of a playing card
-                sx={{
-                  borderRadius: 7,
+              <Box 
+                key={index} 
+                sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  width: '100%'
                 }}
-              />
+              >
+                <Skeleton
+                  variant="rectangular"
+                  sx={{ 
+                    aspectRatio: '63/88',
+                    borderRadius: `${(2.5 / 63) * 100}%`,
+                    width: '100%',
+                    display: 'block',
+                  }}
+                />
+                <Box sx={{ width: '100%', mt: 1, display: 'flex', justifyContent: 'center' }}>
+                  <Skeleton 
+                    variant="text"
+                    width="80%"
+                  />
+                </Box>
+              </Box>
             ))}
           </Box>
         </Box>
@@ -112,83 +189,49 @@ export default function DeckPage() {
     );
   }
 
+  const commanders = deckStats.commanders || [];
+
+  // 2) Actual deck content
   return (
-    <Box sx={{ display: 'flex', gap: 4, p: 4 }}>
-      {/* Left Side Pane */}
-      <Box
-        sx={{
-          width: '300px',
-          flexShrink: 0,
-          borderRadius: 2,
-          p: 3,
-        }}
-      >
+    <Box sx={layoutStyles.wrapper}>
+      {/* LEFT PANE */}
+      <Box sx={layoutStyles.leftPane}>
         {/* Commander Cards */}
-        <Box sx={{ mb: 4 }}>
-          {Object.values(deck.boards['commanders']['cards']).map(
-            (commander: any, index: number) => (
-              <Box
-                key={index}
-                sx={{
-                  width: 126,
-                  height: 176,
-                  mb: 2,
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                }}
-              >
-                {commander.name}
-              </Box>
-            ),
-          )}
+        <Box sx={{ mb: 3 }}>
+          {commanders.map((commander) => (
+            <Box key={commander.unique_card_id} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
+              <DeckCard
+                card={commander}
+                showDetails={false}
+              />
+            </Box>
+          ))}
         </Box>
 
-        {/* Deck Title */}
+        {/* Deck Info */}
         <Typography level="h4" sx={{ mb: 2 }}>
           {deck.name}
         </Typography>
-
-        {/* Deck-wide Stats */}
         <Typography level="body-sm" sx={{ mb: 2 }}>
-          Win Rate: {Math.round(deckStats.avg_win_rate * 100)}%
+          Total Decks: {deckStats.meta_statistics.sample_size.total_decks}
+        </Typography>
+        <Typography level="body-sm" sx={{ mb: 2 }}>
+          Win Rate: {formatPercentage(deckStats.meta_statistics.baseline_performance.win_rate)}
         </Typography>
         <Typography level="body-sm">
-          Draw Rate: {Math.round(deckStats.avg_draw_rate * 100)}%
+          Draw Rate: {formatPercentage(deckStats.meta_statistics.baseline_performance.draw_rate)}
         </Typography>
       </Box>
 
-      {/* Right Pane */}
-      <Box sx={{ flexGrow: 1 }}>
-        {/* Section Title */}
-        <Typography level="h3" sx={{ mb: 2 }}>
+      {/* RIGHT PANE */}
+      <Box sx={layoutStyles.rightPane}>
+        <Typography level="h3" sx={{ mb: 3 }}>
           Main Deck
         </Typography>
-
-        {/* Main Deck Cards */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          {Object.values(deck.boards['mainboard']['cards']).map(
-            (card: any, index: number) => (
-              <Box
-                key={index}
-                sx={{
-                  width: 126,
-                  height: 176,
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                }}
-              >
-                {card.name}
-              </Box>
-            ),
-          )}
+        <Box sx={layoutStyles.cardGrid}>
+          {deckStats.card_statistics.map((card) => (
+            <DeckCard key={card.unique_card_id} card={card} />
+          ))}
         </Box>
       </Box>
     </Box>
