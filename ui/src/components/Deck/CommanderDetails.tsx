@@ -1,19 +1,24 @@
-import { Box, Typography, Chip } from '@mui/joy';
+// src/components/Deck/CommanderDetails.tsx
+import { Box, Typography } from '@mui/joy';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import BalanceIcon from '@mui/icons-material/Balance';
 import CommanderCard from './CommanderCard';
 import CommanderStack from './CommanderStack';
 import { useAppSelector } from 'src/hooks';
+import StatCounter from '../Feedback/StatCounter';
 
 export default function CommanderDetails() {
   const { deckStats } = useAppSelector((state) => state.deck);
 
-  if (!deckStats) {
-    return null;
-  }
+  if (!deckStats) return null;
 
-  const formatPercentage = (value: number) => (value * 100).toFixed(2) + '%';
+  const {
+    meta_statistics: {
+      baseline_performance: { win_rate, draw_rate },
+      sample_size: { total_decks },
+    },
+  } = deckStats;
 
   return (
     <>
@@ -31,49 +36,41 @@ export default function CommanderDetails() {
           ))
         )}
       </Box>
-
-      <Typography level="h4" sx={{ mt: 2, mb: 1 }}>
-        deck stats
-      </Typography>
-      <Chip
-        size="md"
-        variant="soft"
-        startDecorator={<EmojiEventsIcon />}
-        color={
-          deckStats.meta_statistics.baseline_performance.win_rate * 100 < 15
-            ? 'danger'
-            : deckStats.meta_statistics.baseline_performance.win_rate * 100 < 20
-              ? 'warning'
-              : 'success'
-        }
-        sx={{ mb: 1, mr: 1 }}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1, // Reduced from 2
+          width: '100%',
+          mt: 2, // Reduced from 3
+        }}
       >
-        average win rate:{' '}
-        {formatPercentage(
-          deckStats.meta_statistics.baseline_performance.win_rate,
-        )}
-      </Chip>
-      <Chip
-        size="md"
-        variant="soft"
-        color="neutral"
-        startDecorator={<BalanceIcon />}
-        sx={{ mb: 1, mr: 1 }}
-      >
-        average draw rate:{' '}
-        {formatPercentage(
-          deckStats.meta_statistics.baseline_performance.draw_rate,
-        )}
-      </Chip>
-      <Chip
-        size="md"
-        variant="soft"
-        color="neutral"
-        startDecorator={<Inventory2Icon />}
-        sx={{ mb: 1, mr: 1 }}
-      >
-        sample size: {deckStats.meta_statistics.sample_size.total_decks} decks
-      </Chip>
+        <StatCounter
+          value={win_rate}
+          label="average win rate"
+          icon={<EmojiEventsIcon />}
+          variant="winRate"
+          type="percentage"
+        />
+        <StatCounter
+          value={draw_rate}
+          label="average draw rate"
+          icon={<BalanceIcon />}
+          variant="drawRate"
+          type="percentage"
+        />
+        <StatCounter
+          value={total_decks}
+          label="sample size"
+          icon={<Inventory2Icon />}
+          type="integer"
+          variant="sampleSize"
+          formatOptions={{
+            separator: ',',
+            suffix: ' decks',
+          }}
+        />
+      </Box>
     </>
   );
 }
