@@ -7,7 +7,7 @@ interface DeckSectionProps {
   /**
    * A string representing the type code (e.g., "1", "2", "3"...).
    */
-  typeCode: string;
+typeCode: string;
 
   /**
    * The array of card stats to display in this section.
@@ -20,15 +20,15 @@ const DeckSection: React.FC<DeckSectionProps> = ({
   cards,
 }) => {
   const typeNameMap: Record<string, string> = {
-    '0': 'Other Cards',
-    '1': 'Battles',
-    '2': 'Planeswalkers',
-    '3': 'Creatures',
-    '4': 'Sorceries',
-    '5': 'Instants',
-    '6': 'Artifacts',
-    '7': 'Enchantments',
-    '8': 'Lands',
+    '0': 'other cards',
+    '1': 'battles',
+    '2': 'planeswalkers',
+    '3': 'creatures',
+    '4': 'sorceries',
+    '5': 'instants',
+    '6': 'artifacts',
+    '7': 'enchantments',
+    '8': 'lands',
   };
   const displayName = typeNameMap[typeCode] || `Type ${typeCode}`;
 
@@ -43,7 +43,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
       gap: 2,
       gridTemplateColumns: 'repeat(auto-fill, 200px)',
       justifyContent: 'start',
-      pt: 2
+      pt: 1
     },
   };
 

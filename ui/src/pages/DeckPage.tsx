@@ -21,6 +21,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import BalanceIcon from '@mui/icons-material/Balance';
 import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
 import DeckSection from 'src/components/Deck/DeckSection';
+import DeckBanner from 'src/components/Deck/DeckBanner';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
@@ -101,109 +102,127 @@ export default function DeckPage() {
 
   const formatPercentage = (value: number) => (value * 100).toFixed(2) + '%';
   const layoutStyles = {
+    pageContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      width: '100%',
+      overflow: 'hidden',
+    },
+    contentWrapper: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: 'calc(100% - 88px)', // Adjusted to account for new banner height
+      overflow: 'hidden',
+    },
     wrapper: {
       display: 'flex',
       gap: 4,
-      minHeight: 0,
-      height: '100%',
+      flex: 1,
+      overflow: 'hidden',
     },
     leftPane: {
       width: '300px',
       flexShrink: 0,
       p: 3,
-      position: 'sticky',
-      top: 0,
-      height: 'fit-content',
-      alignSelf: 'flex-start',
+      overflowY: 'auto',
+      height: '100%',
     },
     rightPane: {
       flexGrow: 1,
       minWidth: 0,
-      pb: '64px',
+      overflowY: 'auto',
+      pb: 2,
       pt: 2,
       pr: 4,
-      overflow: 'auto',
     },
     cardGrid: {
       display: 'grid',
       gap: 2,
       gridTemplateColumns: 'repeat(auto-fill, 200px)',
       justifyContent: 'start',
-      pt: 3, // Add padding to account for tooltips
+      pt: 3,
     },
   };
 
   // 1) If not loaded, show skeleton
   if (!deck || !deckStats) {
     return (
-      <Box sx={layoutStyles.wrapper}>
-        {/* Left Side Pane Skeleton */}
-        <Box sx={layoutStyles.leftPane}>
-          {/* Commander Card Skeleton */}
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ mb: 2 }}>
-              <Skeleton
-                variant="rectangular"
-                width="100%"
-                sx={{
-                  aspectRatio: '63/88',
-                  borderRadius: `${(2.5 / 63) * 100}%`,
-                  display: 'block',
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Info Skeletons */}
-          <Skeleton variant="text" level="h4" sx={{ mb: 2, width: '80%' }} />
-          <Skeleton
-            variant="text"
-            level="body-sm"
-            sx={{ mb: 2, width: '90%' }}
-          />
-          <Skeleton
-            variant="text"
-            level="body-sm"
-            sx={{ mb: 2, width: '80%' }}
-          />
-          <Skeleton variant="text" level="body-sm" sx={{ width: '60%' }} />
-        </Box>
-
-        {/* Right Pane Skeleton */}
-        <Box sx={layoutStyles.rightPane}>
-          <Skeleton level="h3" variant="text" sx={{ mb: 3, width: '200px' }} />
-          <Box sx={layoutStyles.cardGrid}>
-            {Array.from({ length: 15 }).map((_, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  width: '100%',
-                }}
-              >
+      <Box sx={layoutStyles.pageContainer}>
+        <DeckBanner isLoading />
+        <Box sx={layoutStyles.wrapper}>
+          {/* Left Side Pane Skeleton */}
+          <Box sx={layoutStyles.leftPane}>
+            {/* Commander Card Skeleton */}
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ mb: 2 }}>
                 <Skeleton
                   variant="rectangular"
+                  width="100%"
                   sx={{
                     aspectRatio: '63/88',
                     borderRadius: `${(2.5 / 63) * 100}%`,
-                    width: '100%',
                     display: 'block',
                   }}
                 />
+              </Box>
+            </Box>
+
+            {/* Info Skeletons */}
+            <Skeleton variant="text" level="h4" sx={{ mb: 2, width: '80%' }} />
+            <Skeleton
+              variant="text"
+              level="body-sm"
+              sx={{ mb: 2, width: '90%' }}
+            />
+            <Skeleton
+              variant="text"
+              level="body-sm"
+              sx={{ mb: 2, width: '80%' }}
+            />
+            <Skeleton variant="text" level="body-sm" sx={{ width: '60%' }} />
+          </Box>
+
+          {/* Right Pane Skeleton */}
+          <Box sx={layoutStyles.rightPane}>
+            <Skeleton
+              level="h3"
+              variant="text"
+              sx={{ mb: 3, width: '200px' }}
+            />
+            <Box sx={layoutStyles.cardGrid}>
+              {Array.from({ length: 15 }).map((_, index) => (
                 <Box
+                  key={index}
                   sx={{
-                    width: '100%',
-                    mt: 1,
                     display: 'flex',
-                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '100%',
                   }}
                 >
-                  <Skeleton variant="text" width="80%" />
+                  <Skeleton
+                    variant="rectangular"
+                    sx={{
+                      aspectRatio: '63/88',
+                      borderRadius: `${(2.5 / 63) * 100}%`,
+                      width: '100%',
+                      display: 'block',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      width: '100%',
+                      mt: 1,
+                      display: 'flex',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Skeleton variant="text" width="80%" />
+                  </Box>
                 </Box>
-              </Box>
-            ))}
+              ))}
+            </Box>
           </Box>
         </Box>
       </Box>
@@ -214,81 +233,108 @@ export default function DeckPage() {
 
   // 2) Actual deck content
   return (
-    <Box sx={layoutStyles.wrapper}>
-      {/* LEFT PANE */}
-      <Box sx={layoutStyles.leftPane}>
-        {/* Commander Cards */}
-        <Box sx={{ mb: 4 }}>
-          {commanders.length === 2 ? (
-            // For exactly two, stack them
-            <CommanderStack commanders={commanders} />
-          ) : (
-            // Otherwise render them normally
-            commanders.map((commander) => (
-              <Box key={commander.unique_card_id} sx={{ mb: 2 }}>
-                <CommanderCard card={commander} />
-              </Box>
-            ))
-          )}
-        </Box>
+    <Box sx={layoutStyles.pageContainer}>
+      <DeckBanner deck={deck} />
+      <Box sx={layoutStyles.contentWrapper}>
+        <Box sx={layoutStyles.wrapper}>
+          {/* LEFT PANE */}
+          <Box sx={layoutStyles.leftPane}>
+            {/* Commander Cards */}
+            <Typography
+              level="body-md"
+              sx={{
+                mb: 2,
+                textAlign: 'center',
+                width: '100%',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                whiteSpace: 'pre-wrap'
+              }}
+            >
+              {commanders
+                .map((commander: ICommanderDetail) => commander.name)
+                .join(' + ')}
+            </Typography>
+            <Box>
+              {commanders.length === 2 ? (
+                // For exactly two, stack them
+                <CommanderStack commanders={commanders} />
+              ) : (
+                // Otherwise render them normally
+                commanders.map((commander) => (
+                  <Box key={commander.unique_card_id}>
+                    <CommanderCard card={commander} />
+                  </Box>
+                ))
+              )}
+            </Box>
 
-        {/* Deck Info */}
-        <Typography level="h4" sx={{ mb: 2 }}>
-          Deck: {deck.name}
-        </Typography>
-        {deckStats.commanders.map((commander: ICommanderDetail) => {
-          return (
+            {/* Deck Info */}
+            <Typography level="h4" sx={{ mt: 2, mb: 1 }}>
+              deck stats
+            </Typography>
             <Chip
               size="md"
               variant="soft"
-              color="primary"
-              startDecorator={<MilitaryTechIcon />}
+              startDecorator={<EmojiEventsIcon />}
+              color={
+                deckStats.meta_statistics.baseline_performance.win_rate * 100 <
+                15
+                  ? 'danger'
+                  : deckStats.meta_statistics.baseline_performance.win_rate *
+                        100 <
+                      20
+                    ? 'warning'
+                    : 'success'
+              }
               sx={{ mb: 1, mr: 1 }}
             >
-              {commander.name}
+              win rate:{' '}
+              {formatPercentage(
+                deckStats.meta_statistics.baseline_performance.win_rate,
+              )}
             </Chip>
-          );
-        })}
-        <Chip
-          size="md"
-          variant="soft"
-          startDecorator={<EmojiEventsIcon />}
-          color={
-            deckStats.meta_statistics.baseline_performance.win_rate * 100 < 15
-              ? 'danger'
-              : deckStats.meta_statistics.baseline_performance.win_rate * 100 <
-                  20
-                ? 'warning'
-                : 'success'
-          }
-          sx={{ mb: 1, mr: 1 }}
-        >
-          Win Rate:{' '}
-          {formatPercentage(
-            deckStats.meta_statistics.baseline_performance.win_rate,
-          )}
-        </Chip>
-        <Chip size="md" variant="soft" color="neutral" startDecorator={<BalanceIcon/>} sx={{ mb: 1, mr: 1 }}>
-          Draw Rate:{' '}
-          {formatPercentage(
-            deckStats.meta_statistics.baseline_performance.draw_rate,
-          )}
-        </Chip>
-        <Chip size="md" variant="soft" color="neutral" startDecorator={<Inventory2Icon/>} sx={{ mb: 1, mr: 1 }}>
-          Total Decks: {deckStats.meta_statistics.sample_size.total_decks}
-        </Chip>
-      </Box>
+            <Chip
+              size="md"
+              variant="soft"
+              color="neutral"
+              startDecorator={<BalanceIcon />}
+              sx={{ mb: 1, mr: 1 }}
+            >
+              draw rate:{' '}
+              {formatPercentage(
+                deckStats.meta_statistics.baseline_performance.draw_rate,
+              )}
+            </Chip>
+            <Chip
+              size="md"
+              variant="soft"
+              color="neutral"
+              startDecorator={<Inventory2Icon />}
+              sx={{ mb: 1, mr: 1 }}
+            >
+              total decks: {deckStats.meta_statistics.sample_size.total_decks}
+            </Chip>
+          </Box>
 
-      {/* RIGHT PANE */}
-      <Box sx={layoutStyles.rightPane}>
-        <Box sx={layoutStyles.rightPane}>
-          <DeckGrid cardStatistics={deckStats.card_statistics.main} />
-        <DeckSection typeCode='0' cards={deckStats.card_statistics.other.sort(
-            (a, b) => b.decks_with_card - a.decks_with_card,
-          ).filter((card) => {
-            return (card.decks_with_card / deckStats.meta_statistics.sample_size.total_decks) > 0.05 && card.legality === 'legal'
-          })
-          } />
+          {/* RIGHT PANE */}
+          <Box sx={layoutStyles.rightPane}>
+            <Box sx={layoutStyles.rightPane}>
+              <DeckGrid cardStatistics={deckStats.card_statistics.main} />
+              <DeckSection
+                typeCode="0"
+                cards={deckStats.card_statistics.other
+                  .sort((a, b) => b.decks_with_card - a.decks_with_card)
+                  .filter((card) => {
+                    return (
+                      card.decks_with_card /
+                        deckStats.meta_statistics.sample_size.total_decks >
+                        0.05 && card.legality === 'legal'
+                    );
+                  })}
+              />
+            </Box>
+          </Box>
         </Box>
       </Box>
     </Box>

@@ -10,10 +10,10 @@ interface DeckCardProps {
 
 const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const { ref, inView } = useInView({ 
+  const { ref, inView } = useInView({
     threshold: 0,
     rootMargin: '200px 0px',
-    triggerOnce: true
+    triggerOnce: true,
   });
   const theme = useTheme();
 
@@ -21,38 +21,52 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
     setIsLoaded(true);
   }, []);
 
+  const openCardModal = (uniqueCardId: string) => {
+    console.log(`Opening card modal for ${uniqueCardId}`);
+  }
+
   useEffect(() => {
     if (inView && !isLoaded) {
       const img = new Image();
       img.src = card.image_uris.normal;
       img.onload = handleImageLoad;
-      return () => { img.onload = null; };
+      return () => {
+        img.onload = null;
+      };
     }
   }, [card.image_uris.normal, handleImageLoad, inView, isLoaded]);
 
-  const CORNER_RADIUS_RATIO = 2.5 / 63;
+  const CORNER_RADIUS_RATIO = 3 / 63;
   const BANNER_HEIGHT = 24; // px
   const CORNER_HEIGHT = 200; // % of width to px estimation
 
-  const winRateDiff = ((card.performance.card_win_rate - card.performance.deck_win_rate) * 100).toFixed(2);
-  const sign = Number(winRateDiff) > 0 ? '+' : Number(winRateDiff) === 0 ? '' :  '';
-  const color = Number(winRateDiff) > 0 ? 'success' : Number(winRateDiff) === 0 ? 'primary' : 'danger';
-
+  const winRateDiff = (
+    (card.performance.card_win_rate - card.performance.deck_win_rate) *
+    100
+  ).toFixed(2);
+  const sign =
+    Number(winRateDiff) > 0 ? '+' : Number(winRateDiff) === 0 ? '' : '';
+  const color =
+    Number(winRateDiff) > 0
+      ? 'success'
+      : Number(winRateDiff) === 0
+        ? 'primary'
+        : 'danger';
 
   return (
-    <Box 
-      ref={ref} 
-      sx={{ 
-        display: 'flex', 
+    <Box
+      ref={ref}
+      sx={{
+        display: 'flex',
         flexDirection: 'column',
         width: '100%',
         alignItems: 'center',
         mt: showDetails ? `${BANNER_HEIGHT}px` : 0,
       }}
     >
-      <Box 
-        sx={{ 
-          width: '100%', 
+      <Box
+        sx={{
+          width: '100%',
           position: 'relative',
         }}
       >
@@ -82,16 +96,14 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
               `,
             }}
           >
-            <Typography
-              level="body-xs"
-              color={color}
-              fontWeight="lg"
-            >
-              {sign}{winRateDiff}% | In {card.decks_with_card} deck{card.decks_with_card > 1 ? 's' : ''}
+            <Typography level="body-xs" color={color} fontWeight="lg">
+              {sign}
+              {winRateDiff}% | in {card.decks_with_card} deck
+              {card.decks_with_card > 1 ? 's' : ''}
             </Typography>
           </Box>
         )}
-        
+
         {/* Card image container */}
         <Box
           sx={{
@@ -101,7 +113,40 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
             borderRadius: `${CORNER_RADIUS_RATIO * 100}%`,
             overflow: 'hidden',
             backgroundColor: theme.palette.background.level2,
+            cursor: 'pointer',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              inset: 0,
+              borderRadius: `${CORNER_RADIUS_RATIO * 100}%`,
+              padding: '3px', // Increased border width
+              background: theme.palette.primary.plainColor,
+              WebkitMask:
+                'linear-gradient(#fff 0 0) content-box, ' +
+                'linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              opacity: 0,
+              transition: 'opacity 0.2s ease-in-out',
+            },
+            '&:hover::before': {
+              opacity: 1,
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              inset: '-1px',
+              borderRadius: `${CORNER_RADIUS_RATIO * 100}%`,
+              background: `linear-gradient(to right, ${theme.palette.primary.solidBg} 0%, ${theme.palette.primary.solidBg}80 100%)`,
+              opacity: 0,
+              filter: 'blur(4px)',
+              transition: 'opacity 0.2s ease-in-out',
+            },
+            '&:hover::after': {
+              opacity: 1,
+            },
           }}
+          onClick={() => openCardModal(card.unique_card_id)}
         >
           {isLoaded ? (
             <img
@@ -126,11 +171,11 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
       </Box>
 
       {showDetails && (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             width: '100%',
             display: 'flex',
-            justifyContent: 'center'
+            justifyContent: 'center',
           }}
         >
           {isLoaded ? (
@@ -142,7 +187,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 width: '100%',
-                textAlign: 'center'
+                textAlign: 'center',
               }}
             >
               {card.name}

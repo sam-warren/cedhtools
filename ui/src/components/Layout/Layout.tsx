@@ -72,11 +72,13 @@ function Main(props: BoxProps) {
       {...props}
       sx={[
         {
-          p: 2,
           flexGrow: 1,
-          overflow: 'auto', // Enable scrolling
+          overflow: 'auto',
           position: 'relative',
-          '--ScrollArea-radius': '0', // This might help if MUI Joy is applying custom scrollbar styles
+          '--ScrollArea-radius': '0',
+          height: 'calc(100vh - 128px)', // Account for header and footer
+          // Remove the default padding here since individual pages should control their padding
+          p: 0,
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
       ]}

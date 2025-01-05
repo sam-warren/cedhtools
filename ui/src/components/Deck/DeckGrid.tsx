@@ -88,7 +88,7 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 3,
+          gap: 1,
           width: '100%',
         }}
       >
@@ -106,10 +106,6 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
             {row.map(({ typeCode, cards }) => (
               <Box 
                 key={typeCode}
-                sx={{
-                  opacity: 1,
-                  transform: 'translateZ(0)', // Force GPU acceleration
-                }}
               >
                 <DeckSection 
                   typeCode={typeCode} 
