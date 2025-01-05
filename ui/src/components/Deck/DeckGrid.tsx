@@ -1,64 +1,73 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Box } from '@mui/joy';
 import { ICardStat } from 'src/types';
 import DeckSection from './DeckSection';
 import _ from 'lodash';
-
-interface DeckGridProps {
-  cardStatistics: {
-    main: Record<string, ICardStat[]>;
-    other: ICardStat[];
-  };
-}
+import { useAppSelector } from 'src/hooks';
 
 interface Section {
   typeCode: string;
   cards: ICardStat[];
 }
 
-const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
+export default function DeckGrid() {
+  const { deckStats } = useAppSelector((state) => state.deck);
+
+  if (!deckStats) return null;
   const containerRef = useRef<HTMLDivElement>(null);
   const [cardsPerRow, setCardsPerRow] = useState<number>(5); // Default to 5
-  
+
   const CARD_WIDTH = 200;
   const CARD_GAP = 16;
 
   // Memoize the sorted sections, filtering out empty sections
   const sortedSections = useMemo(() => {
-    const mainSections = Object.entries(cardStatistics.main)
+    const mainSections = Object.entries(deckStats.card_statistics.main)
       .filter(([, cards]) => cards.length > 0) // Filter out sections with no cards
       .sort(([aCode], [bCode]) => parseInt(aCode) - parseInt(bCode))
       .map(([typeCode, cards]) => ({ typeCode, cards }));
 
-    const otherCards = cardStatistics.other.length > 0
-      ? [{ typeCode: 'other', cards: cardStatistics.other
-        .filter((card) => card.legality === 'legal')
-        .sort((a, b) => b.decks_with_card - a.decks_with_card)
-       }]
-      : [];
+    const otherCards =
+      deckStats.card_statistics.other.length > 0
+        ? [
+            {
+              typeCode: 'other',
+              cards: deckStats.card_statistics.other
+                .filter((card) => card.legality === 'legal')
+                .sort((a, b) => b.decks_with_card - a.decks_with_card),
+            },
+          ]
+        : [];
 
     return [...mainSections, ...otherCards];
-  }, [cardStatistics]);
+  }, [deckStats.card_statistics]);
 
   // Memoize the row organization based on cardsPerRow
   const rows = useMemo(() => {
     const isSmallSection = (cards: ICardStat[]) => cards.length <= cardsPerRow;
-    
+
     return sortedSections.reduce<Section[][]>((rows, section) => {
       const lastRow = rows[rows.length - 1];
 
-      if (!lastRow || !isSmallSection(section.cards) || !isSmallSection(lastRow[0].cards)) {
+      if (
+        !lastRow ||
+        !isSmallSection(section.cards) ||
+        !isSmallSection(lastRow[0].cards)
+      ) {
         rows.push([section]);
       } else {
-        const totalCardsInRow = lastRow.reduce((sum, s) => sum + s.cards.length, 0);
-        
+        const totalCardsInRow = lastRow.reduce(
+          (sum, s) => sum + s.cards.length,
+          0,
+        );
+
         if (totalCardsInRow + section.cards.length <= cardsPerRow) {
           lastRow.push(section);
         } else {
           rows.push([section]);
         }
       }
-      
+
       return rows;
     }, []);
   }, [sortedSections, cardsPerRow]);
@@ -69,7 +78,10 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
 
     const updateCardsPerRow = _.debounce(() => {
       const containerWidth = containerRef.current?.clientWidth ?? 0;
-      const newCardsPerRow = Math.max(1, Math.floor(containerWidth / (CARD_WIDTH + CARD_GAP)));
+      const newCardsPerRow = Math.max(
+        1,
+        Math.floor(containerWidth / (CARD_WIDTH + CARD_GAP)),
+      );
       setCardsPerRow(newCardsPerRow);
     }, 0);
 
@@ -88,9 +100,9 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
   }
 
   return (
-    <Box 
+    <Box
       ref={containerRef}
-      sx={{ 
+      sx={{
         width: '100%',
         position: 'relative',
       }}
@@ -104,24 +116,20 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
         }}
       >
         {rows.map((row, rowIndex) => (
-          <Box 
+          <Box
             key={rowIndex}
-            sx={{ 
+            sx={{
               display: 'flex',
               gap: 3,
-              '& > div': row.length === 1 
-                ? { flex: '1 1 100%' }
-                : { width: 'min-content' },
+              '& > div':
+                row.length === 1
+                  ? { flex: '1 1 100%' }
+                  : { width: 'min-content' },
             }}
           >
             {row.map(({ typeCode, cards }) => (
-              <Box 
-                key={typeCode}
-              >
-                <DeckSection 
-                  typeCode={typeCode} 
-                  cards={cards}
-                />
+              <Box key={typeCode}>
+                <DeckSection typeCode={typeCode} cards={cards} />
               </Box>
             ))}
           </Box>
@@ -129,6 +137,4 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
       </Box>
     </Box>
   );
-};
-
-export default DeckGrid;
+}

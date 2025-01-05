@@ -4,13 +4,15 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import BalanceIcon from '@mui/icons-material/Balance';
 import CommanderCard from './CommanderCard';
 import CommanderStack from './CommanderStack';
-import { ICommanderStatisticsResponse } from 'src/types';
+import { useAppSelector } from 'src/hooks';
 
-interface CommanderDetailsProps {
-  deckStats: ICommanderStatisticsResponse;
-}
+export default function CommanderDetails() {
+  const { deckStats } = useAppSelector((state) => state.deck);
 
-const CommanderDetails = ({ deckStats }: CommanderDetailsProps) => {
+  if (!deckStats) {
+    return null;
+  }
+
   const formatPercentage = (value: number) => (value * 100).toFixed(2) + '%';
 
   return (
@@ -74,6 +76,4 @@ const CommanderDetails = ({ deckStats }: CommanderDetailsProps) => {
       </Chip>
     </>
   );
-};
-
-export default CommanderDetails;
+}

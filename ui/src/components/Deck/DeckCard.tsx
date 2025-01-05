@@ -59,7 +59,6 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
       }}
     >
       <Box sx={cardStyles.wrapper}>
-        {/* Win rate difference banner */}
         {isLoaded && showDetails && (
           <Box sx={cardStyles.banner(color)}>
             <Typography level="body-xs" color={color} fontWeight="lg">
@@ -70,31 +69,23 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
           </Box>
         )}
 
-        {/* Card image container */}
         <Box
-          sx={{
-            ...cardStyles.imageContainer(theme),
-            ...cardStyles.deckCardHover(theme),
-          }}
+          sx={cardStyles.imageContainer(theme, 'deck')}
           onClick={() => openCardModal(card.unique_card_id)}
         >
           {isLoaded ? (
-            <img
+            <Box
+              component="img"
               src={card.image_uris.normal}
               alt={card.name}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-              }}
+              sx={cardStyles.image}
             />
           ) : (
             <Skeleton
               variant="rectangular"
               width="100%"
               height="100%"
-              sx={{ display: 'block' }}
+              sx={cardStyles.image}
             />
           )}
         </Box>

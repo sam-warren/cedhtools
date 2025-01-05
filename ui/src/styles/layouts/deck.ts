@@ -1,5 +1,7 @@
 import { cardConstants } from '../constants/cards';
 
+const GLOW_PADDING = cardConstants.GLOW_SPREAD + cardConstants.GLOW_BLUR;
+
 export const deckPageLayout = {
   pageContainer: {
     display: 'flex',
@@ -34,5 +36,6 @@ export const deckPageLayout = {
     pb: 2,
     pt: 2,
     pr: 4,
+    pl: `${GLOW_PADDING}px`, // Add padding for the glow effect
   },
 } as const;

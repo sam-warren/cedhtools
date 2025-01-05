@@ -1,19 +1,18 @@
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import { Link, Skeleton } from '@mui/joy';
-import { IMoxfieldDeck } from 'src/types';
 import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
+import { useAppSelector } from 'src/hooks';
 
-interface DeckBannerProps {
-  deck?: IMoxfieldDeck;
-  isLoading?: boolean;
-}
-
-const DeckBanner: React.FC<DeckBannerProps> = ({ deck, isLoading = false }) => {
+export default function DeckBanner() {
+  const { deck, isLoading } = useAppSelector((state) => state.deck);
+  if (!deck) {
+    return null;
+  }
 
   const renderAuthors = () => {
-    if (!deck?.authors) return null;
+    if (!deck.authors) return null;
     return (
       <>
         created by{' '}
@@ -46,12 +45,12 @@ const DeckBanner: React.FC<DeckBannerProps> = ({ deck, isLoading = false }) => {
           <Box sx={bannerStyles.titleContainer}>
             <Typography level="title-lg" sx={{ flexShrink: 0 }}>
               <Link
-                href={deck?.publicUrl}
+                href={deck.publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={bannerStyles.authorLink}
               >
-                {deck?.name}
+                {deck.name}
               </Link>
             </Typography>
             <Typography level="body-sm" color="neutral">
@@ -63,6 +62,4 @@ const DeckBanner: React.FC<DeckBannerProps> = ({ deck, isLoading = false }) => {
       )}
     </Box>
   );
-};
-
-export default DeckBanner;
+}

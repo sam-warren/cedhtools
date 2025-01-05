@@ -9,8 +9,6 @@ interface CommanderStackProps {
 }
 
 const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
-  const [topCommanderIndex, setTopCommanderIndex] = useState(1);
-
   if (commanders.length !== 2) {
     return (
       <>
@@ -24,12 +22,11 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
   }
 
   return (
-    <Box sx={commanderStackStyles.container} onMouseLeave={() => setTopCommanderIndex(1)}>
+    <Box sx={commanderStackStyles.container}>
       {commanders.map((commander, index) => (
         <Box
           key={commander.unique_card_id}
-          sx={commanderStackStyles.card(index, index === topCommanderIndex)}
-          onMouseEnter={() => setTopCommanderIndex(index)}
+          sx={commanderStackStyles.card(index)}
         >
           <CommanderCard card={commander} />
         </Box>
