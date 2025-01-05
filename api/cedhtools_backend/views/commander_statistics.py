@@ -17,10 +17,10 @@ class CommanderStatisticsView(APIView):
     def get(self, request):
         try:
             # Get commander IDs from query parameters
-            commander_ids = request.query_params.getlist('commander_ids[]')
+            commander_ids = request.query_params.getlist('commander_ids')
             if not commander_ids:
                 return Response(
-                    {"error": "commander_ids[] parameter is required"},
+                    {"error": "commander_ids parameter is required"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 

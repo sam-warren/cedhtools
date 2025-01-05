@@ -111,6 +111,9 @@ class StatisticsService:
                     "type", "0")
                 if type_code in main_cards:
                     main_cards[type_code].append(card_dto)
+                else:
+                    # Type code is recognized in deck_structure, but not recognized by main_cards
+                    other_cards.append(card_dto)
             else:
                 other_cards.append(card_dto)
 

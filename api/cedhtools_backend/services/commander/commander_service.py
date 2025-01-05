@@ -11,6 +11,27 @@ class CommanderService:
         self.deck_service = DeckService()
         self.statistics_service = StatisticsService()
 
+    def calculate_commander_statistics(self, commander_ids: List[str]) -> Dict:
+        """Calculate statistics for specific commanders without a deck context."""
+        if not commander_ids:
+            raise ValueError("No commander IDs provided")
+
+        # Get commander details
+        commander_details = self.repository.get_commander_details(
+            commander_ids)
+
+        # Calculate statistics (with empty deck structure since we don't have a deck)
+        statistics = self.statistics_service.calculate_statistics(
+            commander_ids,
+            deck_structure={}  # Empty deck structure since we're not analyzing a specific deck
+        )
+
+        return {
+            "meta_statistics": statistics["meta_statistics"],
+            "card_statistics": statistics["card_statistics"],
+            "commanders": sorted(commander_details, key=lambda x: x.get('name', '') if isinstance(x, dict) else '')
+        }
+
     def get_commander_statistics(self, deck_id: str) -> Dict:
         """Get comprehensive statistics for a commander deck."""
         # Get deck data from Moxfield

@@ -5,7 +5,10 @@ import DeckSection from './DeckSection';
 import _ from 'lodash';
 
 interface DeckGridProps {
-  cardStatistics: Record<string, ICardStat[]>;
+  cardStatistics: {
+    main: Record<string, ICardStat[]>;
+    other: ICardStat[];
+  };
 }
 
 interface Section {
@@ -21,13 +24,21 @@ const DeckGrid: React.FC<DeckGridProps> = ({ cardStatistics }) => {
   const CARD_GAP = 16;
 
   // Memoize the sorted sections, filtering out empty sections
-  const sortedSections = useMemo(() => 
-    Object.entries(cardStatistics)
+  const sortedSections = useMemo(() => {
+    const mainSections = Object.entries(cardStatistics.main)
       .filter(([, cards]) => cards.length > 0) // Filter out sections with no cards
       .sort(([aCode], [bCode]) => parseInt(aCode) - parseInt(bCode))
-      .map(([typeCode, cards]) => ({ typeCode, cards })),
-    [cardStatistics]
-  );
+      .map(([typeCode, cards]) => ({ typeCode, cards }));
+
+    const otherCards = cardStatistics.other.length > 0
+      ? [{ typeCode: 'other', cards: cardStatistics.other
+        .filter((card) => card.legality === 'legal')
+        .sort((a, b) => b.decks_with_card - a.decks_with_card)
+       }]
+      : [];
+
+    return [...mainSections, ...otherCards];
+  }, [cardStatistics]);
 
   // Memoize the row organization based on cardsPerRow
   const rows = useMemo(() => {

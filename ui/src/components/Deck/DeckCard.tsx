@@ -38,15 +38,15 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
   }, [card.image_uris.normal, handleImageLoad, inView, isLoaded]);
 
   // Calculate performance metrics
-  const winRateDiff = (
-    (card.performance.card_win_rate - card.performance.deck_win_rate) *
-    100
-  ).toFixed(2);
-  const sign = Number(winRateDiff) > 0 ? '+' : Number(winRateDiff) === 0 ? '' : '';
+  const winRateDiff =
+    (card.performance.card_win_rate - card.performance.deck_win_rate) * 100;
+  const formattedDiff =
+    Math.abs(winRateDiff) < 0.005 ? 0 : winRateDiff.toFixed(2);
+  const sign = Number(formattedDiff) > 0 ? '+' : '';
   const color =
-    Number(winRateDiff) > 0
+    Number(formattedDiff) > 0
       ? 'success'
-      : Number(winRateDiff) === 0
+      : Number(formattedDiff) === 0
         ? 'primary'
         : 'danger';
 
@@ -64,7 +64,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
           <Box sx={cardStyles.banner(color)}>
             <Typography level="body-xs" color={color} fontWeight="lg">
               {sign}
-              {winRateDiff}% | in {card.decks_with_card} deck
+              {formattedDiff}% | in {card.decks_with_card} deck
               {card.decks_with_card > 1 ? 's' : ''}
             </Typography>
           </Box>
@@ -74,7 +74,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
         <Box
           sx={{
             ...cardStyles.imageContainer(theme),
-            ...cardStyles.deckCardHover(theme)
+            ...cardStyles.deckCardHover(theme),
           }}
           onClick={() => openCardModal(card.unique_card_id)}
         >

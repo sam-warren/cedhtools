@@ -84,7 +84,7 @@ export default function DeckPage() {
       <DeckPageLayout
         banner={<DeckBanner deck={deck} />}
         leftPane={<CommanderDetails deckStats={deckStats} />}
-        rightPane={<DeckGrid cardStatistics={deckStats.card_statistics.main} />}
+        rightPane={<DeckGrid cardStatistics={deckStats.card_statistics} />}
       />
     );
   };

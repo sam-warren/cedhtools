@@ -1,4 +1,3 @@
-// DeckSkeleton.tsx
 import { Box, Skeleton } from '@mui/joy';
 import {
   deckPageLayout,
@@ -8,12 +7,18 @@ import {
   bannerStyles,
 } from 'src/styles';
 
-const CardSkeleton = () => (
+interface CardSkeletonProps {
+  showTextbox?: boolean;
+}
+
+const CardSkeleton = ({ showTextbox = false }: CardSkeletonProps) => (
   <Box sx={skeletonStyles.card}>
     <Skeleton variant="rectangular" sx={skeletonStyles.cardImage} />
-    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-      <Skeleton variant="text" width="80%" />
-    </Box>
+    {showTextbox && (
+      <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+        <Skeleton variant="text" width="80%" />
+      </Box>
+    )}
   </Box>
 );
 
@@ -41,7 +46,7 @@ const DeckSkeleton = () => (
             sx={{ mb: 2, width: '100%', textAlign: 'center' }}
           />
           <Box sx={{ mb: 3 }}>
-            <CardSkeleton />
+            <CardSkeleton showTextbox={false} />
           </Box>
           <Skeleton variant="text" level="h4" sx={{ mb: 2 }} />
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -64,7 +69,7 @@ const DeckSkeleton = () => (
               <Skeleton variant="text" width={200} level="h2" sx={{ mb: 2 }} />
               <Box sx={gridLayouts.cardGrid}>
                 {Array.from({ length: section.count }).map((_, index) => (
-                  <CardSkeleton key={`${section.type}-${index}`} />
+                  <CardSkeleton key={`${section.type}-${index}`} showTextbox />
                 ))}
               </Box>
             </Box>
