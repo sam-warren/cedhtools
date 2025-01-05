@@ -44,6 +44,7 @@ export default function DeckBanner() {
         <>
           <Box sx={bannerStyles.titleContainer}>
             <Typography level="title-lg" sx={{ flexShrink: 0 }}>
+              Deck:{' '}
               <Link
                 href={deck.publicUrl}
                 target="_blank"

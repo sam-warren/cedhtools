@@ -11,18 +11,23 @@ import DeckSkeleton from 'src/components/Deck/DeckSkeleton';
 import { DeckPageLayout } from 'src/components/Layout/DeckPageLayout';
 import CommanderDetails from 'src/components/Deck/CommanderDetails';
 import ErrorModal from 'src/components/Feedback/ErrorModal';
+import DeckList from 'src/components/Deck/DeckList';
+import DeckContent from 'src/components/Deck/DeckContent';
 
 export default function DeckPage() {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
-  const { deck, deckStats, isLoading, error } = useAppSelector((state) => state.deck);
-  
+  const { deck, deckStats, isLoading, error } = useAppSelector(
+    (state) => state.deck,
+  );
+  const viewMode = useAppSelector((state) => state.ui.deckViewMode);
+
   const { addSearch } = useSearchHistory();
   const { setLoading } = useLoading();
 
   useEffect(() => {
     if (!id) return;
-    
+
     dispatch(fetchDeckData(id))
       .unwrap()
       .then((result) => {
@@ -65,8 +70,8 @@ export default function DeckPage() {
     return (
       <DeckPageLayout
         banner={<DeckBanner />}
-        leftPane={<CommanderDetails/>}
-        rightPane={<DeckGrid/>}
+        leftPane={<CommanderDetails />}
+        rightPane={<DeckContent />}
       />
     );
   };

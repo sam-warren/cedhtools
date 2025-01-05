@@ -15,7 +15,7 @@ export default function LandingPage() {
         height: '100%',
         textAlign: 'center',
         px: 2,
-        pt: { xs: 4, sm: 8 },
+        pt: 16,
       }}
     >
       <Box
@@ -37,7 +37,7 @@ export default function LandingPage() {
           welcome to cedhtools
         </Typography>
         <Typography level="body-md" color="neutral">
-          equipped with powerful statistics to improve your deckbuilding
+          equipped with powerful statistics to improve your cEDH decks
         </Typography>
         <Search />
       </Box>

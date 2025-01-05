@@ -80,6 +80,7 @@ const DeckFilters: React.FC = () => {
           <Button 
             onClick={handleApplyFilters}
             size="sm"
+            variant='soft'
           >
             apply
           </Button>
