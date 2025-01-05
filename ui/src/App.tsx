@@ -3,7 +3,7 @@ import { CssVarsProvider } from '@mui/joy/styles';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Footer from 'src/components/Layout/Footer';
 import Header from 'src/components/Layout/Header';
-import Layout from 'src/components/Layout/Layout';
+import AppLayout from 'src/components/Layout/AppLayout';
 import { SearchHistoryProvider } from 'src/contexts/SearchHistoryContext';
 import DeckPage from 'src/pages/DeckPage';
 import LandingPage from 'src/pages/LandingPage';
@@ -21,24 +21,24 @@ const CEDHTools = () => {
         <LoadingProvider>
           <AlertProvider>
             <SearchHistoryProvider>
-              <Layout.Root>
+              <AppLayout.Root>
                 <AppAlert />
-                <Layout.Header>
+                <AppLayout.Header>
                   <Header />
-                </Layout.Header>
-                <Layout.Loader>
+                </AppLayout.Header>
+                <AppLayout.Loader>
                   <AppLoader />
-                </Layout.Loader>
-                <Layout.Main>
+                </AppLayout.Loader>
+                <AppLayout.Main>
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/deck/:id" element={<DeckPage />} />
                   </Routes>
-                </Layout.Main>
-                <Layout.Footer>
+                </AppLayout.Main>
+                <AppLayout.Footer>
                   <Footer />
-                </Layout.Footer>
-              </Layout.Root>
+                </AppLayout.Footer>
+              </AppLayout.Root>
             </SearchHistoryProvider>
           </AlertProvider>
         </LoadingProvider>

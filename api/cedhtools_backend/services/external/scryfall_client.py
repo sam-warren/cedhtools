@@ -1,8 +1,8 @@
 import os
 import requests
 import time
-from typing import Optional, List, Dict
-from ..utilities import create_error_response, create_success_response
+from typing import List, Dict
+from ...utilities import create_error_response, create_success_response
 from django.conf import settings
 
 

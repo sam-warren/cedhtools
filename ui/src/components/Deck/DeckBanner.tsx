@@ -3,6 +3,7 @@ import Typography from '@mui/joy/Typography';
 import { Link, Skeleton } from '@mui/joy';
 import { IMoxfieldDeck } from 'src/types';
 import DeckFilters from './DeckFilters';
+import { bannerStyles } from 'src/styles';
 
 interface DeckBannerProps {
   deck?: IMoxfieldDeck;
@@ -10,37 +11,9 @@ interface DeckBannerProps {
 }
 
 const DeckBanner: React.FC<DeckBannerProps> = ({ deck, isLoading = false }) => {
-  const styles = {
-    banner: {
-      width: '100%',
-      bgcolor: 'background.level1',
-      borderBottom: '1px solid',
-      borderColor: 'divider',
-      px: 3,
-      py: 3,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      flexShrink: 0,
-      height: '88px',
-    },
-    titleContainer: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0.5,
-    },
-    authorLink: {
-      color: 'inherit',
-      textDecoration: 'none',
-      '&:hover': {
-        textDecoration: 'underline',
-      },
-    },
-  };
 
   const renderAuthors = () => {
     if (!deck?.authors) return null;
-
     return (
       <>
         created by{' '}
@@ -51,7 +24,7 @@ const DeckBanner: React.FC<DeckBannerProps> = ({ deck, isLoading = false }) => {
               href={`https://www.moxfield.com/users/${author.userName}`}
               target="_blank"
               rel="noopener noreferrer"
-              sx={styles.authorLink}
+              sx={bannerStyles.authorLink}
             >
               {author.displayName}
             </Link>
@@ -62,23 +35,21 @@ const DeckBanner: React.FC<DeckBannerProps> = ({ deck, isLoading = false }) => {
   };
 
   return (
-    <Box sx={styles.banner}>
+    <Box sx={bannerStyles.container}>
       {isLoading ? (
-        <>
-          <Box sx={styles.titleContainer}>
-            <Skeleton variant="text" width="200px" />
-            <Skeleton variant="text" width="150px" level="body-sm" />
-          </Box>
-        </>
+        <Box sx={bannerStyles.titleContainer}>
+          <Skeleton variant="text" width="200px" />
+          <Skeleton variant="text" width="150px" level="body-sm" />
+        </Box>
       ) : (
         <>
-          <Box sx={styles.titleContainer}>
-            <Typography level="h3" sx={{ flexShrink: 0 }}>
+          <Box sx={bannerStyles.titleContainer}>
+            <Typography level="title-lg" sx={{ flexShrink: 0 }}>
               <Link
                 href={deck?.publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                sx={styles.authorLink}
+                sx={bannerStyles.authorLink}
               >
                 {deck?.name}
               </Link>

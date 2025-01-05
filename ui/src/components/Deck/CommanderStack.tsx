@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box } from '@mui/joy';
 import CommanderCard from 'src/components/Deck/CommanderCard';
 import { ICommanderDetail } from 'src/types';
+import { commanderStackStyles } from 'src/styles';
 
 interface CommanderStackProps {
   commanders: ICommanderDetail[];
@@ -14,7 +15,7 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
     return (
       <>
         {commanders.map((cmdr) => (
-          <Box key={cmdr.unique_card_id} sx={{ mb: 2 }}>
+          <Box key={cmdr.unique_card_id} sx={commanderStackStyles.singleCard}>
             <CommanderCard card={cmdr} />
           </Box>
         ))}
@@ -22,33 +23,12 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
     );
   }
 
-  const handleMouseLeave = () => {
-    setTopCommanderIndex(1);
-  };
-
   return (
-    <Box 
-      sx={{ 
-        position: 'relative',
-        height: 400, 
-        mb: 2 
-      }}
-      onMouseLeave={handleMouseLeave}
-    >
+    <Box sx={commanderStackStyles.container} onMouseLeave={() => setTopCommanderIndex(1)}>
       {commanders.map((commander, index) => (
         <Box
           key={commander.unique_card_id}
-          sx={{
-            position: 'absolute',
-            top: index === 0 ? 0 : '8%',
-            left: 0,
-            zIndex: index === topCommanderIndex ? 2 : 1,
-            transition: 'all 0.1s ease-in-out',
-            transform: `translateY(${index === 0 ? 0 : '2%'})`,
-            '&:hover': {
-              zIndex: 2
-            }
-          }}
+          sx={commanderStackStyles.card(index, index === topCommanderIndex)}
           onMouseEnter={() => setTopCommanderIndex(index)}
         >
           <CommanderCard card={commander} />

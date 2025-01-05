@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views import View
-from ..services.moxfield import MoxfieldClient
+from ..services.external.moxfield_client import MoxfieldClient
 import logging
 
 logger = logging.getLogger(__name__)

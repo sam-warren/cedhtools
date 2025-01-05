@@ -17,7 +17,8 @@ from .materialized_view_models import (
     CEDHToolsMetrics,
     CommanderDeckRelationships,
     CardStatisticsByCommander,
-    CardPrintings
+    CardPrintings,
+    CommanderMetaStatistics,
 )
 
 __all__ = [
@@ -34,4 +35,5 @@ __all__ = [
     'CommanderDeckRelationships',
     'CardStatisticsByCommander',
     'CardPrintings',
+    'CommanderMetaStatistics',
 ]

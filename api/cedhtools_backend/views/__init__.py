@@ -14,10 +14,15 @@ from .cedhtools_metrics import (
     MetricsView,
 )
 
+from .commander_deck_analysis import (
+    CommanderDeckAnalysisView,
+)
+
 
 __all__ = [
     'MoxfieldDeckView',
     'TopdeckTournamentView',
     'CommanderStatisticsView',
+    'CommanderDeckAnalysisView',
     'MetricsView',
 ]

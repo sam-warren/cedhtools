@@ -17,7 +17,7 @@ export default function Header() {
           display: { xs: 'none', sm: 'flex' },
         }}
       >
-        <Typography level="title-lg">cedhtools</Typography>
+        <Typography level="h3">cedhtools</Typography>
         <Button
           variant="plain"
           color="neutral"

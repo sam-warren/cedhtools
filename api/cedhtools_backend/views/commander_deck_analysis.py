@@ -2,32 +2,21 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from ..services.commander.commander_service import CommanderService
+from ..services.deck.deck_service import DeckService
 from ..serializers import CommanderStatisticsResponseSerializer
 
 
-class CommanderStatisticsView(APIView):
-    """
-    Get statistics about specific commanders without requiring a deck.
-    """
-
+class CommanderDeckAnalysisView(APIView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.commander_service = CommanderService()
+        self.deck_service = DeckService()
 
-    def get(self, request):
+    def get(self, request, deck_id):
         try:
-            # Get commander IDs from query parameters
-            commander_ids = request.query_params.getlist('commander_ids[]')
-            if not commander_ids:
-                return Response(
-                    {"error": "commander_ids[] parameter is required"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Get statistics for these commanders
-            statistics = self.commander_service.calculate_commander_statistics(
-                commander_ids
-            )
+            # Get deck data and analyze it
+            statistics = self.commander_service.get_commander_statistics(
+                deck_id)
 
             # Serialize the response
             serializer = CommanderStatisticsResponseSerializer(statistics)
@@ -40,6 +29,6 @@ class CommanderStatisticsView(APIView):
             )
         except Exception as e:
             return Response(
-                {"error": "An unexpected error occurred: " + str(e)},
+                {"error": "An unexpected error occurred " + str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

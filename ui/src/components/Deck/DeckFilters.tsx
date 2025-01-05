@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, FormControl, Select, Option, Button, FormLabel } from '@mui/joy';
+import { filterStyles } from 'src/styles';
 
 const TIME_PERIOD_OPTIONS = [
   { value: '1m', label: '1 month'},
@@ -24,33 +25,18 @@ interface FilterState {
 
 const DeckFilters: React.FC = () => {
   const [formState, setFormState] = useState<FilterState>({
-    timePeriod: '1m', // Set default values to fix controlled component error
+    timePeriod: 'ban', // Set default values to fix controlled component error
     minSize: 0,
   });
-
-  const styles = {
-    container: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 2,
-    },
-    filterGroup: {
-      display: 'flex',
-      gap: 2,
-    },
-    formControl: {
-      minWidth: '160px',
-    },
-  };
 
   const handleApplyFilters = () => {
     console.log('Applying filters:', formState);
   };
 
   return (
-    <Box sx={styles.container}>
-      <Box sx={styles.filterGroup}>
-        <FormControl size="sm" sx={styles.formControl}>
+    <Box sx={filterStyles.container}>
+      <Box sx={filterStyles.filterGroup}>
+        <FormControl size="sm" sx={filterStyles.formControl}>
           <FormLabel>time period</FormLabel>
           <Select 
             value={formState.timePeriod}
@@ -70,7 +56,7 @@ const DeckFilters: React.FC = () => {
           </Select>
         </FormControl>
 
-        <FormControl size="sm" sx={styles.formControl}>
+        <FormControl size="sm" sx={filterStyles.formControl}>
           <FormLabel>tournament size</FormLabel>
           <Select 
             value={formState.minSize}
