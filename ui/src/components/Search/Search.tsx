@@ -5,7 +5,6 @@ import Input from '@mui/joy/Input';
 import Typography from '@mui/joy/Typography';
 import { ChangeEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLoading } from 'src/contexts/LoadingContext';
 import { getDecklistById } from 'src/services/moxfield/moxfield';
 import { IMoxfieldDeck } from 'src/types';
 import { IApiResponse } from 'src/types/api';
@@ -16,7 +15,6 @@ export default function Search() {
   const [serverErrorMessage, setServerErrorMessage] = useState('');
 
   const navigate = useNavigate();
-  const { loading, setLoading } = useLoading();
 
   const validateUrl = (url: string): boolean => {
     const pattern = /^https:\/\/www\.moxfield\.com\/decks\/[A-Za-z0-9_-]+$/;
@@ -31,7 +29,6 @@ export default function Search() {
       const id = inputValue.split('/').pop()?.toString();
       if (id) {
         try {
-          setLoading(true);
           const response: IApiResponse<IMoxfieldDeck> =
             await getDecklistById(id);
           if (response.success) {
@@ -43,9 +40,7 @@ export default function Search() {
         } catch (err: any) {
           setServerErrorMessage(err.message || 'An error occurred');
           setIsValid(false);
-        } finally {
-          setLoading(false);
-        }
+        } 
       }
     }
   };
