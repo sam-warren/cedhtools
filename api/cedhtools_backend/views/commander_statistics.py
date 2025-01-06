@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from ..services.commander.commander_service import CommanderService
 from ..serializers import CommanderStatisticsResponseSerializer
 
+# TODO: Use T test to determine statistical significance of commander win rate
+# TODO: Revise chi-squared test per mons' video
+
 
 class CommanderStatisticsView(APIView):
     """

@@ -9,6 +9,7 @@ interface ICardStat {
   name: string;
   performance: {
     card_win_rate: number;
+    deck_win_rate: number;
   };
   decks_with_card: number;
   mana_cost: string | null;
@@ -46,7 +47,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     if (filters.minWinRate !== '') {
       const threshold = filters.minWinRate / 100;
       results = results.filter(
-        (card) => card.performance.card_win_rate >= threshold,
+        (card) => (card.performance.card_win_rate - card.performance.deck_win_rate) * 100 >= threshold,
       );
     }
 
