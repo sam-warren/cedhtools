@@ -7,7 +7,6 @@ from ..serializers import CommanderStatisticsResponseSerializer
 # TODO: Use T test to determine statistical significance of commander win rate
 # TODO: Revise chi-squared test per mons' video
 
-
 class CommanderStatisticsView(APIView):
     """
     Get statistics about specific commanders without requiring a deck.

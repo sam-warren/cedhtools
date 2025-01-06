@@ -6,7 +6,6 @@ from ...models import (
 
 # TODO: Build materialized views for time and tournament period filters
 
-
 class StatisticsRepository:
     @staticmethod
     def get_meta_statistics(commander_ids: List[str], time_period: str, min_size: str) -> Optional[Dict]:
