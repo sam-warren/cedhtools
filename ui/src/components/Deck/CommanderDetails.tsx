@@ -24,9 +24,6 @@ export default function CommanderDetails() {
 
   return (
     <>
-      <Typography level="body-md" sx={{ mb: 2, textAlign: 'center' }}>
-        {deckStats.commanders.map((commander) => commander.name).join(' + ')}
-      </Typography>
       <Box>
         {deckStats.commanders.length === 2 ? (
           <CommanderStack commanders={deckStats.commanders} />

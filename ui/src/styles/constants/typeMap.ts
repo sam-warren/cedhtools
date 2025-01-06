@@ -1,5 +1,5 @@
 export const cardTypeMap: Record<string, string> = {
-  'other': 'other cards',
+  'other': 'not in deck',
   '1': 'battles',
   '2': 'planeswalkers',
   '3': 'creatures',

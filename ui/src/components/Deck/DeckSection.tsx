@@ -13,7 +13,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({ typeCode, cards }) => {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography level="h2">{displayName}</Typography>
+      <Typography level="h3">{displayName}</Typography>
       <Box sx={gridLayouts.cardGrid}>
         {cards.map((card) => (
           <DeckCard key={card.unique_card_id} card={card} />

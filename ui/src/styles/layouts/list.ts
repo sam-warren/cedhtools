@@ -6,17 +6,14 @@ export const layoutStyles = {
   },
   mainSection: {
     mb: 6,
+    mt: 4,
   },
   sectionContainer: {
     mb: 4,
-    // Remove backgroundColor from here
   },
   sectionHeader: {
     py: listConstants.SECTION_PADDING_Y,
-    borderBottom: '1px solid',
-    borderColor: 'divider',
   },
   tableContainer: {
-    // No background color needed here either
   },
 };

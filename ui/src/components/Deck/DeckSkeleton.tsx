@@ -75,10 +75,6 @@ const DeckSkeleton = () => (
       <Box sx={deckPageLayout.wrapper}>
         {/* Left Pane */}
         <Box sx={deckPageLayout.leftPane}>
-          <Skeleton
-            variant="text"
-            sx={{ mb: 1, width: '100%', textAlign: 'center' }}
-          />
           <Box sx={{ mb: 0 }}>
             <CardSkeleton showTextbox={false} />
           </Box>

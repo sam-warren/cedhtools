@@ -11,16 +11,23 @@ export const chipStyles = {
 
 export const tableStyles = {
   root: {
+    // Set a base text color for the table
+    color: 'text.primary',
     '--TableCell-paddingX': listConstants.TABLE_CELL_PADDING_X,
+
+    // Style for table headers
     '& th': {
-      fontWeight: 600,
-      // Remove backgroundColor from here
+      fontWeight: 700,
+      backgroundColor: 'transparent', // Ensure no background color
+      color: 'text.primary', // Ensure header text matches base color
     },
+
+    // Style for table data cells
     '& td': {
       py: listConstants.TABLE_CELL_PADDING_Y,
-      borderBottom: '1px solid',
-      borderColor: 'divider',
     },
+
+    // Hover effect for table rows
     '& tr:hover': {
       backgroundColor: `rgba(0, 0, 0, ${listConstants.ROW_HOVER_OPACITY})`,
     },
