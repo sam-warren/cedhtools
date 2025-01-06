@@ -52,6 +52,7 @@ export interface ICardStat {
   performance: {
     deck_win_rate: number;
     card_win_rate: number;
+    win_rate_diff: number;
     chi_squared: number;
     p_value: number;
   };

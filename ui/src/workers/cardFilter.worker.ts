@@ -10,6 +10,7 @@ interface ICardStat {
   performance: {
     card_win_rate: number;
     deck_win_rate: number;
+    win_rate_diff: number;
   };
   decks_with_card: number;
   mana_cost: string | null;

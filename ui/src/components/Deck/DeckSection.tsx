@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/joy';
 import { ICardStat } from 'src/types';
 import DeckCard from './DeckCard';
 import { gridLayouts, cardTypeMap } from 'src/styles';
+import React from 'react';
 
 interface DeckSectionProps {
   typeCode: string;
@@ -23,4 +24,4 @@ const DeckSection: React.FC<DeckSectionProps> = ({ typeCode, cards }) => {
   );
 };
 
-export default DeckSection;
+export default React.memo(DeckSection);

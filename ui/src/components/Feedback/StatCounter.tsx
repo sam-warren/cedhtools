@@ -56,7 +56,7 @@ export default function StatCounter({
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 1,
+        gap: 2,
         p: 1.5,
         borderRadius: 'md',
         bgcolor: 'background.level1',

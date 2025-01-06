@@ -72,11 +72,14 @@ class StatisticsService:
     def calculate_statistics(
         self,
         commander_ids: List[str],
-        deck_structure: Dict
+        deck_structure: Dict,
+        time_period: str,
+        min_size: int
     ) -> Dict:
         """Calculate comprehensive statistics for commanders."""
         # Get pre-calculated meta statistics
-        meta_stats = self.repository.get_meta_statistics(commander_ids)
+        meta_stats = self.repository.get_meta_statistics(
+            commander_ids, time_period, min_size)
         if not meta_stats:
             raise ValueError(
                 f"No statistics found for commanders: {commander_ids}")
@@ -94,7 +97,8 @@ class StatisticsService:
         )
 
         # Get pre-calculated card statistics
-        card_stats = self.repository.get_card_statistics(commander_ids)
+        card_stats = self.repository.get_card_statistics(
+            commander_ids, time_period, min_size)
 
         # Process card statistics into categorized structure
         main_cards = {str(i): [] for i in range(1, 9)}
@@ -169,6 +173,8 @@ class StatisticsService:
             performance=CardPerformanceDTO(
                 deck_win_rate=meta_stats.baseline_performance["win_rate"],
                 card_win_rate=stat['avg_win_rate'],
+                win_rate_diff=(stat['avg_win_rate'] -
+                               meta_stats.baseline_performance["win_rate"]) * 100,
                 chi_squared=chi2,
                 p_value=p_value
             )

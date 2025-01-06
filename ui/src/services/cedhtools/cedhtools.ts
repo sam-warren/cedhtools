@@ -6,23 +6,19 @@ const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
 
 export async function getDeckStats(
   deck_id: string,
-  start_date?: Date,
-  end_date?: Date,
-  tournament_size?: number,
-  top_cut?: number,
+  time_period: string,
+  min_size: number,
 ): Promise<IApiResponse<ICommanderStatisticsResponse>> {
 
   const url = `${BASE_URL}/api/decks/${deck_id}/analysis`;
 
   const params = new URLSearchParams();
-  if (start_date)
-    params.append('start_date', (start_date.getTime() / 1000).toString());
-  if (end_date)
-    params.append('end_date', (end_date.getTime() / 1000).toString());
-  if (tournament_size !== undefined)
-    params.append('tournament_size', tournament_size.toString());
-  if (top_cut !== undefined) params.append('top_cut', top_cut.toString());
-
+  if (time_period) {
+    params.append('time_period', time_period);
+  }
+  if (min_size) {
+    params.append('min_size', min_size.toString());
+  }
   return serviceWrapper(
     () =>
       axios

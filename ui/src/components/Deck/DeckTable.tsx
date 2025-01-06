@@ -1,4 +1,10 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react';
 import {
   Box,
   Table,
@@ -25,7 +31,10 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { chipStyles, tableStyles } from 'src/styles/components/list';
 import debounce from 'lodash/debounce';
 
-// Types remain the same...
+/* ================================
+   Type Definitions
+   ================================ */
+
 type Order = 'asc' | 'desc';
 type OrderBy = 'cmc' | 'win_rate' | 'inclusion_rate';
 
@@ -46,7 +55,13 @@ interface FilterConfig {
   minInclusionRate: number | '';
 }
 
-// Sorting logic remains the same...
+/* ================================
+   Utility Functions
+   ================================ */
+
+/**
+ * Comparator function for descending order.
+ */
 const descendingComparator = <T extends unknown>(
   a: T,
   b: T,
@@ -57,6 +72,9 @@ const descendingComparator = <T extends unknown>(
   return 0;
 };
 
+/**
+ * Returns a comparator function based on order and orderBy.
+ */
 const getComparator = (order: Order, orderBy: OrderBy) => {
   return order === 'desc'
     ? (a: ICardStat, b: ICardStat) => {
@@ -93,7 +111,13 @@ const getComparator = (order: Order, orderBy: OrderBy) => {
       };
 };
 
-// SortableColumnHeader component remains the same...
+/* ================================
+   Sub-components
+   ================================ */
+
+/**
+ * SortableColumnHeader Component
+ */
 const SortableColumnHeader = ({
   label,
   property,
@@ -154,6 +178,10 @@ const SortableColumnHeader = ({
   );
 };
 
+/* ================================
+   Main Component: DeckTable
+   ================================ */
+
 const DeckTable = ({
   cards,
   deckStats,
@@ -163,7 +191,9 @@ const DeckTable = ({
   deckStats: any;
   label: string;
 }) => {
-  // State
+  /* --------------------------------
+     State Definitions
+     -------------------------------- */
   const [sort, setSort] = useState<SortConfig>({ order: 'asc', orderBy: null });
   const [filters, setFilters] = useState<FilterConfig>({
     name: '',
@@ -175,7 +205,9 @@ const DeckTable = ({
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [workerProcessedCards, setWorkerProcessedCards] = useState(cards);
 
-  // Hooks
+  /* --------------------------------
+     Hooks
+     -------------------------------- */
   const navigate = useNavigate();
   const { renderManaSymbols } = useManaSymbols();
   const workerRef = useRef<Worker | null>(null);
@@ -192,7 +224,13 @@ const DeckTable = ({
     return () => workerRef.current?.terminate();
   }, []);
 
-  // Handlers
+  /* --------------------------------
+     Handlers
+     -------------------------------- */
+
+  /**
+   * Handles sorting request.
+   */
   const handleRequestSort = useCallback(
     (property: OrderBy) => {
       const isAsc = sort.orderBy === property && sort.order === 'asc';
@@ -202,6 +240,9 @@ const DeckTable = ({
     [sort],
   );
 
+  /**
+   * Debounced function to send messages to the worker.
+   */
   const debouncedWorkerMessage = useMemo(
     () =>
       debounce(
@@ -217,6 +258,9 @@ const DeckTable = ({
     [],
   );
 
+  /**
+   * Effect to handle filtering.
+   */
   useEffect(() => {
     if (!workerRef.current) return;
 
@@ -235,9 +279,47 @@ const DeckTable = ({
       filters,
       totalDecks: deckStats.meta_statistics.sample_size.total_decks,
     });
-  }, [filters, cards, deckStats.meta_statistics.sample_size.total_decks]);
+  }, [
+    filters,
+    cards,
+    deckStats.meta_statistics.sample_size.total_decks,
+    debouncedWorkerMessage,
+  ]);
 
-  // Sort worker results
+  /**
+   * Handles changes in filter inputs.
+   */
+  const handleFilterChange = useCallback(
+    (newFilters: Partial<FilterConfig>) => {
+      // Update UI immediately
+      setFilters((prev) => {
+        const updatedFilters = { ...prev, ...newFilters };
+
+        // Then send to worker with a delay
+        debouncedWorkerMessage({
+          cards,
+          filters: updatedFilters,
+          totalDecks: deckStats.meta_statistics.sample_size.total_decks,
+        });
+
+        return updatedFilters;
+      });
+      setPage(0);
+    },
+    [
+      cards,
+      deckStats.meta_statistics.sample_size.total_decks,
+      debouncedWorkerMessage,
+    ],
+  );
+
+  /* --------------------------------
+     Computed Values
+     -------------------------------- */
+
+  /**
+   * Sorts the processed cards based on the current sort configuration.
+   */
   const processedCards = useMemo(() => {
     if (!sort.orderBy) return workerProcessedCards;
     return [...workerProcessedCards].sort(
@@ -245,13 +327,21 @@ const DeckTable = ({
     );
   }, [workerProcessedCards, sort]);
 
-  // Get current page data
+  /**
+   * Paginates the sorted cards.
+   */
   const paginatedCards = useMemo(() => {
     const startIndex = page * rowsPerPage;
     return processedCards.slice(startIndex, startIndex + rowsPerPage);
   }, [processedCards, page, rowsPerPage]);
 
-  // Render functions remain mostly the same...
+  /* --------------------------------
+     Render Functions
+     -------------------------------- */
+
+  /**
+   * Renders the mana cost with appropriate symbols.
+   */
   const renderManaCost = useCallback(
     (manaCost: string | null) => {
       if (!manaCost) return null;
@@ -273,6 +363,9 @@ const DeckTable = ({
     [renderManaSymbols],
   );
 
+  /**
+   * Displays mana symbols.
+   */
   const ManaSymbolsDisplay = ({
     symbols,
   }: {
@@ -302,53 +395,30 @@ const DeckTable = ({
     );
   };
 
-  const renderWinRateChip = useCallback(
-    (cardWinRate: number, baselineWinRate: number) => {
-      const winRateDiff = (cardWinRate - baselineWinRate) * 100;
-      const formattedDiff =
-        Math.abs(winRateDiff) < 0.005 ? 0 : winRateDiff.toFixed(2);
-      const isZero = Number(formattedDiff) === 0;
-      const isPositive = Number(formattedDiff) > 0;
+  /**
+   * Renders the win rate chip with appropriate styling.
+   */
+  const renderWinRateChip = useCallback((winRateDiff: number) => {
+    const formattedDiff =
+      Math.abs(winRateDiff) < 0.005 ? 0 : winRateDiff.toFixed(2);
+    const isZero = Number(formattedDiff) === 0;
+    const isPositive = Number(formattedDiff) > 0;
 
-      return (
-        <Chip
-          variant={chipStyles.win_rate.variant}
-          color={chipStyles.win_rate.getColor(isZero, isPositive)}
-          size="sm"
-        >
-          {isPositive ? '+' : ''}
-          {formattedDiff}%
-        </Chip>
-      );
-    },
-    [],
-  );
+    return (
+      <Chip
+        variant={chipStyles.win_rate.variant}
+        color={chipStyles.win_rate.getColor(isZero, isPositive)}
+        size="sm"
+      >
+        {isPositive ? '+' : ''}
+        {formattedDiff}%
+      </Chip>
+    );
+  }, []);
 
-  // Filters
-  const handleFilterChange = useCallback(
-    (newFilters: Partial<FilterConfig>) => {
-      // Update UI immediately
-      setFilters((prev) => {
-        const updatedFilters = { ...prev, ...newFilters };
-
-        // Then send to worker with a delay
-        debouncedWorkerMessage({
-          cards,
-          filters: updatedFilters,
-          totalDecks: deckStats.meta_statistics.sample_size.total_decks,
-        });
-
-        return updatedFilters;
-      });
-      setPage(0);
-    },
-    [
-      cards,
-      deckStats.meta_statistics.sample_size.total_decks,
-      debouncedWorkerMessage,
-    ],
-  );
-
+  /**
+   * Renders the filter inputs.
+   */
   const renderFilters = () => (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
       <Input
@@ -382,6 +452,10 @@ const DeckTable = ({
     </Box>
   );
 
+  /* --------------------------------
+     JSX Return
+     -------------------------------- */
+
   return (
     <Sheet
       variant="outlined"
@@ -393,6 +467,7 @@ const DeckTable = ({
         overflow: 'auto',
       }}
     >
+      {/* Header Section */}
       <Box
         sx={{
           display: 'flex',
@@ -415,6 +490,8 @@ const DeckTable = ({
           </IconButton>
         </Box>
       </Box>
+
+      {/* Table Section */}
       <Table variant="plain" size="sm" sx={tableStyles.root}>
         <thead>
           <tr>
@@ -480,12 +557,7 @@ const DeckTable = ({
                 <td>
                   <Typography level="body-sm">{card.type_line}</Typography>
                 </td>
-                <td>
-                  {renderWinRateChip(
-                    card.performance.card_win_rate,
-                    deckStats.meta_statistics.baseline_performance.win_rate,
-                  )}
-                </td>
+                <td>{renderWinRateChip(card.performance.win_rate_diff)}</td>
                 <td style={{ textAlign: 'right' }}>
                   <Typography level="body-sm">
                     {(
@@ -514,6 +586,8 @@ const DeckTable = ({
             ))
           )}
         </tbody>
+
+        {/* Footer Section */}
         <tfoot>
           <tr>
             <td colSpan={6}>
@@ -526,6 +600,7 @@ const DeckTable = ({
                   pr: 2,
                 }}
               >
+                {/* Rows Per Page Selector */}
                 <FormControl orientation="horizontal" size="sm">
                   <FormLabel sx={{ pr: 2 }}>Rows per page:</FormLabel>
                   <Select
@@ -542,6 +617,8 @@ const DeckTable = ({
                     <Option value={50}>50</Option>
                   </Select>
                 </FormControl>
+
+                {/* Pagination Info */}
                 <Typography level="body-sm" sx={{ minWidth: 80 }}>
                   {processedCards.length > 0
                     ? `${page * rowsPerPage + 1}–${Math.min(
@@ -550,6 +627,8 @@ const DeckTable = ({
                       )} of ${processedCards.length}`
                     : '0–0 of 0'}
                 </Typography>
+
+                {/* Pagination Controls */}
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <IconButton
                     size="sm"
@@ -581,4 +660,8 @@ const DeckTable = ({
   );
 };
 
-export default DeckTable;
+/* ================================
+   Export Component
+   ================================ */
+
+export default React.memo(DeckTable);

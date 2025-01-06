@@ -5,12 +5,13 @@ import { cardConstants } from '../constants/cards';
 type CardVariant = 'deck' | 'commander';
 
 export const cardStyles = {
-  container: {
+  cardContainer: (variant: CardVariant = 'deck') => ({
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
     alignItems: 'center',
-  },
+    mt: variant === 'deck' ? `${cardConstants.STATS_BANNER_HEIGHT}px` : 0,
+  }),
   wrapper: {
     width: '100%',
     position: 'relative',

@@ -22,6 +22,7 @@
     "@types/lodash": "^4.17.14",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
+    "idb": "^8.0.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",

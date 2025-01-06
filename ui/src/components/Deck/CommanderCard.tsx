@@ -34,7 +34,7 @@ const CommanderCard: React.FC<CommanderCardProps> = ({ card }) => {
   }, [card.image_uris.normal, handleImageLoad, inView, isLoaded]);
 
   return (
-    <Box ref={ref} sx={cardStyles.container}>
+    <Box ref={ref} sx={cardStyles.cardContainer('commander')}>
       <Box sx={cardStyles.wrapper}>
         <Box sx={cardStyles.imageContainer(theme, 'commander')}>
           {isLoaded ? (

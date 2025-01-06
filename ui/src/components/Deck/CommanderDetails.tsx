@@ -41,7 +41,6 @@ export default function CommanderDetails() {
           flexDirection: 'column',
           gap: 1, // Reduced from 2
           width: '100%',
-          mt: 2, // Reduced from 3
         }}
       >
         <StatCounter

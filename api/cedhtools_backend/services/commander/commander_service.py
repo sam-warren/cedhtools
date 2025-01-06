@@ -32,7 +32,7 @@ class CommanderService:
             "commanders": sorted(commander_details, key=lambda x: x.get('name', '') if isinstance(x, dict) else '')
         }
 
-    def get_commander_statistics(self, deck_id: str) -> Dict:
+    def get_commander_statistics(self, deck_id: str, time_period: str, min_size: int) -> Dict:
         """Get comprehensive statistics for a commander deck."""
         # Get deck data from Moxfield
         deck_data = self.deck_service.get_deck_data(deck_id)
@@ -50,7 +50,9 @@ class CommanderService:
         # Calculate statistics
         statistics = self.statistics_service.calculate_statistics(
             commander_info["commander_ids"],
-            deck_structure
+            deck_structure,
+            time_period,
+            min_size
         )
 
         return {

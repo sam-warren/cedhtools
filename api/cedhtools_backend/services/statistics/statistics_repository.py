@@ -4,10 +4,12 @@ from ...models import (
     CommanderMetaStatistics, CardStatisticsByCommander
 )
 
+# TODO: Build materialized views for time and tournament period filters
+
 
 class StatisticsRepository:
     @staticmethod
-    def get_meta_statistics(commander_ids: List[str]) -> Optional[Dict]:
+    def get_meta_statistics(commander_ids: List[str], time_period: str, min_size: str) -> Optional[Dict]:
         """Get pre-calculated meta-level statistics for commanders."""
         stats = CommanderMetaStatistics.objects.filter(
             commander_list=sorted(commander_ids)
@@ -25,7 +27,7 @@ class StatisticsRepository:
         }
 
     @staticmethod
-    def get_card_statistics(commander_ids: List[str]) -> List[Dict]:
+    def get_card_statistics(commander_ids: List[str], time_period: str, min_size: str) -> List[Dict]:
         """Get pre-calculated card statistics for commanders."""
         return CardStatisticsByCommander.objects.filter(
             commander_list=sorted(commander_ids)

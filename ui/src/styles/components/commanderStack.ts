@@ -2,7 +2,6 @@ export const commanderStackStyles = {
   container: {
     position: 'relative',
     height: 400,
-    mb: 2,
   },
   card: (index: number) => ({
     position: 'absolute',

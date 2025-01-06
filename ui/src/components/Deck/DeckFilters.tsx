@@ -1,22 +1,9 @@
 import React, { useState } from 'react';
 import { Box, FormControl, Select, Option, Button, FormLabel } from '@mui/joy';
 import { filterStyles } from 'src/styles';
-
-const TIME_PERIOD_OPTIONS = [
-  { value: '1m', label: '1 month'},
-  { value: '3m', label: '3 months'},
-  { value: '6m', label: '6 months'},
-  { value: '1y', label: '1 year'},
-  { value: 'ban', label: 'post ban'},
-  { value: 'all', label: 'all time'},
-];
-
-const TOURNAMENT_SIZE_OPTIONS = [
-  { value: 30, label: '30+ players' },
-  { value: 60, label: '60+ players' },
-  { value: 100, label: '100+ players' },
-  { value: 0, label: 'all tournaments' },
-];
+import { useAppDispatch, useAppSelector } from 'src/hooks';
+import { fetchDeckData } from 'src/store/slices/deckSlice';
+import { TIME_PERIOD_OPTIONS, TOURNAMENT_SIZE_OPTIONS } from 'src/constants/deckFilterOptions';
 
 interface FilterState {
   timePeriod: string;
@@ -24,13 +11,29 @@ interface FilterState {
 }
 
 const DeckFilters: React.FC = () => {
+  const { deck } = useAppSelector((state) => state.deck);
+
+  if (!deck) return null;
+
   const [formState, setFormState] = useState<FilterState>({
-    timePeriod: 'ban', // Set default values to fix controlled component error
+    timePeriod: 'all',
     minSize: 0,
   });
 
+  const dispatch = useAppDispatch();
+
   const handleApplyFilters = () => {
-    console.log('Applying filters:', formState);
+    dispatch(
+      fetchDeckData({
+        deckId: deck.publicId,
+        timePeriod: formState.timePeriod,
+        minSize: formState.minSize,
+      }),
+    )
+      .unwrap()
+      .then((result) => {
+        console.log('deck data:', result);
+      });
   };
 
   return (
@@ -38,12 +41,12 @@ const DeckFilters: React.FC = () => {
       <Box sx={filterStyles.filterGroup}>
         <FormControl size="sm" sx={filterStyles.formControl}>
           <FormLabel>time period</FormLabel>
-          <Select 
+          <Select
             value={formState.timePeriod}
-            onChange={(_, value) => 
-              setFormState(prev => ({ 
-                ...prev, 
-                timePeriod: value || '1m' // Provide fallback value 
+            onChange={(_, value) =>
+              setFormState((prev) => ({
+                ...prev,
+                timePeriod: value || '1m',
               }))
             }
             size="sm"
@@ -58,12 +61,12 @@ const DeckFilters: React.FC = () => {
 
         <FormControl size="sm" sx={filterStyles.formControl}>
           <FormLabel>tournament size</FormLabel>
-          <Select 
+          <Select
             value={formState.minSize}
-            onChange={(_, value) => 
-              setFormState(prev => ({ 
-                ...prev, 
-                minSize: value ?? 0 // Provide fallback value
+            onChange={(_, value) =>
+              setFormState((prev) => ({
+                ...prev,
+                minSize: value ?? 0, // Provide fallback value
               }))
             }
             size="sm"
@@ -77,11 +80,7 @@ const DeckFilters: React.FC = () => {
         </FormControl>
 
         <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-          <Button 
-            onClick={handleApplyFilters}
-            size="sm"
-            variant='soft'
-          >
+          <Button onClick={handleApplyFilters} size="sm" variant="soft">
             apply
           </Button>
         </Box>

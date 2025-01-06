@@ -20,14 +20,29 @@ const initialState: DeckState = {
 // Async thunk for fetching both deck and stats
 export const fetchDeckData = createAsyncThunk(
   'deck/fetchDeckData',
-  async (deckId: string, { rejectWithValue }) => {
+  async (
+    {
+      deckId,
+      minSize = 0,
+      timePeriod = 'all',
+    }: {
+      deckId: string;
+      minSize?: number;
+      timePeriod?: string;
+    },
+    { rejectWithValue },
+  ) => {
     try {
       const deckResponse = await getDecklistById(deckId);
       if (!deckResponse.success) {
         throw new Error('Failed to fetch deck details');
       }
 
-      const statsResponse = await getDeckStats(deckResponse.data.publicId);
+      const statsResponse = await getDeckStats(
+        deckResponse.data.publicId,
+        timePeriod,
+        minSize,
+      );
       if (!statsResponse.success) {
         throw new Error('Failed to fetch deck statistics');
       }

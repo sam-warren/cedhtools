@@ -17,12 +17,7 @@ const CardSkeleton = ({ showTextbox = false }: CardSkeletonProps) => {
   const theme = useTheme();
 
   return (
-    <Box
-      sx={{
-        ...cardStyles.container,
-        mt: showTextbox ? `${cardConstants.STATS_BANNER_HEIGHT}px` : 0,
-      }}
-    >
+    <Box sx={cardStyles.cardContainer('deck')}>
       <Box sx={cardStyles.wrapper}>
         <Box sx={cardStyles.imageContainer(theme, 'deck')}>
           <Skeleton
@@ -75,7 +70,7 @@ const DeckSkeleton = () => (
       <Box sx={deckPageLayout.wrapper}>
         {/* Left Pane */}
         <Box sx={deckPageLayout.leftPane}>
-          <Box sx={{ mb: 0 }}>
+          <Box>
             <CardSkeleton showTextbox={false} />
           </Box>
           <Box

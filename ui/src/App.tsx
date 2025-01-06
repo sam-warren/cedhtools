@@ -10,10 +10,8 @@ import { SearchHistoryProvider } from 'src/contexts/SearchHistoryContext';
 import DeckPage from 'src/pages/DeckPage';
 import LandingPage from 'src/pages/LandingPage';
 import { AppAlert } from './components/Feedback/AppAlert';
-import AppLoader from './components/Feedback/AppLoader';
 import { SymbologyInitializer } from './components/Providers/SymbologyInitializer';
 import { AlertProvider } from './contexts/AlertContext';
-import { LoadingProvider } from './contexts/LoadingContext';
 import { store } from './store';
 import theme from './theme';
 
@@ -23,31 +21,26 @@ function CEDHTools() {
       <BrowserRouter>
         <CssVarsProvider theme={theme}>
           <CssBaseline />
-          <LoadingProvider>
-            <AlertProvider>
-              <SearchHistoryProvider>
-                <SymbologyInitializer />
-                <AppLayout.Root>
-                  <AppAlert />
-                  <AppLayout.Header>
-                    <Header />
-                  </AppLayout.Header>
-                  <AppLayout.Loader>
-                    <AppLoader />
-                  </AppLayout.Loader>
-                  <AppLayout.Main>
-                    <Routes>
-                      <Route path="/" element={<LandingPage />} />
-                      <Route path="/deck/:id" element={<DeckPage />} />
-                    </Routes>
-                  </AppLayout.Main>
-                  <AppLayout.Footer>
-                    <Footer />
-                  </AppLayout.Footer>
-                </AppLayout.Root>
-              </SearchHistoryProvider>
-            </AlertProvider>
-          </LoadingProvider>
+          <AlertProvider>
+            <SearchHistoryProvider>
+              <SymbologyInitializer />
+              <AppLayout.Root>
+                <AppAlert />
+                <AppLayout.Header>
+                  <Header />
+                </AppLayout.Header>
+                <AppLayout.Main>
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/deck/:id" element={<DeckPage />} />
+                  </Routes>
+                </AppLayout.Main>
+                <AppLayout.Footer>
+                  <Footer />
+                </AppLayout.Footer>
+              </AppLayout.Root>
+            </SearchHistoryProvider>
+          </AlertProvider>
         </CssVarsProvider>
       </BrowserRouter>
     </Provider>

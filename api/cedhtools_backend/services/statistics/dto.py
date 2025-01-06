@@ -26,6 +26,7 @@ class MetaStatisticsDTO:
 class CardPerformanceDTO:
     deck_win_rate: float
     card_win_rate: float
+    win_rate_diff: float
     chi_squared: float
     p_value: float
 

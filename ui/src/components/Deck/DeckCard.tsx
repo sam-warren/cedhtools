@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Box, Typography, useTheme, Skeleton } from '@mui/joy';
 import { ICardStat } from 'src/types';
 import { useInView } from 'react-intersection-observer';
 import { cardStyles, cardConstants } from 'src/styles';
+import { useImageCache } from 'src/hooks/useImageCache';
 
 interface DeckCardProps {
   card: ICardStat;
-  showDetails?: boolean;
 }
 
-const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
   const { ref, inView } = useInView({
     threshold: 0,
     rootMargin: '200px 0px',
@@ -18,30 +17,15 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
   });
   const theme = useTheme();
 
-  const handleImageLoad = useCallback(() => {
-    setIsLoaded(true);
-  }, []);
-
-  const openCardModal = (uniqueCardId: string) => {
-    console.log(`Opening card modal for ${uniqueCardId}`);
-  };
-
-  useEffect(() => {
-    if (inView && !isLoaded) {
-      const img = new Image();
-      img.src = card.image_uris.normal;
-      img.onload = handleImageLoad;
-      return () => {
-        img.onload = null;
-      };
-    }
-  }, [card.image_uris.normal, handleImageLoad, inView, isLoaded]);
+  // Use the new image caching hook
+  const { src: cachedSrc, isLoading } = useImageCache(
+    card.scryfall_id,
+    card.image_uris.normal,
+  );
 
   // Calculate performance metrics
-  const winRateDiff =
-    (card.performance.card_win_rate - card.performance.deck_win_rate) * 100;
   const formattedDiff =
-    Math.abs(winRateDiff) < 0.005 ? 0 : winRateDiff.toFixed(2);
+    Math.abs(card.performance.win_rate_diff) < 0.005 ? 0 : card.performance.win_rate_diff.toFixed(2);
   const sign = Number(formattedDiff) > 0 ? '+' : '';
   const color =
     Number(formattedDiff) > 0
@@ -51,15 +35,9 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
         : 'danger';
 
   return (
-    <Box
-      ref={ref}
-      sx={{
-        ...cardStyles.container,
-        mt: showDetails ? `${cardConstants.STATS_BANNER_HEIGHT}px` : 0,
-      }}
-    >
+    <Box ref={ref} sx={cardStyles.cardContainer('deck')}>
       <Box sx={cardStyles.wrapper}>
-        {isLoaded && showDetails && (
+        {!isLoading && (
           <Box sx={cardStyles.banner(color)}>
             <Typography level="body-xs" color={color} fontWeight="lg">
               {sign}
@@ -71,12 +49,14 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
 
         <Box
           sx={cardStyles.imageContainer(theme, 'deck')}
-          onClick={() => openCardModal(card.unique_card_id)}
+          onClick={() =>
+            console.log(`Opening card modal for ${card.unique_card_id}`)
+          }
         >
-          {isLoaded ? (
+          {!isLoading ? (
             <Box
               component="img"
-              src={card.image_uris.normal}
+              src={cachedSrc}
               alt={card.name}
               sx={cardStyles.image}
             />
@@ -90,20 +70,17 @@ const DeckCard: React.FC<DeckCardProps> = ({ card, showDetails = true }) => {
           )}
         </Box>
       </Box>
-
-      {showDetails && (
-        <Box sx={cardStyles.titleContainer}>
-          {isLoaded ? (
-            <Typography level="body-sm" sx={cardStyles.cardTitle}>
-              {card.name}
-            </Typography>
-          ) : (
-            <Skeleton variant="text" width="80%" />
-          )}
-        </Box>
-      )}
+      <Box sx={cardStyles.titleContainer}>
+        {!isLoading ? (
+          <Typography level="body-sm" sx={cardStyles.cardTitle}>
+            {card.name}
+          </Typography>
+        ) : (
+          <Skeleton variant="text" width="80%" />
+        )}
+      </Box>
     </Box>
   );
 };
 
-export default DeckCard;
+export default React.memo(DeckCard);

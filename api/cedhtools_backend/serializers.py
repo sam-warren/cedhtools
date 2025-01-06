@@ -43,6 +43,7 @@ class TopdeckTournamentSerializer(serializers.ModelSerializer):
 class CardPerformanceSerializer(serializers.Serializer):
     deck_win_rate = serializers.FloatField()
     card_win_rate = serializers.FloatField()
+    win_rate_diff = serializers.FloatField()
     chi_squared = serializers.FloatField()
     p_value = serializers.FloatField()
 

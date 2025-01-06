@@ -29,7 +29,7 @@ export default function DeckContent() {
         }}
       >
         <Box>
-          <Typography level="h3">
+          <Typography level="h2">
             {deckStats.commanders
               .map((commander) => commander.name)
               .join(' + ')}
