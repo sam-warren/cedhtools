@@ -1,11 +1,15 @@
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 from typing import Optional
+
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from ..serializers import CommanderStatisticsResponseSerializer
 from ..services.commander.commander_service import CommanderService
 from ..services.deck.deck_service import DeckService
-from ..serializers import CommanderStatisticsResponseSerializer
 
 
 class CommanderDeckAnalysisView(APIView):
@@ -16,6 +20,7 @@ class CommanderDeckAnalysisView(APIView):
         self.commander_service = CommanderService()
         self.deck_service = DeckService()
 
+    @method_decorator(cache_page(60 * 60))
     def get(self, request, deck_id):
         # Extract query parameters with default values
         time_period = request.query_params.get('time_period', 'ban')

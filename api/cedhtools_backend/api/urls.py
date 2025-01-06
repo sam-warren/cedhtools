@@ -1,6 +1,8 @@
 # cedhtools_backend/api/urls.py
 from django.urls import path
-from ..views import MoxfieldDeckView, TopdeckTournamentView, CommanderStatisticsView, CommanderDeckAnalysisView, MetricsView
+
+from ..views import (CommanderDeckAnalysisView, CommanderStatisticsView,
+                     MetricsView, MoxfieldDeckView, TopdeckTournamentView)
 
 urlpatterns = [
     path('moxfield/deck/<str:deck_id>/',

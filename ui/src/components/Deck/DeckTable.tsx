@@ -1,35 +1,35 @@
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useRef,
-  useEffect,
-} from 'react';
-import {
-  Box,
-  Table,
-  Typography,
-  Chip,
-  Button,
-  Input,
-  IconButton,
-  Sheet,
-  FormControl,
-  FormLabel,
-  Select,
-  Option,
-} from '@mui/joy';
-import { useManaSymbols } from 'src/hooks/useManaSymbols';
-import { ICardStat } from 'src/types';
-import { useNavigate } from 'react-router-dom';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import InboxIcon from '@mui/icons-material/Inbox';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import InboxIcon from '@mui/icons-material/Inbox';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { chipStyles, tableStyles } from 'src/styles/components/list';
+import {
+    Box,
+    Button,
+    Chip,
+    FormControl,
+    FormLabel,
+    IconButton,
+    Input,
+    Option,
+    Select,
+    Sheet,
+    Table,
+    Typography,
+} from '@mui/joy';
 import debounce from 'lodash/debounce';
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useManaSymbols } from 'src/hooks/useManaSymbols';
+import { chipStyles, tableStyles } from 'src/styles/components/list';
+import { ICardStat } from 'src/types';
 
 /* ================================
    Type Definitions
@@ -253,7 +253,7 @@ const DeckTable = ({
         }) => {
           workerRef.current?.postMessage(message);
         },
-        150,
+        0,
       ), // Lower debounce time for worker
     [],
   );
@@ -432,17 +432,36 @@ const DeckTable = ({
         type="number"
         placeholder="min win %"
         value={filters.minWinRate}
+        sx={{
+          '& input[type=number]': {
+            '-moz-appearance': 'textfield',
+            '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+              '-webkit-appearance': 'none',
+              margin: 0,
+            },
+          },
+        }}
         onChange={(e) =>
           handleFilterChange({
             minWinRate: e.target.value ? Number(e.target.value) : '',
           })
         }
       />
+
       <Input
         size="sm"
         type="number"
         placeholder="min inclusion %"
         value={filters.minInclusionRate}
+        sx={{
+          '& input[type=number]': {
+            '-moz-appearance': 'textfield',
+            '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+              '-webkit-appearance': 'none',
+              margin: 0,
+            },
+          },
+        }}
         onChange={(e) =>
           handleFilterChange({
             minInclusionRate: e.target.value ? Number(e.target.value) : '',

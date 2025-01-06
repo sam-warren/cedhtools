@@ -1,25 +1,11 @@
-from .moxfield_models import (
-    MoxfieldCard,
-    MoxfieldDeck,
-    MoxfieldDeckCard,
-)
-
-from .topdeck_models import (
-    TopdeckTournament,
-    TopdeckPlayerStanding,
-)
-
-from .scryfall_models import (
-    ScryfallCard,
-)
-
-from .materialized_view_models import (
-    CEDHToolsMetrics,
-    CommanderDeckRelationships,
-    CardStatisticsByCommander,
-    CardPrintings,
-    CommanderMetaStatistics,
-)
+from .materialized_view_models import (CardPrintings,
+                                       CardStatisticsByCommander,
+                                       CEDHToolsMetrics,
+                                       CommanderDeckRelationships,
+                                       CommanderMetaStatistics)
+from .moxfield_models import MoxfieldCard, MoxfieldDeck, MoxfieldDeckCard
+from .scryfall_models import ScryfallCard
+from .topdeck_models import TopdeckPlayerStanding, TopdeckTournament
 
 __all__ = [
     'MoxfieldCard',

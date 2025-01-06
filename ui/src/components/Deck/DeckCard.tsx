@@ -1,9 +1,9 @@
+import { Box, Skeleton, Typography, useTheme } from '@mui/joy';
 import React from 'react';
-import { Box, Typography, useTheme, Skeleton } from '@mui/joy';
-import { ICardStat } from 'src/types';
 import { useInView } from 'react-intersection-observer';
-import { cardStyles, cardConstants } from 'src/styles';
 import { useImageCache } from 'src/hooks/useImageCache';
+import { cardStyles } from 'src/styles';
+import { ICardStat } from 'src/types';
 
 interface DeckCardProps {
   card: ICardStat;
