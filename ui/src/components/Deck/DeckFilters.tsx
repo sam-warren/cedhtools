@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import { Box, FormControl, Select, Option, Button, FormLabel } from '@mui/joy';
 import { filterStyles } from 'src/styles';
-import { useAppDispatch, useAppSelector } from 'src/hooks';
+import { useAppDispatch } from 'src/hooks';
 import { fetchDeckData } from 'src/store/slices/deckSlice';
-import { TIME_PERIOD_OPTIONS, TOURNAMENT_SIZE_OPTIONS } from 'src/constants/deckFilterOptions';
+import {
+  TIME_PERIOD_OPTIONS,
+  TOURNAMENT_SIZE_OPTIONS,
+} from 'src/constants/deckFilterOptions';
 
 interface FilterState {
   timePeriod: string;
   minSize: number;
 }
 
-const DeckFilters: React.FC = () => {
-  const { deck } = useAppSelector((state) => state.deck);
-
-  if (!deck) return null;
-
+const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
   const [formState, setFormState] = useState<FilterState>({
     timePeriod: 'all',
     minSize: 0,
@@ -23,16 +22,20 @@ const DeckFilters: React.FC = () => {
   const dispatch = useAppDispatch();
 
   const handleApplyFilters = () => {
+    console.log('Applying filters:', {
+      timePeriod: formState.timePeriod,
+      minSize: formState.minSize,
+    });
     dispatch(
       fetchDeckData({
-        deckId: deck.publicId,
+        deckId,
         timePeriod: formState.timePeriod,
         minSize: formState.minSize,
       }),
     )
       .unwrap()
       .then((result) => {
-        console.log('deck data:', result);
+        console.log('Filter applied, new deckStats:', result.deckStats);
       });
   };
 
@@ -66,7 +69,7 @@ const DeckFilters: React.FC = () => {
             onChange={(_, value) =>
               setFormState((prev) => ({
                 ...prev,
-                minSize: value ?? 0, // Provide fallback value
+                minSize: value ?? 0,
               }))
             }
             size="sm"

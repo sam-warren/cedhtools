@@ -2,7 +2,7 @@
 from django.urls import path
 
 from ..views import (CommanderDeckAnalysisView, CommanderStatisticsView,
-                     MetricsView, MoxfieldDeckView, TopdeckTournamentView)
+                     MetricsView, MoxfieldDeckView, TopdeckTournamentView, ScryfallImageProxyView)
 
 urlpatterns = [
     path('moxfield/deck/<str:deck_id>/',
@@ -20,4 +20,6 @@ urlpatterns = [
         name='commander-statistics'
     ),
     path('metrics/', MetricsView.as_view(), name='metrics'),
+    path('proxy/image/', ScryfallImageProxyView.as_view(), name='proxy-image'),
+
 ]

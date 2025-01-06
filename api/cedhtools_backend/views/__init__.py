@@ -18,6 +18,10 @@ from .commander_deck_analysis import (
     CommanderDeckAnalysisView,
 )
 
+from .image_cache import (
+    ScryfallImageProxyView,
+)
+
 
 __all__ = [
     'MoxfieldDeckView',
@@ -25,4 +29,5 @@ __all__ = [
     'CommanderStatisticsView',
     'CommanderDeckAnalysisView',
     'MetricsView',
+    'ScryfallImageProxyView',
 ]

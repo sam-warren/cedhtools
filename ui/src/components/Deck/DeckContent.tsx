@@ -4,8 +4,6 @@ import DeckGrid from './DeckGrid';
 import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
 
-// TODO: Fix viewport height of table view (it is getting set to the height of grid view which is much taller)
-
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
   const { deckStats } = useAppSelector((state) => state.deck);
@@ -47,45 +45,36 @@ export default function DeckContent() {
       <Divider sx={{ mb: 2 }} />
 
       {/* Container for both views */}
-      <Box sx={{ position: 'relative' }}>
-        {/* Grid View */}
+      <Box sx={{ minHeight: 0 }}>
+        {/* List View Layer */}
         <Box
           sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            opacity: viewMode === 'grid' ? 1 : 0,
-            visibility: viewMode === 'grid' ? 'visible' : 'hidden',
-            transition: 'opacity 0.3s ease-in-out',
-          }}
-        >
-          <DeckGrid />
-        </Box>
-
-        {/* List View */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
+            position: 'relative',
+            visibility: 'visible',
             opacity: viewMode === 'list' ? 1 : 0,
-            visibility: viewMode === 'list' ? 'visible' : 'hidden',
+            height: viewMode === 'list' ? 'auto' : 0,
+            overflow: viewMode === 'list' ? 'visible' : 'hidden',
             transition: 'opacity 0.3s ease-in-out',
+            pointerEvents: viewMode === 'list' ? 'auto' : 'none',
           }}
         >
           <DeckList />
         </Box>
 
-        {/* Spacer div to maintain container height */}
+        {/* Grid View Layer - Always in view for intersection observer */}
         <Box
           sx={{
-            height: viewMode === 'grid' ? '100%' : 'auto',
-            visibility: 'hidden',
+            position: 'relative',
+            visibility: 'visible',
+            opacity: viewMode === 'grid' ? 1 : 0,
+            height: viewMode === 'grid' ? 'auto' : 0,
+            overflow: viewMode === 'grid' ? 'visible' : 'hidden',
+            transition: 'opacity 0.3s ease-in-out',
+            pointerEvents: viewMode === 'grid' ? 'auto' : 'none',
+            marginTop: viewMode === 'grid' ? 0 : '-100%',
           }}
         >
-          {viewMode === 'grid' ? <DeckGrid /> : <DeckList />}
+          <DeckGrid />
         </Box>
       </Box>
     </Box>

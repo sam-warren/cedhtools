@@ -5,14 +5,21 @@ import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
 
-export default function DeckBanner() {
-  const { deck, isLoading } = useAppSelector((state) => state.deck);
-  if (!deck) {
-    return null;
-  }
+function DeckBannerSkeleton() {
+  return (
+    <Box sx={bannerStyles.container}>
+      <Box sx={bannerStyles.titleContainer}>
+        <Skeleton variant="text" width="200px" />
+        <Skeleton variant="text" width="150px" level="body-sm" />
+      </Box>
+    </Box>
+  );
+}
+function DeckBanner() {
+  const deck = useAppSelector((state) => state.deck.deck);
 
   const renderAuthors = () => {
-    if (!deck.authors) return null;
+    if (!deck?.authors) return null;
     return (
       <>
         created by{' '}
@@ -33,34 +40,32 @@ export default function DeckBanner() {
     );
   };
 
+  if (!deck) {
+    return null;
+  }
+
   return (
     <Box sx={bannerStyles.container}>
-      {isLoading ? (
-        <Box sx={bannerStyles.titleContainer}>
-          <Skeleton variant="text" width="200px" />
-          <Skeleton variant="text" width="150px" level="body-sm" />
-        </Box>
-      ) : (
-        <>
-          <Box sx={bannerStyles.titleContainer}>
-            <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-              Deck:{' '}
-              <Link
-                href={deck.publicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={bannerStyles.authorLink}
-              >
-                {deck.name}
-              </Link>
-            </Typography>
-            <Typography level="body-sm" color="neutral">
-              {renderAuthors()}
-            </Typography>
-          </Box>
-          <DeckFilters />
-        </>
-      )}
+      <Box sx={bannerStyles.titleContainer}>
+        <Typography level="title-lg" sx={{ flexShrink: 0 }}>
+          Deck:{' '}
+          <Link
+            href={deck.publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={bannerStyles.authorLink}
+          >
+            {deck.name}
+          </Link>
+        </Typography>
+        <Typography level="body-sm" color="neutral">
+          {renderAuthors()}
+        </Typography>
+      </Box>
+      <DeckFilters deckId={deck.publicId} />
     </Box>
   );
 }
+
+DeckBanner.Skeleton = DeckBannerSkeleton;
+export default DeckBanner;

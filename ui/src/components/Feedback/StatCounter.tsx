@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/joy';
+import { Box, Skeleton, Typography } from '@mui/joy';
 import { keyframes } from '@emotion/react';
 import { useCountUp } from 'react-countup';
 import { useRef } from 'react';
@@ -15,12 +15,34 @@ interface StatCounterProps {
   type?: 'percentage' | 'integer';
   variant?: 'winRate' | 'drawRate' | 'sampleSize' | 'default';
   duration?: number;
+  isLoading?: boolean;
   formatOptions?: {
     decimals?: number;
     separator?: string;
     prefix?: string;
     suffix?: string;
   };
+}
+
+function StatCounterSkeleton() {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        p: 1.5,
+        borderRadius: 'md',
+        bgcolor: 'background.level1',
+      }}
+    >
+      <Skeleton variant="circular" width={20} height={20} />
+      <Box>
+        <Skeleton variant="text" width={80} height={16} sx={{ mb: 0.5 }} />
+        <Skeleton variant="text" width={60} height={24} />
+      </Box>
+    </Box>
+  );
 }
 
 export default function StatCounter({
@@ -63,28 +85,30 @@ export default function StatCounter({
         animation: `${fadeIn} 0.5s ease-in`,
       }}
     >
-      <Box sx={{ 
-        display: 'flex',
-        alignItems: 'center',
-        '& > svg': {
-          fontSize: '1.25rem'
-        }
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          '& > svg': {
+            fontSize: '1.25rem',
+          },
+        }}
+      >
         {icon}
       </Box>
       <Box>
-        <Typography 
-          level="body-sm" 
-          sx={{ 
-            mb: -0.5
+        <Typography
+          level="body-sm"
+          sx={{
+            mb: -0.5,
           }}
         >
           {label}
         </Typography>
-        <Typography 
-          level="h3" 
-          sx={{ 
-            fontSize: '1.5rem'
+        <Typography
+          level="h3"
+          sx={{
+            fontSize: '1.5rem',
           }}
         >
           <span ref={countUpRef} />
@@ -93,3 +117,5 @@ export default function StatCounter({
     </Box>
   );
 }
+
+StatCounter.Skeleton = StatCounterSkeleton;

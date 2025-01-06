@@ -18,6 +18,7 @@ const MAX_CACHE_AGE = 30 * 24 * 60 * 60 * 1000;
 const PRUNE_THRESHOLD = 100;
 const PRUNE_BATCH = 50;
 const PRUNE_COOLDOWN = 5000;
+const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
 
 let db: IDBPDatabase<ImageCacheSchema>;
 let entryCount = 0;
@@ -79,6 +80,7 @@ async function pruneIfNeeded() {
   }
 }
 
+// imageCacheWorker.ts
 async function cacheImage(
   scryfall_id: string,
   imageUrl: string,
@@ -86,23 +88,29 @@ async function cacheImage(
   try {
     const existingCache = await db.get('images', scryfall_id);
     if (existingCache && Date.now() - existingCache.timestamp < MAX_CACHE_AGE) {
-      // When returning cached data, create a Response with cache headers
-      return new Response(existingCache.dataUrl, {
-        headers: {
-          'Cache-Control': 'public, max-age=2592000', // 30 days
-          Expires: new Date(Date.now() + MAX_CACHE_AGE).toUTCString(),
-        },
-      }).text();
+      // Return the cached dataUrl directly without wrapping in Response
+      return existingCache.dataUrl;
     }
 
-    const response = await fetch(imageUrl, {
+    const proxyUrl = `${BASE_URL}/api/proxy/image/?url=${encodeURIComponent(imageUrl)}`;
+
+    const response = await fetch(proxyUrl, {
+      credentials: 'same-origin',
       headers: {
-        'User-Agent': 'cedhtools',
+        Accept: 'image/*',
       },
-      credentials: 'omit',
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const blob = await response.blob();
+
+    if (!blob.type.startsWith('image/')) {
+      throw new Error('Invalid response type: not an image');
+    }
+
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
@@ -110,7 +118,6 @@ async function cacheImage(
       reader.readAsDataURL(blob);
     });
 
-    // Store in IndexedDB
     await db.put('images', {
       scryfall_id,
       dataUrl,
@@ -120,13 +127,8 @@ async function cacheImage(
     entryCount++;
     await pruneIfNeeded();
 
-    // Return with cache headers
-    return new Response(dataUrl, {
-      headers: {
-        'Cache-Control': 'public, max-age=2592000', // 30 days
-        Expires: new Date(Date.now() + MAX_CACHE_AGE).toUTCString(),
-      },
-    }).text();
+    // Return the dataUrl directly
+    return dataUrl;
   } catch (error) {
     console.error('Worker cache error:', error);
     throw error;

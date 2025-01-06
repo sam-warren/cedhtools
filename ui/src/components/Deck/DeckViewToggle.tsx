@@ -20,7 +20,7 @@ export default function DeckViewToggle() {
       onChange={(_, value) => value && handleViewChange(value)}
       size="sm"
       color="neutral"
-      variant="soft"
+      variant="outlined"
     >
       <IconButton value="grid">
         <GridViewRoundedIcon />

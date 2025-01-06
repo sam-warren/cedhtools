@@ -1,5 +1,5 @@
 // useImageCache.ts
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ImageCacheService from 'src/services/cache/imageCacheService';
 
 export function useImageCache(
@@ -7,24 +7,73 @@ export function useImageCache(
   imageUrl: string,
   inView: boolean,
 ) {
-  const [cachedSrc, setCachedSrc] = useState<string>(imageUrl); // Start with CDN URL
+  const [cachedSrc, setCachedSrc] = useState<string>(imageUrl);
+  const [error, setError] = useState<Error | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!inView) return;
 
-    // Try to cache in the background
-    ImageCacheService.cacheImage(scryfall_id, imageUrl)
-      .then((cachedUrl) => {
-        setCachedSrc(cachedUrl);
-      })
-      .catch(() => {
-        // On error, keep using the CDN URL
-        console.warn('Failed to cache image, using CDN URL');
-      });
+    let currentSrc = imageUrl;
+    const img = new Image();
+
+    const loadImage = async () => {
+      try {
+        // Start loading the CDN image immediately
+        img.src = imageUrl;
+
+        // Try to get cached version in parallel
+        const cachedUrl = await ImageCacheService.cacheImage(
+          scryfall_id,
+          imageUrl,
+        );
+
+        // Only update if the component is still mounted and we haven't changed images
+        if (isMountedRef.current && currentSrc === imageUrl) {
+          // Verify the cached URL is valid
+          const cachedImg = new Image();
+          cachedImg.onload = () => {
+            if (isMountedRef.current && currentSrc === imageUrl) {
+              setCachedSrc(cachedUrl);
+              setError(null);
+            }
+          };
+          cachedImg.onerror = () => {
+            if (isMountedRef.current && currentSrc === imageUrl) {
+              console.warn('Cached image failed to load, using CDN URL');
+              setCachedSrc(imageUrl);
+            }
+          };
+          cachedImg.src = cachedUrl;
+        }
+      } catch (err) {
+        console.warn('Image caching failed:', err);
+        if (isMountedRef.current && currentSrc === imageUrl) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+          // Keep using the CDN URL
+          setCachedSrc(imageUrl);
+        }
+      }
+    };
+
+    void loadImage();
+
+    return () => {
+      currentSrc = ''; // Mark that we've unmounted/changed images
+      img.src = ''; // Cancel any pending loads
+    };
   }, [scryfall_id, imageUrl, inView]);
 
   return {
     src: cachedSrc,
-    isLoading: false, // We're never in a loading state now since we show CDN image immediately
+    error,
+    isLoading: false,
   };
 }

@@ -1,16 +1,17 @@
-import { Box, Typography } from '@mui/joy';
+import { Box, Skeleton, Typography } from '@mui/joy';
 import { useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useAppSelector } from 'src/hooks';
 import { useManaSymbols } from 'src/hooks/useManaSymbols';
 import { cardTypeMap } from 'src/styles';
 import { layoutStyles } from 'src/styles/layouts/list';
-import { ICardStat } from 'src/types';
+import { ICardStat, ICommanderStatisticsResponse } from 'src/types';
 import DeckTable from './DeckTable';
 
+// TODO: Fix lists not showing up
 interface LazyDeckTableProps {
   cards: ICardStat[];
-  deckStats: any; // Type this based on your deckStats structure
+  deckStats: ICommanderStatisticsResponse;
   label: string;
 }
 
@@ -35,29 +36,68 @@ const LazyDeckTable: React.FC<LazyDeckTableProps> = ({
   );
 };
 
-export default function DeckList() {
+function DeckListSkeleton() {
+  return (
+    <Box sx={layoutStyles.container}>
+      <Box sx={layoutStyles.mainSection}>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Box
+            key={index}
+            sx={{
+              ...layoutStyles.sectionContainer,
+              mb: 2,
+            }}
+          >
+            <Box sx={layoutStyles.tableContainer}>
+              <Typography level="h3" sx={{ mb: 2 }}>
+                <Skeleton width={150} />
+              </Typography>
+              {Array.from({ length: 3 }).map((_, cardIndex) => (
+                <Box
+                  key={cardIndex}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    mb: 1,
+                  }}
+                >
+                  <Skeleton width={30} />
+                  <Skeleton width={200} />
+                  <Skeleton width={100} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function DeckList() {
   const { deckStats } = useAppSelector((state) => state.deck);
+  console.log('DeckList rendering with deckStats:', deckStats?.card_statistics);
+
   const { isLoading, isError } = useManaSymbols();
   const initialized = useRef(false);
 
   // Memoize the filtered sections
   const sections = useMemo(() => {
     if (!deckStats) return [];
-
+    console.log(
+      'Recalculating sections with sample size:',
+      deckStats.meta_statistics.sample_size,
+    );
     return Object.entries(deckStats.card_statistics.main)
       .filter(([, cards]) => cards.length > 0)
-      .sort(([a], [b]) => parseInt(a) - parseInt(b)); // Sort by type code
+      .sort(([a], [b]) => parseInt(a) - parseInt(b));
   }, [deckStats]);
 
   if (!deckStats) return null;
   if (isLoading) return <Typography>Loading mana symbols...</Typography>;
   if (isError)
     return <Typography color="danger">Error loading mana symbols</Typography>;
-
-  // Set initialized on first render
-  if (!initialized.current) {
-    initialized.current = true;
-  }
 
   return (
     <Box
@@ -110,3 +150,7 @@ export default function DeckList() {
     </Box>
   );
 }
+
+DeckList.Skeleton = DeckListSkeleton;
+
+export default DeckList;

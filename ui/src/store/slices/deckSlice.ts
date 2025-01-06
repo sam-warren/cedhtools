@@ -6,16 +6,64 @@ import { IMoxfieldDeck, ICommanderStatisticsResponse } from '../../types';
 interface DeckState {
   deck: IMoxfieldDeck | null;
   deckStats: ICommanderStatisticsResponse | null;
-  isLoading: boolean;
+  isDeckLoading: boolean;
+  isStatsLoading: boolean;
   error: string | null;
 }
+
 
 const initialState: DeckState = {
   deck: null,
   deckStats: null,
-  isLoading: false,
+  isDeckLoading: false,
+  isStatsLoading: false,
   error: null,
 };
+
+export const fetchDeck = createAsyncThunk(
+  'deck/fetchDeck',
+  async (deckId: string, { rejectWithValue }) => {
+    try {
+      const response = await getDecklistById(deckId);
+      if (!response.success) {
+        throw new Error('Failed to fetch deck details');
+      }
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : 'An unexpected error occurred',
+      );
+    }
+  }
+);
+
+export const fetchDeckStats = createAsyncThunk(
+  'deck/fetchDeckStats',
+  async (
+    {
+      deckId,
+      minSize = 0,
+      timePeriod = 'all',
+    }: {
+      deckId: string;
+      minSize?: number;
+      timePeriod?: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getDeckStats(deckId, timePeriod, minSize);
+      if (!response.success) {
+        throw new Error('Failed to fetch deck statistics');
+      }
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : 'An unexpected error occurred',
+      );
+    }
+  }
+);
 
 // Async thunk for fetching both deck and stats
 export const fetchDeckData = createAsyncThunk(
@@ -30,34 +78,16 @@ export const fetchDeckData = createAsyncThunk(
       minSize?: number;
       timePeriod?: string;
     },
-    { rejectWithValue },
+    { dispatch }
   ) => {
-    try {
-      const deckResponse = await getDecklistById(deckId);
-      if (!deckResponse.success) {
-        throw new Error('Failed to fetch deck details');
-      }
-
-      const statsResponse = await getDeckStats(
-        deckResponse.data.publicId,
-        timePeriod,
-        minSize,
-      );
-      if (!statsResponse.success) {
-        throw new Error('Failed to fetch deck statistics');
-      }
-
-      return {
-        deck: deckResponse.data,
-        deckStats: statsResponse.data,
-      };
-    } catch (err) {
-      return rejectWithValue(
-        err instanceof Error ? err.message : 'An unexpected error occurred',
-      );
-    }
-  },
+    const deck = await dispatch(fetchDeck(deckId)).unwrap();
+    const stats = await dispatch(
+      fetchDeckStats({ deckId: deck.publicId, minSize, timePeriod })
+    ).unwrap();
+    return { deck, deckStats: stats };
+  }
 );
+
 
 const deckSlice = createSlice({
   name: 'deck',
@@ -74,17 +104,36 @@ const deckSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDeckData.pending, (state) => {
-        state.isLoading = true;
+      // Deck fetch cases
+      .addCase(fetchDeck.pending, (state) => {
+        state.isDeckLoading = true;
         state.error = null;
       })
-      .addCase(fetchDeckData.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.deck = action.payload.deck;
-        state.deckStats = action.payload.deckStats;
+      .addCase(fetchDeck.fulfilled, (state, action) => {
+        state.isDeckLoading = false;
+        state.deck = action.payload;
       })
+      .addCase(fetchDeck.rejected, (state, action) => {
+        state.isDeckLoading = false;
+        state.error = action.payload as string;
+      })
+      // Stats fetch cases
+      .addCase(fetchDeckStats.pending, (state) => {
+        state.isStatsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchDeckStats.fulfilled, (state, action) => {
+        state.isStatsLoading = false;
+        state.deckStats = action.payload;
+      })
+      .addCase(fetchDeckStats.rejected, (state, action) => {
+        state.isStatsLoading = false;
+        state.error = action.payload as string;
+      })
+      // Combined fetch cases
       .addCase(fetchDeckData.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isDeckLoading = false;
+        state.isStatsLoading = false;
         state.error = action.payload as string;
       });
   },

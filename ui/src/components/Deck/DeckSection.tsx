@@ -12,22 +12,15 @@ interface DeckSectionProps {
 
 const DeckSection: React.FC<DeckSectionProps> = React.memo(
   ({ typeCode, cards }) => {
-    const { ref, inView } = useInView({
-      triggerOnce: true,
-      rootMargin: '200px 0px',
-    });
-
     const displayName = cardTypeMap[typeCode] || `Type ${typeCode}`;
 
     return (
-      <Box ref={ref} sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2 }}>
         <Typography level="h3">{displayName}</Typography>
         <Box sx={gridLayouts.cardGrid}>
-          {/* Only render cards when section is in view */}
-          {inView &&
-            cards.map((card) => (
-              <DeckCard key={card.unique_card_id} card={card} />
-            ))}
+          {cards.map((card) => (
+            <DeckCard key={card.unique_card_id} card={card} />
+          ))}
         </Box>
       </Box>
     );

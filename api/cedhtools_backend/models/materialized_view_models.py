@@ -103,3 +103,41 @@ class CardPrintings(models.Model):
         from django.db import connection
         with connection.cursor() as cursor:
             cursor.execute('REFRESH MATERIALIZED VIEW card_printings;')
+
+
+class CommanderMetaStatisticsFiltered(models.Model):
+    commander_list = ArrayField(models.CharField(max_length=255))
+    period_name = models.CharField(max_length=50)
+    min_tournament_size = models.IntegerField()
+    total_decks = models.IntegerField()
+    avg_win_rate = models.FloatField()
+    avg_draw_rate = models.FloatField()
+    avg_loss_rate = models.FloatField()
+    win_rate_stddev = models.FloatField()
+    total_wins = models.IntegerField()
+    total_draws = models.IntegerField()
+    total_losses = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'commander_meta_statistics_filtered'
+
+
+class CardStatisticsByCommanderFiltered(models.Model):
+    commander_list = ArrayField(models.CharField(max_length=255))
+    unique_card_id = models.CharField(max_length=255)
+    period_name = models.CharField(max_length=50)
+    min_players = models.IntegerField()
+    deck_count = models.IntegerField()
+    total_wins = models.IntegerField()
+    total_draws = models.IntegerField()
+    total_losses = models.IntegerField()
+    win_rate_stddev = models.FloatField()
+    avg_win_rate = models.FloatField()
+    avg_draw_rate = models.FloatField()
+    avg_loss_rate = models.FloatField()
+    most_common_printing = models.CharField(max_length=255)
+
+    class Meta:
+        managed = False
+        db_table = 'card_statistics_by_commander_filtered'
