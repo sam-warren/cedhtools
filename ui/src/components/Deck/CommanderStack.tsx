@@ -1,8 +1,8 @@
-import React from 'react';
 import { Box } from '@mui/joy';
+import React from 'react';
 import CommanderCard from 'src/components/Deck/CommanderCard';
-import { ICommanderDetail } from 'src/types';
 import { commanderStackStyles } from 'src/styles';
+import { ICommanderDetail } from 'src/types';
 
 interface CommanderStackProps {
   commanders: ICommanderDetail[];
@@ -13,7 +13,10 @@ const CommanderStack: React.FC<CommanderStackProps> = ({ commanders }) => {
     return (
       <>
         {commanders.map((cmdr) => (
-          <Box key={cmdr.unique_card_id} sx={commanderStackStyles.singleCard}>
+          <Box
+            key={cmdr.unique_card_id}
+            sx={commanderStackStyles.singleCardContainer}
+          >
             <CommanderCard card={cmdr} />
           </Box>
         ))}

@@ -1,75 +1,32 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { Box } from '@mui/joy';
-import { ICardStat } from 'src/types';
-import DeckSection from './DeckSection';
+import { Box, Skeleton } from '@mui/joy';
 import _ from 'lodash';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { useAppSelector } from 'src/hooks';
+import { getSortedSections, organizeRows } from 'src/utilities/gridUtils';
+import DeckSection from './DeckSection';
 
-interface Section {
-  typeCode: string;
-  cards: ICardStat[];
-}
+const CARD_WIDTH = 200;
+const CARD_GAP = 16;
 
 export default function DeckGrid() {
   const { deckStats } = useAppSelector((state) => state.deck);
-
-  if (!deckStats) return null;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [cardsPerRow, setCardsPerRow] = useState<number>(5); // Default to 5
+  const [cardsPerRow, setCardsPerRow] = useState(5);
+  const { ref: gridRef, inView } = useInView({
+    triggerOnce: true,
+    rootMargin: '200px 0px',
+  });
 
-  const CARD_WIDTH = 200;
-  const CARD_GAP = 16;
-
-  // Memoize the sorted sections, filtering out empty sections
+  // Memoize sections with a more specific dependency
   const sortedSections = useMemo(() => {
-    const mainSections = Object.entries(deckStats.card_statistics.main)
-      .filter(([, cards]) => cards.length > 0) // Filter out sections with no cards
-      .sort(([aCode], [bCode]) => parseInt(aCode) - parseInt(bCode))
-      .map(([typeCode, cards]) => ({ typeCode, cards }));
+    if (!deckStats?.card_statistics) return [];
+    return getSortedSections(deckStats.card_statistics);
+  }, [deckStats?.card_statistics]);
 
-    const otherCards =
-      deckStats.card_statistics.other.length > 0
-        ? [
-            {
-              typeCode: 'other',
-              cards: deckStats.card_statistics.other
-                .filter((card) => card.legality === 'legal')
-                .sort((a, b) => b.decks_with_card - a.decks_with_card),
-            },
-          ]
-        : [];
-
-    return [...mainSections, ...otherCards];
-  }, [deckStats.card_statistics]);
-
-  // Memoize the row organization based on cardsPerRow
+  // Memoize row organization
   const rows = useMemo(() => {
-    const isSmallSection = (cards: ICardStat[]) => cards.length <= cardsPerRow;
-
-    return sortedSections.reduce<Section[][]>((rows, section) => {
-      const lastRow = rows[rows.length - 1];
-
-      if (
-        !lastRow ||
-        !isSmallSection(section.cards) ||
-        !isSmallSection(lastRow[0].cards)
-      ) {
-        rows.push([section]);
-      } else {
-        const totalCardsInRow = lastRow.reduce(
-          (sum, s) => sum + s.cards.length,
-          0,
-        );
-
-        if (totalCardsInRow + section.cards.length <= cardsPerRow) {
-          lastRow.push(section);
-        } else {
-          rows.push([section]);
-        }
-      }
-
-      return rows;
-    }, []);
+    return organizeRows(sortedSections, cardsPerRow);
   }, [sortedSections, cardsPerRow]);
 
   // Debounced resize handler
@@ -77,16 +34,20 @@ export default function DeckGrid() {
     if (!containerRef.current) return;
 
     const updateCardsPerRow = _.debounce(() => {
-      const containerWidth = containerRef.current?.clientWidth ?? 0;
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.clientWidth;
       const newCardsPerRow = Math.max(
         1,
         Math.floor(containerWidth / (CARD_WIDTH + CARD_GAP)),
       );
       setCardsPerRow(newCardsPerRow);
-    }, 0);
+    }, 100);
 
     const resizeObserver = new ResizeObserver(updateCardsPerRow);
     resizeObserver.observe(containerRef.current);
+
+    // Initial calculation
+    updateCardsPerRow();
 
     return () => {
       resizeObserver.disconnect();
@@ -94,10 +55,7 @@ export default function DeckGrid() {
     };
   }, []);
 
-  // If there are no sections with cards, return null
-  if (sortedSections.length === 0) {
-    return null;
-  }
+  if (!deckStats || sortedSections.length === 0) return null;
 
   return (
     <Box
@@ -108,6 +66,7 @@ export default function DeckGrid() {
       }}
     >
       <Box
+        ref={gridRef}
         sx={{
           display: 'flex',
           flexDirection: 'column',
@@ -121,15 +80,43 @@ export default function DeckGrid() {
             sx={{
               display: 'flex',
               gap: 3,
-              '& > div':
-                row.length === 1
-                  ? { flex: '1 1 100%' }
-                  : { width: 'min-content' },
+              minHeight: '300px', // Maintain height during loading
+              '& > div': row.length === 1 
+                ? { flex: '1 1 100%' } 
+                : { width: 'min-content' },
             }}
           >
             {row.map(({ typeCode, cards }) => (
-              <Box key={typeCode}>
-                <DeckSection typeCode={typeCode} cards={cards} />
+              <Box 
+                key={typeCode}
+                sx={{
+                  flex: row.length === 1 ? '1 1 100%' : 'none',
+                  width: row.length > 1 ? `${CARD_WIDTH}px` : 'auto',
+                }}
+              >
+                {inView ? (
+                  <DeckSection typeCode={typeCode} cards={cards} />
+                ) : (
+                  // Placeholder skeleton that maintains space
+                  <Box>
+                    <Skeleton variant="text" width="200px" height="32px" sx={{ mb: 2 }} />
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: 2 
+                    }}>
+                      {Array(Math.min(cards.length, cardsPerRow)).fill(0).map((_, i) => (
+                        <Skeleton 
+                          key={i} 
+                          variant="rectangular" 
+                          width="100%" 
+                          height="280px"
+                          sx={{ borderRadius: '8px' }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
               </Box>
             ))}
           </Box>

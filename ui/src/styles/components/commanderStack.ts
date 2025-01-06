@@ -11,10 +11,11 @@ export const commanderStackStyles = {
     zIndex: 1,
     transform: `translateY(${index === 0 ? 0 : '2%'})`,
     '&:hover': {
-      zIndex: 3, // Higher than both default states
+      zIndex: 3,
     },
   }),
-  singleCard: {
+  singleCardContainer: {
+    position: 'relative',
     mb: 2,
   },
 } as const;

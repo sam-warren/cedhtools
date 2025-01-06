@@ -1,11 +1,9 @@
-// src/components/Deck/CommanderDetails.tsx
 import BalanceIcon from '@mui/icons-material/Balance';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import { Box } from '@mui/joy';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
-import CommanderCard from './CommanderCard';
 import CommanderStack from './CommanderStack';
 
 export default function CommanderDetails() {
@@ -21,22 +19,12 @@ export default function CommanderDetails() {
 
   return (
     <>
-      <Box>
-        {deckStats.commanders.length === 2 ? (
-          <CommanderStack commanders={deckStats.commanders} />
-        ) : (
-          deckStats.commanders.map((commander) => (
-            <Box key={commander.unique_card_id}>
-              <CommanderCard card={commander} />
-            </Box>
-          ))
-        )}
-      </Box>
+      <CommanderStack commanders={deckStats.commanders} />
       <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 1, // Reduced from 2
+          gap: 1,
           width: '100%',
         }}
       >

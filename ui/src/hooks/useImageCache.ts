@@ -1,42 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
-import imageCacheService from "src/services/cache/imageCacheService";
+// useImageCache.ts
+import { useEffect, useState } from 'react';
+import ImageCacheService from 'src/services/cache/imageCacheService';
 
 export function useImageCache(
   scryfall_id: string,
   imageUrl: string,
-  priority: boolean = false,
+  inView: boolean,
 ) {
-  const [cachedSrc, setCachedSrc] = useState<string>(imageUrl);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadCachedImage = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const cachedImage = await imageCacheService.cacheImage(
-        scryfall_id,
-        imageUrl,
-      );
-      setCachedSrc(cachedImage);
-    } catch (error) {
-      console.error('Image caching failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [scryfall_id, imageUrl]);
+  const [cachedSrc, setCachedSrc] = useState<string>(imageUrl); // Start with CDN URL
 
   useEffect(() => {
-    if (priority) {
-      loadCachedImage();
-    } else {
-      // Delay non-priority images to let priority images load first
-      const timeoutId = setTimeout(loadCachedImage, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [loadCachedImage, priority]);
+    if (!inView) return;
+
+    // Try to cache in the background
+    ImageCacheService.cacheImage(scryfall_id, imageUrl)
+      .then((cachedUrl) => {
+        setCachedSrc(cachedUrl);
+      })
+      .catch(() => {
+        // On error, keep using the CDN URL
+        console.warn('Failed to cache image, using CDN URL');
+      });
+  }, [scryfall_id, imageUrl, inView]);
 
   return {
     src: cachedSrc,
-    isLoading,
-    reload: loadCachedImage,
+    isLoading: false, // We're never in a loading state now since we show CDN image immediately
   };
 }
