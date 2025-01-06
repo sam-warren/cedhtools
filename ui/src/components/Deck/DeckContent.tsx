@@ -4,6 +4,8 @@ import DeckGrid from './DeckGrid';
 import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
 
+// TODO: Fix viewport height of table view (it is getting set to the height of grid view which is much taller)
+
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
   const { deckStats } = useAppSelector((state) => state.deck);

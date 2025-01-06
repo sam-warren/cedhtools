@@ -4,6 +4,8 @@ import { cardConstants } from '../constants/cards';
 
 type CardVariant = 'deck' | 'commander';
 
+// TODO: Fix cursor pointer on image hover
+
 export const cardStyles = {
   cardContainer: (variant: CardVariant = 'deck') => ({
     display: 'flex',
