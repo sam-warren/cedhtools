@@ -4,7 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { useImageCache } from 'src/hooks/useImageCache';
 import { cardStyles } from 'src/styles';
 import { ICardStat } from 'src/types';
-
+// TODO: Fix image caching / flickering
 interface DeckCardProps {
   card: ICardStat;
 }
@@ -21,6 +21,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
   const { src: cachedSrc, isLoading } = useImageCache(
     card.scryfall_id,
     card.image_uris.normal,
+    inView,
   );
 
   // Calculate performance metrics

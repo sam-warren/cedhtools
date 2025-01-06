@@ -1,14 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import ImageCacheService from 'src/services/cache/imageCacheService';
+import { useCallback, useEffect, useState } from "react";
+import imageCacheService from "src/services/cache/imageCacheService";
 
-export function useImageCache(scryfall_id: string, imageUrl: string) {
+export function useImageCache(
+  scryfall_id: string,
+  imageUrl: string,
+  priority: boolean = false,
+) {
   const [cachedSrc, setCachedSrc] = useState<string>(imageUrl);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadCachedImage = useCallback(async () => {
     try {
       setIsLoading(true);
-      const cachedImage = await ImageCacheService.cacheImage(
+      const cachedImage = await imageCacheService.cacheImage(
         scryfall_id,
         imageUrl,
       );
@@ -21,8 +25,14 @@ export function useImageCache(scryfall_id: string, imageUrl: string) {
   }, [scryfall_id, imageUrl]);
 
   useEffect(() => {
-    loadCachedImage();
-  }, [loadCachedImage]);
+    if (priority) {
+      loadCachedImage();
+    } else {
+      // Delay non-priority images to let priority images load first
+      const timeoutId = setTimeout(loadCachedImage, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loadCachedImage, priority]);
 
   return {
     src: cachedSrc,

@@ -5,26 +5,26 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import {
-    Box,
-    Button,
-    Chip,
-    FormControl,
-    FormLabel,
-    IconButton,
-    Input,
-    Option,
-    Select,
-    Sheet,
-    Table,
-    Typography,
+  Box,
+  Button,
+  Chip,
+  FormControl,
+  FormLabel,
+  IconButton,
+  Input,
+  Option,
+  Select,
+  Sheet,
+  Table,
+  Typography,
 } from '@mui/joy';
 import debounce from 'lodash/debounce';
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useManaSymbols } from 'src/hooks/useManaSymbols';
@@ -496,7 +496,7 @@ const DeckTable = ({
           gap: 2,
         }}
       >
-        <Typography level="title-lg">{label}</Typography>
+        <Typography level="h3">{label}</Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', ml: 'auto' }}>
           {showFilters && renderFilters()}
           <IconButton
