@@ -18,6 +18,8 @@ class ImageCacheService {
   private static MAX_CACHE_AGE = 30 * 24 * 60 * 60 * 1000;
   private static BATCH_SIZE = 3; // Number of concurrent image loads
   private static BATCH_DELAY = 100; // Delay between batches in ms
+  private static PRUNE_THRESHOLD = 100; // Only prune when we're this many items over limit
+  private static PRUNE_BATCH = 50; // Remove this many items when pruning
 
   private loadingQueue: Array<{
     scryfall_id: string;
@@ -26,6 +28,9 @@ class ImageCacheService {
     reject: (reason?: any) => void;
   }> = [];
   private isProcessingQueue = false;
+  private entryCount = 0;
+  private lastPruneTime = 0;
+  private static PRUNE_COOLDOWN = 5000; // Minimum ms between prunes
 
   constructor() {
     this.dbPromise = openDB<ImageCacheSchema>(ImageCacheService.CACHE_NAME, 1, {
@@ -35,6 +40,59 @@ class ImageCacheService {
         });
       },
     });
+
+    // Initialize entry count
+    this.dbPromise.then(async (db) => {
+      this.entryCount = await db.count('images');
+    });
+  }
+
+  private async pruneIfNeeded(db: IDBPDatabase<ImageCacheSchema>) {
+    const now = Date.now();
+
+    // Check if we need to prune and if enough time has passed since last prune
+    if (
+      this.entryCount <
+        ImageCacheService.MAX_CACHE_SIZE + ImageCacheService.PRUNE_THRESHOLD ||
+      now - this.lastPruneTime < ImageCacheService.PRUNE_COOLDOWN
+    ) {
+      return;
+    }
+
+    try {
+      // Get only the keys first - more efficient than getting all data
+      const keys = await db.getAllKeys('images');
+      if (
+        keys.length >=
+        ImageCacheService.MAX_CACHE_SIZE + ImageCacheService.PRUNE_THRESHOLD
+      ) {
+        // Get only the timestamps we need
+        const entries = await Promise.all(
+          keys.map(async (key) => {
+            const entry = await db.get('images', key);
+            if (!entry) {
+              // If entry somehow doesn't exist, use oldest possible timestamp
+              return { key, timestamp: 0 };
+            }
+            return { key, timestamp: entry.timestamp };
+          }),
+        );
+
+        // Sort by timestamp and get oldest entries
+        const sortedEntries = entries.sort((a, b) => a.timestamp - b.timestamp);
+        const keysToRemove = sortedEntries
+          .slice(0, ImageCacheService.PRUNE_BATCH)
+          .map((entry) => entry.key);
+
+        // Batch delete oldest entries
+        await Promise.all(keysToRemove.map((key) => db.delete('images', key)));
+
+        this.entryCount -= keysToRemove.length;
+        this.lastPruneTime = now;
+      }
+    } catch (error) {
+      console.error('Pruning failed:', error);
+    }
   }
 
   async cacheImage(scryfall_id: string, imageUrl: string): Promise<string> {
@@ -120,32 +178,19 @@ class ImageCacheService {
       const dataUrl = await this.blobToDataURL(blob);
 
       const db = await this.dbPromise;
-      await this.pruneCache(db);
       await db.put('images', {
         scryfall_id,
         dataUrl,
         timestamp: Date.now(),
       });
 
+      this.entryCount++;
+      await this.pruneIfNeeded(db);
+
       return dataUrl;
     } catch (error) {
       console.error('Image fetch/cache failed:', error);
       return imageUrl; // Fallback to original URL
-    }
-  }
-
-  private async pruneCache(db: IDBPDatabase<ImageCacheSchema>) {
-    const allImages = await db.getAll('images');
-    if (allImages.length >= ImageCacheService.MAX_CACHE_SIZE) {
-      const sortedImages = allImages.sort((a, b) => a.timestamp - b.timestamp);
-      const entriesToRemove = sortedImages.slice(
-        0,
-        allImages.length - ImageCacheService.MAX_CACHE_SIZE + 1,
-      );
-
-      for (const entry of entriesToRemove) {
-        await db.delete('images', entry.scryfall_id);
-      }
     }
   }
 
@@ -161,6 +206,7 @@ class ImageCacheService {
   async clearCache() {
     const db = await this.dbPromise;
     await db.clear('images');
+    this.entryCount = 0;
   }
 }
 
