@@ -44,10 +44,13 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       );
     }
 
-    if (filters.minWinRate !== '') {
-      const threshold = filters.minWinRate / 100;
+    if (filters.minWinRate !== '' && !isNaN(filters.minWinRate)) {
+      const threshold = filters.minWinRate; // Use directly as percentage
       results = results.filter(
-        (card) => (card.performance.card_win_rate - card.performance.deck_win_rate) * 100 >= threshold,
+        (card) =>
+          (card.performance.card_win_rate - card.performance.deck_win_rate) *
+            100 >=
+          threshold,
       );
     }
 
