@@ -20,10 +20,10 @@ type ManaSymbol = {
 
 const ManaSymbolsDisplay = ({ symbols }: { symbols: ManaSymbol[] | null }) => {
   if (!symbols) return null;
-  
+
   return (
     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-      {symbols.map(({ key, symbol, svgUrl }) => (
+      {symbols.map(({ key, symbol, svgUrl }) =>
         svgUrl ? (
           <img
             key={key}
@@ -37,8 +37,8 @@ const ManaSymbolsDisplay = ({ symbols }: { symbols: ManaSymbol[] | null }) => {
           />
         ) : (
           <span key={key}>{symbol}</span>
-        )
-      ))}
+        ),
+      )}
     </Box>
   );
 };
@@ -55,21 +55,19 @@ export default function DeckList() {
   const renderManaCost = (manaCost: string | null) => {
     if (!manaCost) return null;
 
-    const sides = manaCost.split('//').map(side => side.trim());
-    
-    if (sides.length > 1 && sides[0] && sides[1]) {
-      // Both sides have mana costs
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ManaSymbolsDisplay symbols={renderManaSymbols(sides[0])} />
-          <Typography level="body-sm" sx={{ color: 'text.secondary' }}>//</Typography>
-          <ManaSymbolsDisplay symbols={renderManaSymbols(sides[1])} />
-        </Box>
-      );
-    }
+    const sides = manaCost.split('//').map((side) => side.trim());
 
-    // Single sided card or only one side has mana cost
-    return <ManaSymbolsDisplay symbols={renderManaSymbols(manaCost)} />;
+    return sides.length > 1 && sides[0] && sides[1] ? (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <ManaSymbolsDisplay symbols={renderManaSymbols(sides[0])} />
+        <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+          //
+        </Typography>
+        <ManaSymbolsDisplay symbols={renderManaSymbols(sides[1])} />
+      </Box>
+    ) : (
+      <ManaSymbolsDisplay symbols={renderManaSymbols(manaCost)} />
+    );
   };
 
   const renderWinRateChip = (cardWinRate: number, baselineWinRate: number) => {
@@ -90,7 +88,7 @@ export default function DeckList() {
     );
   };
 
-  const renderCardTable = (cards: ICardStat[]) => (
+  const CardTable = ({ cards }: { cards: ICardStat[] }) => (
     <Table variant="soft" size="sm" sx={tableStyles.root}>
       <thead>
         <tr>
@@ -106,11 +104,7 @@ export default function DeckList() {
         {cards.map((card) => (
           <tr key={card.unique_card_id}>
             <td>{renderManaCost(card.mana_cost)}</td>
-            <td>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {card.name}
-              </Box>
-            </td>
+            <td>{card.name}</td>
             <td>
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
                 {card.type_line}
@@ -150,18 +144,6 @@ export default function DeckList() {
     </Table>
   );
 
-  const renderMainSection = (typeCode: string, cards: ICardStat[]) => (
-    <Box key={typeCode} sx={layoutStyles.sectionContainer}>
-      <Box sx={layoutStyles.sectionHeader}>
-        <Typography level="h2" sx={typographyStyles.sectionTitle}>
-          {cardTypeMap[typeCode] || `Type ${typeCode}`}
-        </Typography>
-      </Box>
-
-      <Box sx={layoutStyles.tableContainer}>{renderCardTable(cards)}</Box>
-    </Box>
-  );
-
   return (
     <Box sx={layoutStyles.container}>
       <Box sx={layoutStyles.mainSection}>
@@ -170,7 +152,18 @@ export default function DeckList() {
         </Typography>
         {Object.entries(deckStats.card_statistics.main)
           .filter(([, cards]) => cards.length > 0)
-          .map(([typeCode, cards]) => renderMainSection(typeCode, cards))}
+          .map(([typeCode, cards]) => (
+            <Box key={typeCode} sx={layoutStyles.sectionContainer}>
+              <Box sx={layoutStyles.sectionHeader}>
+                <Typography level="h2" sx={typographyStyles.sectionTitle}>
+                  {cardTypeMap[typeCode] || `Type ${typeCode}`}
+                </Typography>
+              </Box>
+              <Box sx={layoutStyles.tableContainer}>
+                <CardTable cards={cards} />
+              </Box>
+            </Box>
+          ))}
       </Box>
 
       {deckStats.card_statistics.other.length > 0 && (
@@ -178,7 +171,7 @@ export default function DeckList() {
           <Typography level="h1" sx={typographyStyles.mainTitle}>
             Other Cards
           </Typography>
-          {renderCardTable(deckStats.card_statistics.other)}
+          <CardTable cards={deckStats.card_statistics.other} />
         </Box>
       )}
     </Box>

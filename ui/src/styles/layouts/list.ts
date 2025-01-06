@@ -9,21 +9,14 @@ export const layoutStyles = {
   },
   sectionContainer: {
     mb: 4,
-    position: 'relative',
-    backgroundColor: 'background.surface',
+    // Remove backgroundColor from here
   },
   sectionHeader: {
-    position: 'sticky',
-    top: 0,
-    backgroundColor: 'background.surface',
-    zIndex: 3,
     py: listConstants.SECTION_PADDING_Y,
     borderBottom: '1px solid',
     borderColor: 'divider',
   },
   tableContainer: {
-    position: 'relative',
-    zIndex: 1,
-    backgroundColor: 'background.surface',
+    // No background color needed here either
   },
 };

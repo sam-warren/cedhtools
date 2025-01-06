@@ -1,5 +1,4 @@
 import { listConstants } from '../constants/list';
-import type { Theme } from '@mui/joy/styles';
 import { ChipProps } from '@mui/joy/Chip';
 
 export const chipStyles = {
@@ -13,17 +12,9 @@ export const chipStyles = {
 export const tableStyles = {
   root: {
     '--TableCell-paddingX': listConstants.TABLE_CELL_PADDING_X,
-    position: 'relative',
-    '& thead': {
-      position: 'sticky',
-      top: `${listConstants.SECTION_HEADER_HEIGHT}px`,
-      backgroundColor: 'background.surface',
-      zIndex: 2,
-      boxShadow: (theme: Theme) => `0 1px 0 ${theme.vars.palette.divider}`,
-    },
     '& th': {
       fontWeight: 600,
-      backgroundColor: 'background.surface',
+      // Remove backgroundColor from here
     },
     '& td': {
       py: listConstants.TABLE_CELL_PADDING_Y,
