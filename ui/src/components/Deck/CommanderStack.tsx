@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box } from '@mui/joy';
 import CommanderCard from 'src/components/Deck/CommanderCard';
 import { ICommanderDetail } from 'src/types';

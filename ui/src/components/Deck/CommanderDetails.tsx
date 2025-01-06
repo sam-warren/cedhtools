@@ -8,9 +8,11 @@ import CommanderStack from './CommanderStack';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 
+// TODO: Figure out how to not have a scrollable area for single and double commanders
+// TODO: Improve layout (awkward looking card name)
+
 export default function CommanderDetails() {
   const { deckStats } = useAppSelector((state) => state.deck);
-
   if (!deckStats) return null;
 
   const {

@@ -7,7 +7,7 @@ export const skeletonStyles = {
   },
   cardImage: {
     aspectRatio: cardConstants.CARD_ASPECT_RATIO,
-    borderRadius: `${cardConstants.CORNER_RADIUS_RATIO * 100}%`,
+    borderRadius: cardConstants.CORNER_RADIUS,
     width: '100%',
     display: 'block',
   },

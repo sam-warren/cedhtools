@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getDecklistById } from '../services/moxfield/moxfield';
+import { getDecklistById } from '../../services/moxfield/moxfield';
 import { getDeckStats } from 'src/services';
-import { IMoxfieldDeck, ICommanderStatisticsResponse } from '../types';
+import { IMoxfieldDeck, ICommanderStatisticsResponse } from '../../types';
 
 interface DeckState {
   deck: IMoxfieldDeck | null;

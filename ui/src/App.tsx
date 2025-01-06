@@ -11,6 +11,7 @@ import DeckPage from 'src/pages/DeckPage';
 import LandingPage from 'src/pages/LandingPage';
 import { AppAlert } from './components/Feedback/AppAlert';
 import AppLoader from './components/Feedback/AppLoader';
+import { SymbologyInitializer } from './components/Providers/SymbologyInitializer';
 import { AlertProvider } from './contexts/AlertContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { store } from './store';
@@ -25,6 +26,7 @@ function CEDHTools() {
           <LoadingProvider>
             <AlertProvider>
               <SearchHistoryProvider>
+                <SymbologyInitializer />
                 <AppLayout.Root>
                   <AppAlert />
                   <AppLayout.Header>

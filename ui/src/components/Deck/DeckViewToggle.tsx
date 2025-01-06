@@ -1,9 +1,8 @@
-// src/components/Deck/ViewToggle.tsx
 import { ToggleButtonGroup, IconButton } from '@mui/joy';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import ViewListRoundedIcon from '@mui/icons-material/ViewListRounded';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
-import { setDeckViewMode } from 'src/store/uiSlice';
+import { setDeckViewMode } from 'src/store/slices/uiSlice';
 
 export default function DeckViewToggle() {
   const dispatch = useAppDispatch();

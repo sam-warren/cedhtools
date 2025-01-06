@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useLoading } from 'src/contexts/LoadingContext';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
-import { fetchDeckData, clearError } from 'src/store/deckSlice';
+import { fetchDeckData, clearError } from 'src/store/slices/deckSlice';
 import DeckGrid from 'src/components/Deck/DeckGrid';
 import DeckBanner from 'src/components/Deck/DeckBanner';
 import DeckSkeleton from 'src/components/Deck/DeckSkeleton';

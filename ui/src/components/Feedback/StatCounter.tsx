@@ -1,5 +1,4 @@
-// src/components/Stats/StatCounter.tsx
-import { Box, Typography, ColorPaletteProp } from '@mui/joy';
+import { Box, Typography } from '@mui/joy';
 import { keyframes } from '@emotion/react';
 import { useCountUp } from 'react-countup';
 import { useRef } from 'react';
@@ -9,18 +8,12 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-type ColorVariant = 'success' | 'warning' | 'danger' | 'neutral';
-
 interface StatCounterProps {
   value: number;
   label: string;
   icon: React.ReactNode;
   type?: 'percentage' | 'integer';
   variant?: 'winRate' | 'drawRate' | 'sampleSize' | 'default';
-  thresholds?: {
-    value: number;
-    color: ColorVariant;
-  }[];
   duration?: number;
   formatOptions?: {
     decimals?: number;
@@ -35,8 +28,6 @@ export default function StatCounter({
   label,
   icon,
   type = 'percentage',
-  variant = 'default',
-  thresholds = [],
   duration = 2,
   formatOptions = {},
 }: StatCounterProps) {
@@ -50,32 +41,6 @@ export default function StatCounter({
       : { decimals: 0, separator: ',' };
 
   const finalFormatOptions = { ...defaultFormatOptions, ...formatOptions };
-
-  const variantThresholds = {
-    winRate: [
-      { value: 20, color: 'success' as const },
-      { value: 15, color: 'warning' as const },
-      { value: 0, color: 'danger' as const },
-    ],
-    drawRate: [{ value: 0, color: 'neutral' as const }],
-    sampleSize: [
-      { value: 1000, color: 'success' as const },
-      { value: 500, color: 'warning' as const },
-      { value: 0, color: 'neutral' as const },
-    ],
-    default: [{ value: 0, color: 'neutral' as const }],
-  };
-
-  const activeThresholds =
-    thresholds.length > 0 ? thresholds : variantThresholds[variant];
-
-  const getColor = (currentValue: number): ColorPaletteProp => {
-    const threshold = activeThresholds
-      .sort((a, b) => b.value - a.value)
-      .find((t) => currentValue >= t.value);
-
-    return threshold?.color || 'neutral';
-  };
 
   useCountUp({
     ref: countUpRef,
@@ -92,17 +57,16 @@ export default function StatCounter({
         display: 'flex',
         alignItems: 'center',
         gap: 1,
-        p: 1.5,  // Reduced from 2
+        p: 1.5,
         borderRadius: 'md',
         bgcolor: 'background.level1',
         animation: `${fadeIn} 0.5s ease-in`,
       }}
     >
       <Box sx={{ 
-        color: (theme) => theme.vars.palette[getColor(displayValue)][500],
         display: 'flex',
         alignItems: 'center',
-        '& > svg': { // Make icons slightly smaller
+        '& > svg': {
           fontSize: '1.25rem'
         }
       }}>
@@ -112,7 +76,7 @@ export default function StatCounter({
         <Typography 
           level="body-sm" 
           sx={{ 
-            mb: -0.5 // Reduce space between label and value
+            mb: -0.5
           }}
         >
           {label}
@@ -120,8 +84,7 @@ export default function StatCounter({
         <Typography 
           level="h3" 
           sx={{ 
-            color: (theme) => theme.vars.palette[getColor(displayValue)][500],
-            fontSize: '1.5rem' // Make the numbers slightly smaller
+            fontSize: '1.5rem'
           }}
         >
           <span ref={countUpRef} />
