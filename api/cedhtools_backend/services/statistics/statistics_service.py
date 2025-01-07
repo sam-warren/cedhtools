@@ -76,29 +76,41 @@ class StatisticsService:
         time_period: str,
         min_size: int
     ) -> Dict:
-        """Calculate comprehensive statistics for commanders."""
+        """
+        Calculate comprehensive statistics for commanders.
+
+        Returns a dictionary with statistics or an empty structure if no data is found.
+        """
         # Get pre-calculated meta statistics
         meta_stats = self.repository.get_meta_statistics(
             commander_ids, time_period, min_size)
-        if not meta_stats:
-            raise ValueError(
-                f"No statistics found for commanders: {commander_ids}")
 
-        # Create meta statistics directly with the correct structure
-        meta_stats_dto = MetaStatisticsDTO(
-            sample_size={
-                "total_decks": meta_stats['total_decks']
-            },
-            baseline_performance={
-                "win_rate": meta_stats['avg_win_rate'],
-                "draw_rate": meta_stats['avg_draw_rate'],
-                "loss_rate": meta_stats['avg_loss_rate']
-            }
-        )
+        # If no meta stats found, create an empty meta statistics DTO
+        if not meta_stats:
+            meta_stats_dto = MetaStatisticsDTO(
+                sample_size={"total_decks": 0},
+                baseline_performance={
+                    "win_rate": 0.0,
+                    "draw_rate": 0.0,
+                    "loss_rate": 0.0
+                }
+            )
+        else:
+            meta_stats_dto = MetaStatisticsDTO.from_repository_data(meta_stats)
 
         # Get pre-calculated card statistics
         card_stats = self.repository.get_card_statistics(
             commander_ids, time_period, min_size)
+
+        # If no card stats, return empty structures
+        if not card_stats:
+            return {
+                "meta_statistics": meta_stats_dto,
+                "card_statistics": {
+                    "main": {str(i): [] for i in range(1, 9)},
+                    "other": []
+                }
+            }
 
         # Process card statistics into categorized structure
         main_cards = {str(i): [] for i in range(1, 9)}

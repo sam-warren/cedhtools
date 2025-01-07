@@ -9,8 +9,13 @@ interface DeckState {
   isDeckLoading: boolean;
   isStatsLoading: boolean;
   error: string | null;
+  statsCache: {
+    [key: string]: {
+      data: ICommanderStatisticsResponse;
+      timestamp: number;
+    };
+  };
 }
-
 
 const initialState: DeckState = {
   deck: null,
@@ -18,6 +23,7 @@ const initialState: DeckState = {
   isDeckLoading: false,
   isStatsLoading: false,
   error: null,
+  statsCache: {},
 };
 
 export const fetchDeck = createAsyncThunk(
@@ -34,7 +40,7 @@ export const fetchDeck = createAsyncThunk(
         err instanceof Error ? err.message : 'An unexpected error occurred',
       );
     }
-  }
+  },
 );
 
 export const fetchDeckStats = createAsyncThunk(
@@ -49,8 +55,22 @@ export const fetchDeckStats = createAsyncThunk(
       minSize?: number;
       timePeriod?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue, getState },
   ) => {
+    // Create a cache key
+    const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
+
+    // Check cache
+    const state = getState() as { deck: DeckState };
+    const cachedStats = state.deck.statsCache[cacheKey];
+
+    // Cache is valid for 5 minutes
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    if (cachedStats && Date.now() - cachedStats.timestamp < CACHE_DURATION) {
+      return cachedStats.data;
+    }
+
     try {
       const response = await getDeckStats(deckId, timePeriod, minSize);
       if (!response.success) {
@@ -62,7 +82,7 @@ export const fetchDeckStats = createAsyncThunk(
         err instanceof Error ? err.message : 'An unexpected error occurred',
       );
     }
-  }
+  },
 );
 
 // Async thunk for fetching both deck and stats
@@ -78,16 +98,15 @@ export const fetchDeckData = createAsyncThunk(
       minSize?: number;
       timePeriod?: string;
     },
-    { dispatch }
+    { dispatch },
   ) => {
     const deck = await dispatch(fetchDeck(deckId)).unwrap();
     const stats = await dispatch(
-      fetchDeckStats({ deckId: deck.publicId, minSize, timePeriod })
+      fetchDeckStats({ deckId: deck.publicId, minSize, timePeriod }),
     ).unwrap();
     return { deck, deckStats: stats };
-  }
+  },
 );
-
 
 const deckSlice = createSlice({
   name: 'deck',
@@ -97,9 +116,13 @@ const deckSlice = createSlice({
       state.deck = null;
       state.deckStats = null;
       state.error = null;
+      state.statsCache = {};
     },
     clearError: (state) => {
       state.error = null;
+    },
+    clearStatsCache: (state) => {
+      state.statsCache = {};
     },
   },
   extraReducers: (builder) => {
@@ -125,6 +148,16 @@ const deckSlice = createSlice({
       .addCase(fetchDeckStats.fulfilled, (state, action) => {
         state.isStatsLoading = false;
         state.deckStats = action.payload;
+
+        // Cache the fetched stats
+        const { meta } = action;
+        const { deckId, timePeriod = 'all', minSize = 0 } = meta.arg;
+        const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
+
+        state.statsCache[cacheKey] = {
+          data: action.payload,
+          timestamp: Date.now(),
+        };
       })
       .addCase(fetchDeckStats.rejected, (state, action) => {
         state.isStatsLoading = false;
@@ -139,5 +172,5 @@ const deckSlice = createSlice({
   },
 });
 
-export const { clearDeckData, clearError } = deckSlice.actions;
+export const { clearDeckData, clearError, clearStatsCache } = deckSlice.actions;
 export default deckSlice.reducer;

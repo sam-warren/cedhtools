@@ -435,8 +435,8 @@ const DeckTable = ({
         sx={{
           '& input[type=number]': {
             '-moz-appearance': 'textfield',
-            '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
-              '-webkit-appearance': 'none',
+            '&::-WebkitOuterSpinButton, &::-WebkitInnerSpinButton': {
+              '-WebkitAppearance': 'none',
               margin: 0,
             },
           },
@@ -456,8 +456,8 @@ const DeckTable = ({
         sx={{
           '& input[type=number]': {
             '-moz-appearance': 'textfield',
-            '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
-              '-webkit-appearance': 'none',
+            '&::WebkitOuterSpinButton, &::WebkitInnerSpinButton': {
+              '-WebkitAppearance': 'none',
               margin: 0,
             },
           },

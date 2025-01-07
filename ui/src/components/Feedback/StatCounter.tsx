@@ -70,7 +70,7 @@ export default function StatCounter({
     end: displayValue,
     duration,
     ...finalFormatOptions,
-    delay: 1.5,
+    delay: 0.5,
   });
 
   return (

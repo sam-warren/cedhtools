@@ -1,6 +1,7 @@
 import { Box, Skeleton, Typography, useTheme } from '@mui/joy';
 import React, { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
+import { useAppSelector } from 'src/hooks';
 import { useImageCache } from 'src/hooks/useImageCache';
 import { cardStyles } from 'src/styles';
 import { ICardStat } from 'src/types';
@@ -63,6 +64,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
   });
   const theme = useTheme();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const { isStatsLoading } = useAppSelector((state) => state.deck);
 
   const { src: cachedSrc } = useImageCache(
     card.scryfall_id,
@@ -101,11 +103,26 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
               transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
-            <Typography level="body-xs" color={color} fontWeight="lg">
-              {sign}
-              {formattedDiff}% | in {card.decks_with_card} deck
-              {card.decks_with_card > 1 ? 's' : ''}
-            </Typography>
+            {isStatsLoading ? (
+              <Typography
+                level="body-xs"
+                color={color}
+                fontWeight="lg"
+                sx={{
+                  '&::after': {
+                    animation:
+                      'animation-c7515d 1.5s ease-in-out 0.5s infinite',
+                  },
+                }}
+              >
+              </Typography>
+            ) : (
+              <Typography level="body-xs" color={color} fontWeight="lg">
+                {sign}
+                {formattedDiff}% | in {card.decks_with_card} deck
+                {card.decks_with_card > 1 ? 's' : ''}
+              </Typography>
+            )}
           </Box>
         </Box>
 
@@ -119,7 +136,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
             <ImageWithLoading
               src={cachedSrc}
               alt={card.name}
-              sx={cardStyles.image}
+              sx={cardStyles.image('deck')}
               onLoad={() => setIsImageLoaded(true)}
             />
           ) : (
@@ -127,7 +144,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
               variant="rectangular"
               width="100%"
               height="100%"
-              sx={cardStyles.image}
+              sx={cardStyles.image('commander')}
             />
           )}
         </Box>

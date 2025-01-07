@@ -4,8 +4,6 @@ import { cardConstants } from '../constants/cards';
 
 type CardVariant = 'deck' | 'commander';
 
-// TODO: Fix cursor pointer on image hover
-
 export const cardStyles = {
   cardContainer: (variant: CardVariant = 'deck') => ({
     display: 'flex',
@@ -25,7 +23,6 @@ export const cardStyles = {
     borderRadius: `${cardConstants.CORNER_RADIUS}px`,
     overflow: variant === 'deck' ? 'visible' : 'hidden',
     backgroundColor: 'transparent',
-    cursor: variant === 'deck' ? 'pointer' : 'default',
     zIndex: 2,
     ...(variant === 'deck' && {
       '&::before': {
@@ -52,15 +49,15 @@ export const cardStyles = {
       WebkitMaskImage: 'linear-gradient(black, black)', // Fix for Safari border-radius clipping
     },
   }),
-  image: {
+  image: (variant: CardVariant = 'deck') => ({
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    cursor: variant === 'deck' ? 'pointer' : 'default',
     display: 'block',
     borderRadius: `${cardConstants.CORNER_RADIUS}px`,
     position: 'relative',
     zIndex: 2,
-  },
+  }),
   banner: (color: string) => ({
     position: 'absolute',
     top: `-${cardConstants.STATS_BANNER_HEIGHT}px`,
@@ -87,7 +84,7 @@ export const cardStyles = {
     width: '100%',
     display: 'flex',
     justifyContent: 'center',
-    },
+  },
   cardTitle: {
     fontWeight: 500,
     whiteSpace: 'nowrap',

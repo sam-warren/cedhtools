@@ -1,5 +1,5 @@
 // src/pages/DeckPage.tsx
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { useAppDispatch, useAppSelector } from 'src/hooks';

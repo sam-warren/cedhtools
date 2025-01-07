@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Box, FormControl, Select, Option, Button, FormLabel } from '@mui/joy';
 import { filterStyles } from 'src/styles';
-import { useAppDispatch } from 'src/hooks';
-import { fetchDeckData } from 'src/store/slices/deckSlice';
+import { useAppDispatch, useAppSelector } from 'src/hooks';
+import { fetchDeckData, fetchDeckStats } from 'src/store/slices/deckSlice';
 import {
   TIME_PERIOD_OPTIONS,
   TOURNAMENT_SIZE_OPTIONS,
@@ -20,14 +20,14 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
   });
 
   const dispatch = useAppDispatch();
-
+  const { isStatsLoading } = useAppSelector((state) => state.deck);
   const handleApplyFilters = () => {
     console.log('Applying filters:', {
       timePeriod: formState.timePeriod,
       minSize: formState.minSize,
     });
     dispatch(
-      fetchDeckData({
+      fetchDeckStats({
         deckId,
         timePeriod: formState.timePeriod,
         minSize: formState.minSize,
@@ -35,7 +35,9 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
     )
       .unwrap()
       .then((result) => {
-        console.log('Filter applied, new deckStats:', result.deckStats);
+        console.log('Stats fetched:',
+          result,
+        );
       });
   };
 
@@ -83,7 +85,12 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
         </FormControl>
 
         <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-          <Button onClick={handleApplyFilters} size="sm" variant="soft">
+          <Button
+            onClick={handleApplyFilters}
+            size="sm"
+            variant="soft"
+            loading={isStatsLoading}
+          >
             apply
           </Button>
         </Box>

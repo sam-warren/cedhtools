@@ -5,8 +5,8 @@ import { Box, Skeleton } from '@mui/joy';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
+import { useState, useEffect } from 'react';
 
-// TODO: Fix stat counters not recounting on deck stat change
 function CommanderDetailsSkeleton() {
   return (
     <Box sx={{ p: 2 }}>
@@ -21,25 +21,41 @@ function CommanderDetailsSkeleton() {
     </Box>
   );
 }
+
 function CommanderDetails() {
   const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
+  const [localState, setLocalState] = useState({
+    deckStats: deckStats,
+    isLoading: true,
+  });
 
-  if (isStatsLoading && !deckStats) {
+  useEffect(() => {
+    // Always update loading state
+    setLocalState((prev) => ({
+      deckStats: deckStats || prev.deckStats,
+      isLoading: isStatsLoading,
+    }));
+  }, [deckStats, isStatsLoading]);
+
+  // Early return for initial loading state
+  if (localState.isLoading && !localState.deckStats) {
     return <CommanderDetails.Skeleton />;
   }
 
-  if (!deckStats) return null;
+  // Return null if no stats are available
+  if (!localState.deckStats) return null;
 
   const {
     meta_statistics: {
-      baseline_performance: { win_rate, draw_rate },
-      sample_size: { total_decks },
+      baseline_performance: { win_rate = 0, draw_rate = 0 },
+      sample_size: { total_decks = 0 },
     },
-  } = deckStats;
+    commanders,
+  } = localState.deckStats;
 
   return (
     <>
-      <CommanderStack commanders={deckStats.commanders} />
+      <CommanderStack commanders={commanders} />
       <Box
         sx={{
           display: 'flex',
@@ -49,28 +65,31 @@ function CommanderDetails() {
         }}
       >
         <StatCounter
+          key={`win-rate-${win_rate}`}
           value={win_rate}
           label="average win rate"
           icon={<EmojiEventsIcon />}
           variant="winRate"
           type="percentage"
-          isLoading={isStatsLoading}
+          isLoading={localState.isLoading}
         />
         <StatCounter
+          key={`draw-rate-${draw_rate}`}
           value={draw_rate}
           label="average draw rate"
           icon={<BalanceIcon />}
           variant="drawRate"
           type="percentage"
-          isLoading={isStatsLoading}
+          isLoading={localState.isLoading}
         />
         <StatCounter
+          key={`sample-size-${total_decks}`}
           value={total_decks}
           label="sample size"
           icon={<Inventory2Icon />}
           type="integer"
           variant="sampleSize"
-          isLoading={isStatsLoading}
+          isLoading={localState.isLoading}
           formatOptions={{
             separator: ',',
             suffix: ' decks',

@@ -9,15 +9,23 @@ class MetaStatisticsDTO:
 
     @classmethod
     def from_repository_data(cls, repo_data: Dict) -> 'MetaStatisticsDTO':
-        """Create DTO from repository data."""
+        """
+        Create DTO from repository data.
+
+        Args:
+            repo_data (Dict): Dictionary containing meta statistics from repository
+
+        Returns:
+            MetaStatisticsDTO: Transformed data transfer object
+        """
         return cls(
             sample_size={
-                "total_decks": repo_data['total_decks']
+                "total_decks": repo_data.get('total_decks', 0)
             },
             baseline_performance={
-                "win_rate": repo_data['avg_win_rate'],
-                "draw_rate": repo_data['avg_draw_rate'],
-                "loss_rate": repo_data['avg_loss_rate']
+                "win_rate": repo_data.get('avg_win_rate', 0.0),
+                "draw_rate": repo_data.get('avg_draw_rate', 0.0),
+                "loss_rate": repo_data.get('avg_loss_rate', 0.0)
             }
         )
 

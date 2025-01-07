@@ -42,14 +42,14 @@ const CommanderCard: React.FC<CommanderCardProps> = ({ card }) => {
               component="img"
               src={card.image_uris.normal}
               alt={card.name}
-              sx={cardStyles.image}
+              sx={cardStyles.image('commander')}
             />
           ) : (
             <Skeleton
               variant="rectangular"
               width="100%"
               height="100%"
-              sx={cardStyles.image}
+              sx={cardStyles.image('commander')}
             />
           )}
         </Box>

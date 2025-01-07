@@ -23,12 +23,12 @@ const theme = extendTheme({
         root: {
           '--ScrollArea-radius': '0',
           // Reset any custom scrollbar styles
-          '::-webkit-scrollbar': {
+          '::-WebkitScrollbar': {
             width: 'auto',
             height: 'auto',
             backgroundColor: 'transparent'
           },
-          '::-webkit-scrollbar-thumb': {
+          '::-WebkitScrollbarThumb': {
             backgroundColor: 'auto',
             borderRadius: 'auto'
           }

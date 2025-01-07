@@ -47,7 +47,6 @@ export function useImageCache(
           };
           cachedImg.onerror = () => {
             if (isMountedRef.current && currentSrc === imageUrl) {
-              console.warn('Cached image failed to load, using CDN URL');
               setCachedSrc(imageUrl);
             }
           };
