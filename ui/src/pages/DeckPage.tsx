@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
-import { fetchDeckData, clearError } from 'src/store/slices/deckSlice';
+import { fetchDeckData, clearError, clearDeckData } from 'src/store/slices/deckSlice';
 import DeckBanner from 'src/components/Deck/DeckBanner';
 import { DeckPageLayout } from 'src/components/Layout/DeckPageLayout';
 import CommanderDetails from 'src/components/Deck/CommanderDetails';
@@ -22,6 +22,8 @@ export default function DeckPage() {
 
   useEffect(() => {
     if (!id) return;
+
+    dispatch(clearDeckData());
 
     // Initial load with current filter settings
     dispatch(
