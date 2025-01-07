@@ -48,7 +48,7 @@ function CommanderDetails(): JSX.Element {
       // Only unmount skeleton after transition
       setTimeout(() => {
         setIsMounted(prev => ({ ...prev, skeleton: false }));
-      }, 150);
+      }, 0);
     }
   }, [isStatsLoading, deckStats]);
 

@@ -53,6 +53,13 @@ export default function StatCounter({
   formatOptions = {},
 }: StatCounterProps) {
   const [isMounted, setIsMounted] = useState(false);
+  // Add a key that changes when the value changes
+  const [key, setKey] = useState(0);
+
+  // Reset the counter when value changes
+  useEffect(() => {
+    setKey((prev) => prev + 1);
+  }, [value]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -102,8 +109,9 @@ export default function StatCounter({
         <Typography level="h3" sx={{ fontSize: '1.5rem' }}>
           {isMounted && (
             <CountUp
+              key={key} // Add key to force re-mount
               start={0}
-              delay={1}
+              delay={0.3}
               end={displayValue}
               duration={duration}
               decimals={finalFormatOptions.decimals}
