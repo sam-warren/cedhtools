@@ -389,3 +389,10 @@ MoxfieldCard:
             # artifact: 6
             # enchantment: 7
             # land: 8
+
+
+
+COMPONENT SKELETON LOADING DEISNG PATTERN:
+- Handle whether or not stats are loading in a centralized place that makes sense
+vs
+- Handle data loading on each component

@@ -2,11 +2,7 @@ import { Box, Skeleton, Typography } from '@mui/joy';
 import { keyframes } from '@emotion/react';
 import { useCountUp } from 'react-countup';
 import { useRef } from 'react';
-
-const fadeIn = keyframes`
-  from { opacity: 0; }
-  to { opacity: 1; }
-`;
+import { useAppSelector } from 'src/hooks';
 
 interface StatCounterProps {
   value: number;
@@ -34,6 +30,8 @@ function StatCounterSkeleton() {
         p: 1.5,
         borderRadius: 'md',
         bgcolor: 'background.level1',
+        width: 252,
+        height: 73
       }}
     >
       <Skeleton variant="circular" width={20} height={20} />
@@ -82,7 +80,6 @@ export default function StatCounter({
         p: 1.5,
         borderRadius: 'md',
         bgcolor: 'background.level1',
-        animation: `${fadeIn} 0.5s ease-in`,
       }}
     >
       <Box

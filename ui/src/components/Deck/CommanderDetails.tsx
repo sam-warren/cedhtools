@@ -6,19 +6,46 @@ import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
 import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
+import CommanderCard from './CommanderCard';
+import { commanderStackStyles } from 'src/styles';
 
-function CommanderDetails() {
-  const { deckStats, isStatsLoading, error } = useAppSelector(
-    (state) => state.deck,
+function CommanderDetailsSkeleton() {
+  return (
+    <>
+      <Box sx={commanderStackStyles.singleCardContainer}>
+        <CommanderCard.Skeleton />
+      </Box>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          width: '100%',
+        }}
+      >
+        <StatCounter.Skeleton />
+        <StatCounter.Skeleton />
+        <StatCounter.Skeleton />
+      </Box>
+    </>
   );
+}
+function CommanderDetails(): JSX.Element {
+  const isStatsLoading = useAppSelector((state) => state.deck.isStatsLoading);
+  const deckStats = useAppSelector((state) => state.deck.deckStats);
+  const error = useAppSelector((state) => state.deck.error);
 
+  // Move the hook outside the conditional block
   const { fadeInStyle } = useFadeAnimation({
     data: deckStats,
     isLoading: isStatsLoading,
     error,
   });
 
-  if (!deckStats) return null;
+  if (isStatsLoading || !deckStats) {
+    // Return Skeleton if still loading or no data
+    return <CommanderDetails.Skeleton />;
+  }
 
   const {
     meta_statistics: {
@@ -77,3 +104,4 @@ function CommanderDetails() {
 }
 
 export default CommanderDetails;
+CommanderDetails.Skeleton = CommanderDetailsSkeleton;
