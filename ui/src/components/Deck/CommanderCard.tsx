@@ -45,29 +45,37 @@ interface CommanderCardProps {
   card: ICommanderDetail;
 }
 
-const CommanderCard: CommanderCardComponent = ({ card }) => {
-  const { src: cachedSrc } = useImageCache(
-    card.scryfall_id,
-    card.image_uris.normal,
-    true,
-  );
+const MemoizedCommanderCard: React.FC<CommanderCardProps> = React.memo(
+  ({ card }) => {
+    const { src: cachedSrc } = useImageCache(
+      card.scryfall_id,
+      card.image_uris.normal,
+      true,
+    );
 
-  const theme = useTheme();
+    const theme = useTheme();
 
-  return (
-    <Box sx={cardStyles.cardContainer('commander')}>
-      <Box sx={cardStyles.wrapper}>
-        <Box sx={cardStyles.imageContainer(theme, 'commander')}>
-          <ImageWithLoading
-            src={cachedSrc}
-            alt={card.name}
-            sx={cardStyles.image('commander')}
-          />
+    return (
+      <Box sx={cardStyles.cardContainer('commander')}>
+        <Box sx={cardStyles.wrapper}>
+          <Box sx={cardStyles.imageContainer(theme, 'commander')}>
+            <ImageWithLoading
+              src={cachedSrc}
+              alt={card.name}
+              sx={cardStyles.image('commander')}
+            />
+          </Box>
         </Box>
       </Box>
-    </Box>
-  );
-};
+    );
+  },
+  (prevProps, nextProps) =>
+    prevProps.card.unique_card_id === nextProps.card.unique_card_id &&
+    prevProps.card.image_uris.normal === nextProps.card.image_uris.normal,
+);
+
+// Explicitly assign `Skeleton` to the memoized component
+const CommanderCard = MemoizedCommanderCard as CommanderCardComponent;
+CommanderCard.Skeleton = CommanderCardSkeleton;
 
 export default CommanderCard;
-CommanderCard.Skeleton = CommanderCardSkeleton;

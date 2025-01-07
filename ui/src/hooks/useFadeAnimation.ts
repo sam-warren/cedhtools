@@ -14,7 +14,7 @@ export const useFadeAnimation = (
   },
   options: UseFadeAnimationOptions = {},
 ) => {
-  const { duration = 0.3, delay = 0, timingFunction = 'ease-out' } = options;
+  const { duration = 0.3, delay = 0, timingFunction = 'ease-in-out' } = options;
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

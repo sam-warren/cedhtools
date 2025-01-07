@@ -1,11 +1,9 @@
 import { Box, Skeleton, Typography } from '@mui/joy';
-import { keyframes } from '@emotion/react';
-import { useCountUp } from 'react-countup';
-import { useRef } from 'react';
-import { useAppSelector } from 'src/hooks';
+import CountUp from 'react-countup';
+import { useRef, useState, useEffect } from 'react';
 
 interface StatCounterProps {
-  value: number;
+  value?: number;
   label: string;
   icon: React.ReactNode;
   type?: 'percentage' | 'integer';
@@ -31,7 +29,9 @@ function StatCounterSkeleton() {
         borderRadius: 'md',
         bgcolor: 'background.level1',
         width: 252,
-        height: 73
+        height: 73,
+        opacity: 1,
+        transition: 'opacity 300ms ease-in-out',
       }}
     >
       <Skeleton variant="circular" width={20} height={20} />
@@ -44,32 +44,32 @@ function StatCounterSkeleton() {
 }
 
 export default function StatCounter({
-  value,
+  value = 0,
   label,
   icon,
   type = 'percentage',
   duration = 2,
+  isLoading = false,
   formatOptions = {},
 }: StatCounterProps) {
-  const countUpRef = useRef(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const displayValue = type === 'percentage' ? value * 100 : value;
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setIsMounted(true);
+    });
+  }, []);
 
+  if (isLoading) {
+    return <StatCounterSkeleton />;
+  }
+
+  const displayValue = type === 'percentage' ? (value || 0) * 100 : value || 0;
   const defaultFormatOptions =
     type === 'percentage'
       ? { decimals: 2, suffix: '%' }
       : { decimals: 0, separator: ',' };
-
   const finalFormatOptions = { ...defaultFormatOptions, ...formatOptions };
-
-  useCountUp({
-    ref: countUpRef,
-    start: 0,
-    end: displayValue,
-    duration,
-    ...finalFormatOptions,
-    delay: 0.5,
-  });
 
   return (
     <Box
@@ -80,6 +80,8 @@ export default function StatCounter({
         p: 1.5,
         borderRadius: 'md',
         bgcolor: 'background.level1',
+        opacity: isMounted ? 1 : 0,
+        transition: 'opacity 300ms ease-in-out',
       }}
     >
       <Box
@@ -94,21 +96,22 @@ export default function StatCounter({
         {icon}
       </Box>
       <Box>
-        <Typography
-          level="body-sm"
-          sx={{
-            mb: -0.5,
-          }}
-        >
+        <Typography level="body-sm" sx={{ mb: -0.5 }}>
           {label}
         </Typography>
-        <Typography
-          level="h3"
-          sx={{
-            fontSize: '1.5rem',
-          }}
-        >
-          <span ref={countUpRef} />
+        <Typography level="h3" sx={{ fontSize: '1.5rem' }}>
+          {isMounted && (
+            <CountUp
+              start={0}
+              delay={0.5}
+              end={displayValue}
+              duration={duration}
+              decimals={finalFormatOptions.decimals}
+              separator={finalFormatOptions.separator}
+              prefix={finalFormatOptions.prefix}
+              suffix={finalFormatOptions.suffix}
+            />
+          )}
         </Typography>
       </Box>
     </Box>
