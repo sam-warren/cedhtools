@@ -1,22 +1,13 @@
+import React from 'react';
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
-import { Link, Skeleton } from '@mui/joy';
+import { Link } from '@mui/joy';
 import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
 
-function DeckBannerSkeleton() {
-  return (
-    <Box sx={bannerStyles.container}>
-      <Box sx={bannerStyles.titleContainer}>
-        <Skeleton variant="text" width="200px" />
-        <Skeleton variant="text" width="150px" level="body-sm" />
-      </Box>
-    </Box>
-  );
-}
 function DeckBanner() {
-  const deck = useAppSelector((state) => state.deck.deck);
+  const { deck } = useAppSelector((state) => state.deck);
 
   const renderAuthors = () => {
     if (!deck?.authors) return null;
@@ -30,7 +21,15 @@ function DeckBanner() {
               href={`https://www.moxfield.com/users/${author.userName}`}
               target="_blank"
               rel="noopener noreferrer"
-              sx={bannerStyles.authorLink}
+              sx={{
+                ...bannerStyles.authorLink,
+                ...(deck
+                  ? {
+                      animation: 'fadeInContent 0.3s ease-out forwards',
+                      display: 'inline',
+                    }
+                  : {}),
+              }}
             >
               {author.displayName}
             </Link>
@@ -40,32 +39,67 @@ function DeckBanner() {
     );
   };
 
-  if (!deck) {
-    return null;
-  }
-
   return (
-    <Box sx={bannerStyles.container}>
-      <Box sx={bannerStyles.titleContainer}>
-        <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-          Deck:{' '}
-          <Link
-            href={deck.publicUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={bannerStyles.authorLink}
-          >
-            {deck.name}
-          </Link>
-        </Typography>
-        <Typography level="body-sm" color="neutral">
-          {renderAuthors()}
-        </Typography>
+    <Box
+      sx={{
+        ...bannerStyles.container,
+        position: 'relative',
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Box sx={bannerStyles.titleContainer}>
+          {deck ? (
+            <Box
+              sx={{
+                animation: 'fadeInContent 0.3s ease-out forwards',
+                opacity: 0,
+                display: 'inline-block',
+              }}
+            >
+              <Typography level="title-lg" sx={{ flexShrink: 0 }}>
+                Deck:{' '}
+                <Link
+                  href={deck.publicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={bannerStyles.authorLink}
+                >
+                  {deck.name}
+                </Link>
+              </Typography>
+              <Typography level="body-sm" color="neutral">
+                {renderAuthors()}
+              </Typography>
+            </Box>
+          ) : (
+            <Box
+              sx={{ height: '100%', display: 'flex', alignItems: 'center' }}
+            />
+          )}
+        </Box>
+        <DeckFilters deckId={deck ? deck.publicId : ''} />
       </Box>
-      <DeckFilters deckId={deck.publicId} />
+
+      {/* Global Fade-in Animation */}
+      <style>{`
+        @keyframes fadeInContent {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </Box>
   );
 }
 
-DeckBanner.Skeleton = DeckBannerSkeleton;
 export default DeckBanner;

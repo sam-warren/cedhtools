@@ -1,7 +1,8 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getDecklistById } from '../../services/moxfield/moxfield';
 import { getDeckStats } from 'src/services';
 import { IMoxfieldDeck, ICommanderStatisticsResponse } from '../../types';
+import { FilterSettings } from 'src/types/store/rootState';
 
 interface DeckState {
   deck: IMoxfieldDeck | null;
@@ -15,6 +16,7 @@ interface DeckState {
       timestamp: number;
     };
   };
+  filterSettings: FilterSettings;
 }
 
 const initialState: DeckState = {
@@ -24,6 +26,10 @@ const initialState: DeckState = {
   isStatsLoading: false,
   error: null,
   statsCache: {},
+  filterSettings: {
+    timePeriod: 'ban',
+    minSize: 60
+  }
 };
 
 export const fetchDeck = createAsyncThunk(
@@ -124,6 +130,12 @@ const deckSlice = createSlice({
     clearStatsCache: (state) => {
       state.statsCache = {};
     },
+    updateFilterSettings: (state, action: PayloadAction<Partial<FilterSettings>>) => {
+      state.filterSettings = {
+        ...state.filterSettings,
+        ...action.payload
+      };
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -172,5 +184,5 @@ const deckSlice = createSlice({
   },
 });
 
-export const { clearDeckData, clearError, clearStatsCache } = deckSlice.actions;
+export const { clearDeckData, clearError, clearStatsCache, updateFilterSettings } = deckSlice.actions;
 export default deckSlice.reducer;

@@ -4,12 +4,19 @@ import { ICommanderStatisticsResponse } from 'types/cedhtools';
 import { IMoxfieldDeck } from 'types/moxfield';
 
 // Deck Slice State
+
+export interface FilterSettings {
+  timePeriod: string;
+  minSize: number;
+}
+
 export interface DeckState {
   deck: IMoxfieldDeck | null;
   deckStats: ICommanderStatisticsResponse | null;
   isDeckLoading: boolean;
   isStatsLoading: boolean;
   error: string | null;
+  filterSettings: FilterSettings;
 }
 
 // UI Slice State

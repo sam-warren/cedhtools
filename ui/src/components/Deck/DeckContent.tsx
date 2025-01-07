@@ -4,11 +4,18 @@ import { useAppSelector } from 'src/hooks';
 import DeckGrid from './DeckGrid';
 import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
-  const { deckStats } = useAppSelector((state) => state.deck);
+  const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
+  const fadeInStyle = useFadeAnimation(isStatsLoading);
+  useEffect(() => {
+    console.log("stats loading: ", isStatsLoading);
+  }
+  , [isStatsLoading]);
+
 
   const numUniqueCards = useMemo(
     () =>
@@ -24,7 +31,7 @@ export default function DeckContent() {
   if (!deckStats) return null;
 
   return (
-    <Box>
+    <Box sx={fadeInStyle}>
       <Box
         sx={{
           display: 'flex',
@@ -69,17 +76,13 @@ export default function DeckContent() {
             startDecorator={<InfoIcon />}
             color="primary"
             variant="soft"
-            sx={{ alignItems: 'flex-start' }}
+            sx={{ gap: 2, }}
           >
             <Box>
               <Typography>No data found</Typography>
               <Typography level="body-sm">
-                We don't have enough data that matches this criteria. Try
-                adjusting the filters.
-              </Typography>
-              <Typography level="body-sm">
-                If this commander is new, it will take some time to collect
-                enough meaningful data to display here.
+                We don't have enough data for this commander given the search
+                filter criteria.
               </Typography>
             </Box>
           </Alert>

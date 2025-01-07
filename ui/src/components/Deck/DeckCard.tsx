@@ -37,6 +37,7 @@ const ImageWithLoading: React.FC<{
       />
       <Skeleton
         variant="rectangular"
+        animation="pulse"
         width="100%"
         height="100%"
         sx={{
@@ -142,6 +143,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
           ) : (
             <Skeleton
               variant="rectangular"
+              animation="pulse"
               width="100%"
               height="100%"
               sx={cardStyles.image('commander')}

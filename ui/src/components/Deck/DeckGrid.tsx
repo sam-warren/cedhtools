@@ -6,89 +6,8 @@ import { useAppSelector } from 'src/hooks';
 import { getSortedSections, organizeRows } from 'src/utilities/gridUtils';
 import DeckSection from './DeckSection';
 
-interface DeckGridComponent extends React.NamedExoticComponent {
-  Skeleton: React.NamedExoticComponent;
-}
-
 const CARD_WIDTH = 200;
 const CARD_GAP = 16;
-
-const DeckGridSkeleton = React.memo(function DeckGridSkeleton() {
-  return (
-    <Box
-      sx={{
-        width: '100%',
-        position: 'relative',
-      }}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          width: '100%',
-        }}
-      >
-        {/* Simulate 3 rows */}
-        {Array.from({ length: 3 }).map((_, rowIndex) => (
-          <Box
-            key={rowIndex}
-            sx={{
-              display: 'flex',
-              gap: 3,
-              minHeight: '300px',
-            }}
-          >
-            {/* Each row has 2-3 sections */}
-            {Array.from({ length: rowIndex === 1 ? 3 : 2 }).map(
-              (_, sectionIndex) => (
-                <Box
-                  key={sectionIndex}
-                  sx={{
-                    flex: rowIndex === 0 ? '1 1 100%' : 'none',
-                    width: rowIndex === 0 ? 'auto' : `${CARD_WIDTH}px`,
-                  }}
-                >
-                  <Box>
-                    <Skeleton
-                      variant="text"
-                      width="200px"
-                      height="32px"
-                      sx={{ mb: 2 }}
-                    />
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns:
-                          rowIndex === 0
-                            ? 'repeat(auto-fill, minmax(200px, 1fr))'
-                            : '1fr',
-                        gap: 2,
-                      }}
-                    >
-                      {/* First row shows more cards, others show fewer */}
-                      {Array.from({ length: rowIndex === 0 ? 5 : 2 }).map(
-                        (_, i) => (
-                          <Skeleton
-                            key={i}
-                            variant="rectangular"
-                            width="100%"
-                            height="280px"
-                            sx={{ borderRadius: '8px' }}
-                          />
-                        ),
-                      )}
-                    </Box>
-                  </Box>
-                </Box>
-              ),
-            )}
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
-});
 
 const GridRow = React.memo(function GridRow({
   row,
@@ -120,33 +39,7 @@ const GridRow = React.memo(function GridRow({
           {inView ? (
             <DeckSection typeCode={typeCode} cards={cards} />
           ) : (
-            <Box>
-              <Skeleton
-                variant="text"
-                width="200px"
-                height="32px"
-                sx={{ mb: 2 }}
-              />
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: 2,
-                }}
-              >
-                {Array(Math.min(cards.length, cardsPerRow))
-                  .fill(0)
-                  .map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      variant="rectangular"
-                      width="100%"
-                      height="280px"
-                      sx={{ borderRadius: '8px' }}
-                    />
-                  ))}
-              </Box>
-            </Box>
+            <Box></Box>
           )}
         </Box>
       ))}
@@ -257,7 +150,6 @@ const DeckGrid = React.memo(function DeckGrid() {
       </Box>
     </Box>
   );
-}) as DeckGridComponent;
+});
 
-DeckGrid.Skeleton = DeckGridSkeleton;
 export default DeckGrid;

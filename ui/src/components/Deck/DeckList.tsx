@@ -1,4 +1,4 @@
-import { Box, Skeleton, Typography } from '@mui/joy';
+import { Box, Typography } from '@mui/joy';
 import React, { useMemo, useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useAppSelector } from 'src/hooks';
@@ -14,9 +14,6 @@ interface LazyDeckTableProps {
   label: string;
 }
 
-interface DeckListComponent extends React.NamedExoticComponent {
-  Skeleton: React.NamedExoticComponent;
-}
 
 const LazyDeckTable = React.memo(
   ({ cards, deckStats, label }: LazyDeckTableProps) => {
@@ -37,44 +34,6 @@ const LazyDeckTable = React.memo(
   },
 );
 
-const DeckListSkeleton = React.memo(function DeckListSkeleton() {
-  return (
-    <Box sx={layoutStyles.container}>
-      <Box sx={layoutStyles.mainSection}>
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Box
-            key={index}
-            sx={{
-              ...layoutStyles.sectionContainer,
-              mb: 2,
-            }}
-          >
-            <Box sx={layoutStyles.tableContainer}>
-              <Typography level="h3" sx={{ mb: 2 }}>
-                <Skeleton width={150} />
-              </Typography>
-              {Array.from({ length: 3 }).map((_, cardIndex) => (
-                <Box
-                  key={cardIndex}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    mb: 1,
-                  }}
-                >
-                  <Skeleton width={30} />
-                  <Skeleton width={200} />
-                  <Skeleton width={100} />
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
-});
 
 const DeckList = React.memo(function DeckList() {
   const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
@@ -170,10 +129,9 @@ const DeckList = React.memo(function DeckList() {
       )}
     </Box>
   );
-}) as DeckListComponent;
+});
 
 
-DeckList.Skeleton = DeckListSkeleton;
 export default DeckList;
 
 

@@ -5,45 +5,12 @@ import { Box, Skeleton } from '@mui/joy';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
-import { useState, useEffect } from 'react';
-
-function CommanderDetailsSkeleton() {
-  return (
-    <Box sx={{ p: 2 }}>
-      <Skeleton
-        variant="rectangular"
-        width="100%"
-        height="280px"
-        sx={{ mb: 2 }}
-      />
-      <Skeleton variant="text" width="60%" />
-      <Skeleton variant="text" width="40%" />
-    </Box>
-  );
-}
 
 function CommanderDetails() {
   const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
-  const [localState, setLocalState] = useState({
-    deckStats: deckStats,
-    isLoading: true,
-  });
-
-  useEffect(() => {
-    // Always update loading state
-    setLocalState((prev) => ({
-      deckStats: deckStats || prev.deckStats,
-      isLoading: isStatsLoading,
-    }));
-  }, [deckStats, isStatsLoading]);
-
-  // Early return for initial loading state
-  if (localState.isLoading && !localState.deckStats) {
-    return <CommanderDetails.Skeleton />;
-  }
 
   // Return null if no stats are available
-  if (!localState.deckStats) return null;
+  if (!deckStats) return null;
 
   const {
     meta_statistics: {
@@ -51,7 +18,7 @@ function CommanderDetails() {
       sample_size: { total_decks = 0 },
     },
     commanders,
-  } = localState.deckStats;
+  } = deckStats;
 
   return (
     <>
@@ -71,7 +38,7 @@ function CommanderDetails() {
           icon={<EmojiEventsIcon />}
           variant="winRate"
           type="percentage"
-          isLoading={localState.isLoading}
+          isLoading={isStatsLoading}
         />
         <StatCounter
           key={`draw-rate-${draw_rate}`}
@@ -80,7 +47,7 @@ function CommanderDetails() {
           icon={<BalanceIcon />}
           variant="drawRate"
           type="percentage"
-          isLoading={localState.isLoading}
+          isLoading={isStatsLoading}
         />
         <StatCounter
           key={`sample-size-${total_decks}`}
@@ -89,7 +56,7 @@ function CommanderDetails() {
           icon={<Inventory2Icon />}
           type="integer"
           variant="sampleSize"
-          isLoading={localState.isLoading}
+          isLoading={isStatsLoading}
           formatOptions={{
             separator: ',',
             suffix: ' decks',
@@ -100,5 +67,4 @@ function CommanderDetails() {
   );
 }
 
-CommanderDetails.Skeleton = CommanderDetailsSkeleton;
 export default CommanderDetails;

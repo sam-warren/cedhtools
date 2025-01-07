@@ -2,43 +2,35 @@ import React, { useState } from 'react';
 import { Box, FormControl, Select, Option, Button, FormLabel } from '@mui/joy';
 import { filterStyles } from 'src/styles';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
-import { fetchDeckData, fetchDeckStats } from 'src/store/slices/deckSlice';
+import {
+  fetchDeckStats,
+  updateFilterSettings,
+} from 'src/store/slices/deckSlice';
 import {
   TIME_PERIOD_OPTIONS,
   TOURNAMENT_SIZE_OPTIONS,
 } from 'src/constants/deckFilterOptions';
-
-interface FilterState {
-  timePeriod: string;
-  minSize: number;
-}
+import { FilterSettings } from 'src/types/store/rootState';
 
 const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
-  const [formState, setFormState] = useState<FilterState>({
-    timePeriod: 'all',
-    minSize: 0,
-  });
-
+  const [isAnimating, setIsAnimating] = useState(false);
   const dispatch = useAppDispatch();
-  const { isStatsLoading } = useAppSelector((state) => state.deck);
+  const filterSettings = useAppSelector((state) => state.deck.filterSettings);
+
   const handleApplyFilters = () => {
-    console.log('Applying filters:', {
-      timePeriod: formState.timePeriod,
-      minSize: formState.minSize,
-    });
+    setIsAnimating(true);
     dispatch(
       fetchDeckStats({
         deckId,
-        timePeriod: formState.timePeriod,
-        minSize: formState.minSize,
+        timePeriod: filterSettings.timePeriod,
+        minSize: filterSettings.minSize,
       }),
-    )
-      .unwrap()
-      .then((result) => {
-        console.log('Stats fetched:',
-          result,
-        );
-      });
+    ).finally(() => {
+      setIsAnimating(false);
+    });
+  };
+  const handleFilterChange = (newSettings: Partial<FilterSettings>) => {
+    dispatch(updateFilterSettings(newSettings));
   };
 
   return (
@@ -47,12 +39,9 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
         <FormControl size="sm" sx={filterStyles.formControl}>
           <FormLabel>time period</FormLabel>
           <Select
-            value={formState.timePeriod}
+            value={filterSettings.timePeriod}
             onChange={(_, value) =>
-              setFormState((prev) => ({
-                ...prev,
-                timePeriod: value || '1m',
-              }))
+              handleFilterChange({ timePeriod: value || 'ban' })
             }
             size="sm"
           >
@@ -67,12 +56,9 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
         <FormControl size="sm" sx={filterStyles.formControl}>
           <FormLabel>tournament size</FormLabel>
           <Select
-            value={formState.minSize}
+            value={filterSettings.minSize}
             onChange={(_, value) =>
-              setFormState((prev) => ({
-                ...prev,
-                minSize: value ?? 0,
-              }))
+              handleFilterChange({ minSize: value ?? 60 })
             }
             size="sm"
           >
@@ -89,7 +75,7 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
             onClick={handleApplyFilters}
             size="sm"
             variant="soft"
-            loading={isStatsLoading}
+            loading={isAnimating} // Use combined state
           >
             apply
           </Button>
