@@ -14,14 +14,12 @@ import { SymbologyInitializer } from './components/Providers/SymbologyInitialize
 import { AlertProvider } from './contexts/AlertContext';
 import { store } from './store';
 import theme from './theme';
-import { GlobalStyleProvider } from './components/Providers/GlobalStylesProvider';
 
 function CEDHTools() {
   return (
     <Provider store={store}>
       <BrowserRouter>
         <CssVarsProvider theme={theme}>
-          <GlobalStyleProvider>
             <CssBaseline />
             <AlertProvider>
               <SearchHistoryProvider>
@@ -43,7 +41,6 @@ function CEDHTools() {
                 </AppLayout.Root>
               </SearchHistoryProvider>
             </AlertProvider>
-          </GlobalStyleProvider>
         </CssVarsProvider>
       </BrowserRouter>
     </Provider>

@@ -9,10 +9,19 @@ import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
-  const { deckStats, isStatsLoading, error } = useAppSelector((state) => state.deck);
+  const { deckStats, deck, isStatsLoading, isDeckLoading, error } =
+    useAppSelector((state) => state.deck);
 
-  const { fadeInStyle } = useFadeAnimation({
-    data: deckStats,
+  // Separate fade for deck title area
+  const { fadeInStyle: titleFadeStyle } = useFadeAnimation({
+    data: deck,
+    isLoading: isDeckLoading,
+    error,
+  });
+
+  // Separate fade for stats content
+  const { fadeInStyle: contentFadeStyle } = useFadeAnimation({
+    data: deckStats?.card_statistics,
     isLoading: isStatsLoading,
     error,
   });
@@ -31,9 +40,11 @@ export default function DeckContent() {
   if (!deckStats) return null;
 
   return (
-    <Box sx={fadeInStyle}>
+    <Box>
+      {/* Title area gets its own fade animation */}
       <Box
         sx={{
+          ...titleFadeStyle,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
@@ -60,7 +71,7 @@ export default function DeckContent() {
       <Divider sx={{ mb: 2 }} />
 
       {/* Container for both views */}
-      <Box sx={{ minHeight: 0 }}>
+      <Box sx={{ minHeight: 0, ...contentFadeStyle }}>
         <Box
           sx={{
             position: 'relative',
@@ -76,7 +87,7 @@ export default function DeckContent() {
             startDecorator={<InfoIcon />}
             color="primary"
             variant="soft"
-            sx={{ gap: 2, }}
+            sx={{ gap: 2 }}
           >
             <Box>
               <Typography>No data found</Typography>

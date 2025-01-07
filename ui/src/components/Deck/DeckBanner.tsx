@@ -10,7 +10,6 @@ import { useFadeAnimation } from '../../hooks/useFadeAnimation'; // Adjust impor
 function DeckBanner() {
   const { deck, isDeckLoading, error } = useAppSelector((state) => state.deck);
 
-  // Use the improved fade animation hook
   const { fadeInStyle } = useFadeAnimation({
     data: deck,
     isLoading: isDeckLoading,
@@ -32,7 +31,6 @@ function DeckBanner() {
               rel="noopener noreferrer"
               sx={{
                 ...bannerStyles.authorLink,
-                ...fadeInStyle,
               }}
             >
               {author.displayName}
@@ -44,12 +42,7 @@ function DeckBanner() {
   };
 
   return (
-    <Box
-      sx={{
-        ...bannerStyles.container,
-        position: 'relative',
-      }}
-    >
+    <Box sx={bannerStyles.container}>
       <Box
         sx={{
           width: '100%',
@@ -60,7 +53,7 @@ function DeckBanner() {
       >
         <Box sx={bannerStyles.titleContainer}>
           {deck ? (
-            <Box sx={fadeInStyle}>
+            <Box sx={{ ...fadeInStyle }}>
               <Typography level="title-lg" sx={{ flexShrink: 0 }}>
                 Deck:{' '}
                 <Link
@@ -77,9 +70,7 @@ function DeckBanner() {
               </Typography>
             </Box>
           ) : (
-            <Box
-              sx={{ height: '100%', display: 'flex', alignItems: 'center' }}
-            />
+            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }} />
           )}
         </Box>
         <DeckFilters deckId={deck ? deck.publicId : ''} />

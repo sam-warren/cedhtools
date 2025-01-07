@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface UseFadeAnimationOptions {
   duration?: number;
@@ -12,43 +12,38 @@ export const useFadeAnimation = (
     data: any | null;
     error: string | null;
   },
-  options: UseFadeAnimationOptions = {}
+  options: UseFadeAnimationOptions = {},
 ) => {
-  const {
-    duration = 0.3,
-    delay = 0,
-    timingFunction = 'ease-out',
-  } = options;
-
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const previousDataRef = useRef<any | null>(null);
+  const { duration = 0.3, delay = 0, timingFunction = 'ease-out' } = options;
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Only trigger animation if:
-    // 1. Not loading
-    // 2. Data exists
-    // 3. No error
-    // 4. Data has changed from previous render
-    if (
-      !loadingState.isLoading && 
-      loadingState.data && 
-      !loadingState.error && 
-      loadingState.data !== previousDataRef.current
-    ) {
-      setShouldAnimate(true);
-      previousDataRef.current = loadingState.data;
+    let timeoutId: NodeJS.Timeout;
+
+    if (!loadingState.isLoading && loadingState.data && !loadingState.error) {
+      // Delay the visibility change slightly to ensure proper mounting
+      timeoutId = setTimeout(() => {
+        setIsVisible(true);
+      }, 50);
+    } else {
+      setIsVisible(false);
     }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [loadingState.isLoading, loadingState.data, loadingState.error]);
 
-  const fadeInStyle = shouldAnimate
-    ? {
-        animation: `fadeInContent ${duration}s ${timingFunction} ${delay}s forwards`,
-        opacity: 0,
-      }
-    : {};
+  const fadeInStyle = {
+    opacity: isVisible ? 1 : 0,
+    transition: `opacity ${duration}s ${timingFunction} ${delay}s`,
+    visibility: isVisible ? 'visible' : 'hidden',
+  };
 
   return {
     fadeInStyle,
-    isReady: shouldAnimate,
+    isReady: isVisible,
   };
 };
