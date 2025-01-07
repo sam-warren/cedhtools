@@ -1,3 +1,4 @@
+import { useEffect, useState, useRef } from 'react';
 
 export interface UseFadeAnimationOptions {
   duration?: number;
@@ -6,34 +7,48 @@ export interface UseFadeAnimationOptions {
 }
 
 export const useFadeAnimation = (
-  loadingState: { 
-    isLoading: boolean; 
-    data: any | null; 
-    error: string | null 
+  loadingState: {
+    isLoading: boolean;
+    data: any | null;
+    error: string | null;
   },
   options: UseFadeAnimationOptions = {}
 ) => {
   const {
     duration = 0.3,
     delay = 0,
-    timingFunction = 'ease-out'
+    timingFunction = 'ease-out',
   } = options;
 
-  // Determine the animation state
-  const shouldAnimate = !loadingState.isLoading && 
-                        loadingState.data !== null && 
-                        loadingState.error === null;
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const previousDataRef = useRef<any | null>(null);
+
+  useEffect(() => {
+    // Only trigger animation if:
+    // 1. Not loading
+    // 2. Data exists
+    // 3. No error
+    // 4. Data has changed from previous render
+    if (
+      !loadingState.isLoading && 
+      loadingState.data && 
+      !loadingState.error && 
+      loadingState.data !== previousDataRef.current
+    ) {
+      setShouldAnimate(true);
+      previousDataRef.current = loadingState.data;
+    }
+  }, [loadingState.isLoading, loadingState.data, loadingState.error]);
 
   const fadeInStyle = shouldAnimate
     ? {
         animation: `fadeInContent ${duration}s ${timingFunction} ${delay}s forwards`,
         opacity: 0,
-        display: 'inline-block'
       }
     : {};
 
   return {
     fadeInStyle,
-    isReady: shouldAnimate
+    isReady: shouldAnimate,
   };
 };

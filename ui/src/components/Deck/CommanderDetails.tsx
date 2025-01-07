@@ -1,15 +1,23 @@
 import BalanceIcon from '@mui/icons-material/Balance';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
-import { Box, Skeleton } from '@mui/joy';
+import { Box } from '@mui/joy';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
+import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
 
 function CommanderDetails() {
-  const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
+  const { deckStats, isStatsLoading, error } = useAppSelector(
+    (state) => state.deck,
+  );
 
-  // Return null if no stats are available
+  const { fadeInStyle } = useFadeAnimation({
+    data: deckStats,
+    isLoading: isStatsLoading,
+    error,
+  });
+
   if (!deckStats) return null;
 
   const {
@@ -29,6 +37,7 @@ function CommanderDetails() {
           flexDirection: 'column',
           gap: 1,
           width: '100%',
+          ...fadeInStyle,
         }}
       >
         <StatCounter

@@ -14,33 +14,36 @@ import { SymbologyInitializer } from './components/Providers/SymbologyInitialize
 import { AlertProvider } from './contexts/AlertContext';
 import { store } from './store';
 import theme from './theme';
+import { GlobalStyleProvider } from './components/Providers/GlobalStylesProvider';
 
 function CEDHTools() {
   return (
     <Provider store={store}>
       <BrowserRouter>
         <CssVarsProvider theme={theme}>
-          <CssBaseline />
-          <AlertProvider>
-            <SearchHistoryProvider>
-              <SymbologyInitializer />
-              <AppLayout.Root>
-                <AppAlert />
-                <AppLayout.Header>
-                  <Header />
-                </AppLayout.Header>
-                <AppLayout.Main>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/deck/:id" element={<DeckPage />} />
-                  </Routes>
-                </AppLayout.Main>
-                <AppLayout.Footer>
-                  <Footer />
-                </AppLayout.Footer>
-              </AppLayout.Root>
-            </SearchHistoryProvider>
-          </AlertProvider>
+          <GlobalStyleProvider>
+            <CssBaseline />
+            <AlertProvider>
+              <SearchHistoryProvider>
+                <SymbologyInitializer />
+                <AppLayout.Root>
+                  <AppAlert />
+                  <AppLayout.Header>
+                    <Header />
+                  </AppLayout.Header>
+                  <AppLayout.Main>
+                    <Routes>
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/deck/:id" element={<DeckPage />} />
+                    </Routes>
+                  </AppLayout.Main>
+                  <AppLayout.Footer>
+                    <Footer />
+                  </AppLayout.Footer>
+                </AppLayout.Root>
+              </SearchHistoryProvider>
+            </AlertProvider>
+          </GlobalStyleProvider>
         </CssVarsProvider>
       </BrowserRouter>
     </Provider>

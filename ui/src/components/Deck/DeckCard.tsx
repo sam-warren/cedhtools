@@ -5,59 +5,14 @@ import { useAppSelector } from 'src/hooks';
 import { useImageCache } from 'src/hooks/useImageCache';
 import { cardStyles } from 'src/styles';
 import { ICardStat } from 'src/types';
-
-const ImageWithLoading: React.FC<{
-  src: string;
-  alt: string;
-  onLoad?: () => void;
-  sx?: any;
-}> = ({ src, alt, onLoad, sx }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  return (
-    <Box
-      sx={{ position: 'relative', width: '100%', height: '100%', zIndex: 2 }}
-    >
-      <Box
-        component="img"
-        src={src}
-        alt={alt}
-        sx={{
-          ...sx,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          opacity: isLoaded ? 1 : 0,
-          transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onLoad={() => {
-          setIsLoaded(true);
-          onLoad?.();
-        }}
-      />
-      <Skeleton
-        variant="rectangular"
-        animation="pulse"
-        width="100%"
-        height="100%"
-        sx={{
-          ...sx,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          opacity: isLoaded ? 0 : 1,
-          transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      />
-    </Box>
-  );
-};
+import ImageWithLoading from './ImageWithLoading';
 
 interface DeckCardProps {
   card: ICardStat;
 }
 
 const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
+  // Hooks
   const { ref, inView } = useInView({
     threshold: 0,
     rootMargin: '200px 0px',
@@ -66,7 +21,6 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
   const theme = useTheme();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const { isStatsLoading } = useAppSelector((state) => state.deck);
-
   const { src: cachedSrc } = useImageCache(
     card.scryfall_id,
     card.image_uris.normal,

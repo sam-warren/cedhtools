@@ -1,16 +1,25 @@
-import React from 'react';
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import { Link } from '@mui/joy';
+
 import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
+import { useFadeAnimation } from '../../hooks/useFadeAnimation'; // Adjust import path as needed
 
 function DeckBanner() {
-  const { deck } = useAppSelector((state) => state.deck);
+  const { deck, isDeckLoading, error } = useAppSelector((state) => state.deck);
+
+  // Use the improved fade animation hook
+  const { fadeInStyle } = useFadeAnimation({
+    data: deck,
+    isLoading: isDeckLoading,
+    error,
+  });
 
   const renderAuthors = () => {
     if (!deck?.authors) return null;
+
     return (
       <>
         created by{' '}
@@ -23,12 +32,7 @@ function DeckBanner() {
               rel="noopener noreferrer"
               sx={{
                 ...bannerStyles.authorLink,
-                ...(deck
-                  ? {
-                      animation: 'fadeInContent 0.3s ease-out forwards',
-                      display: 'inline',
-                    }
-                  : {}),
+                ...fadeInStyle,
               }}
             >
               {author.displayName}
@@ -56,13 +60,7 @@ function DeckBanner() {
       >
         <Box sx={bannerStyles.titleContainer}>
           {deck ? (
-            <Box
-              sx={{
-                animation: 'fadeInContent 0.3s ease-out forwards',
-                opacity: 0,
-                display: 'inline-block',
-              }}
-            >
+            <Box sx={fadeInStyle}>
               <Typography level="title-lg" sx={{ flexShrink: 0 }}>
                 Deck:{' '}
                 <Link
@@ -86,18 +84,6 @@ function DeckBanner() {
         </Box>
         <DeckFilters deckId={deck ? deck.publicId : ''} />
       </Box>
-
-      {/* Global Fade-in Animation */}
-      <style>{`
-        @keyframes fadeInContent {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
     </Box>
   );
 }

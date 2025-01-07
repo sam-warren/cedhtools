@@ -4,18 +4,18 @@ import { useAppSelector } from 'src/hooks';
 import DeckGrid from './DeckGrid';
 import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
-  const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
-  const fadeInStyle = useFadeAnimation(isStatsLoading);
-  useEffect(() => {
-    console.log("stats loading: ", isStatsLoading);
-  }
-  , [isStatsLoading]);
+  const { deckStats, isStatsLoading, error } = useAppSelector((state) => state.deck);
 
+  const { fadeInStyle } = useFadeAnimation({
+    data: deckStats,
+    isLoading: isStatsLoading,
+    error,
+  });
 
   const numUniqueCards = useMemo(
     () =>
