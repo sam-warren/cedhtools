@@ -103,7 +103,7 @@ export default function StatCounter({
           {isMounted && (
             <CountUp
               start={0}
-              delay={0.5}
+              delay={1}
               end={displayValue}
               duration={duration}
               decimals={finalFormatOptions.decimals}

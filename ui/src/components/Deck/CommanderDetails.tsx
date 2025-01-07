@@ -22,7 +22,6 @@ function StatsSkeletonSection() {
 function CommanderDetails(): JSX.Element {
   const isStatsLoading = useAppSelector((state) => state.deck.isStatsLoading);
   const deckStats = useAppSelector((state) => state.deck.deckStats);
-  const error = useAppSelector((state) => state.deck.error);
 
   // Track initial commander load
   const [hasLoadedCommanders, setHasLoadedCommanders] = useState(false);
