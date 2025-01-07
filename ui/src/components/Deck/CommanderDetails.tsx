@@ -27,8 +27,9 @@ function CommanderDetails(): JSX.Element {
   // Track initial commander load
   const [hasLoadedCommanders, setHasLoadedCommanders] = useState(false);
   
-  // Track stats visibility state
-  const [showStatsSkeleton, setShowStatsSkeleton] = useState(true);
+  // Track both mount and visibility states
+  const [isMounted, setIsMounted] = useState({ skeleton: true, content: true });
+  const [opacity, setOpacity] = useState({ skeleton: 1, content: 0 });
 
   useEffect(() => {
     if (deckStats?.commanders && !hasLoadedCommanders) {
@@ -36,22 +37,20 @@ function CommanderDetails(): JSX.Element {
     }
   }, [deckStats?.commanders]);
 
-  // Handle stats loading state changes with shorter delay
+  // Handle stats loading state changes
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    
     if (isStatsLoading) {
-      setShowStatsSkeleton(true);
+      // First show skeleton
+      setIsMounted({ skeleton: true, content: true });
+      setOpacity({ skeleton: 1, content: 0 });
     } else if (deckStats) {
-      // Reduced delay for snappier transitions
-      timeout = setTimeout(() => {
-        setShowStatsSkeleton(false);
-      }, 0);
+      // Then transition to content
+      setOpacity({ skeleton: 0, content: 1 });
+      // Only unmount skeleton after transition
+      setTimeout(() => {
+        setIsMounted(prev => ({ ...prev, skeleton: false }));
+      }, 150);
     }
-
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
   }, [isStatsLoading, deckStats]);
 
   const memoizedCommanders = useMemo(
@@ -63,13 +62,6 @@ function CommanderDetails(): JSX.Element {
   const draw_rate = deckStats?.meta_statistics?.baseline_performance?.draw_rate ?? 0;
   const total_decks = deckStats?.meta_statistics?.sample_size?.total_decks ?? 0;
 
-  const transitionStyles = {
-    opacity: 1,
-    transition: 'opacity 150ms ease-out',
-    transform: 'translateZ(0)', // Force GPU acceleration for smoother transitions
-    willChange: 'opacity', // Hint to browser about upcoming changes
-  };
-
   return (
     <Box sx={{ position: 'relative', width: '100%' }}>
       <CommanderStack 
@@ -78,41 +70,61 @@ function CommanderDetails(): JSX.Element {
       />
       
       {/* Stats section */}
-      {showStatsSkeleton ? (
-        <Box sx={transitionStyles}>
-          <StatsSkeletonSection />
-        </Box>
-      ) : (
-        <Box sx={transitionStyles}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
-            <StatCounter
-              value={win_rate}
-              label="average win rate"
-              icon={<EmojiEventsIcon />}
-              variant="winRate"
-              type="percentage"
-            />
-            <StatCounter
-              value={draw_rate}
-              label="average draw rate"
-              icon={<BalanceIcon />}
-              variant="drawRate"
-              type="percentage"
-            />
-            <StatCounter
-              value={total_decks}
-              label="sample size"
-              icon={<Inventory2Icon />}
-              type="integer"
-              variant="sampleSize"
-              formatOptions={{
-                separator: ',',
-                suffix: ' decks',
-              }}
-            />
+      <Box sx={{ position: 'relative' }}>
+        {/* Skeleton layer */}
+        {isMounted.skeleton && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              opacity: opacity.skeleton,
+              transition: 'opacity 150ms ease-out',
+            }}
+          >
+            <StatsSkeletonSection />
           </Box>
-        </Box>
-      )}
+        )}
+
+        {/* Content layer */}
+        {isMounted.content && (
+          <Box
+            sx={{
+              opacity: opacity.content,
+              transition: 'opacity 150ms ease-out',
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+              <StatCounter
+                value={win_rate}
+                label="average win rate"
+                icon={<EmojiEventsIcon />}
+                variant="winRate"
+                type="percentage"
+              />
+              <StatCounter
+                value={draw_rate}
+                label="average draw rate"
+                icon={<BalanceIcon />}
+                variant="drawRate"
+                type="percentage"
+              />
+              <StatCounter
+                value={total_decks}
+                label="sample size"
+                icon={<Inventory2Icon />}
+                type="integer"
+                variant="sampleSize"
+                formatOptions={{
+                  separator: ',',
+                  suffix: ' decks',
+                }}
+              />
+            </Box>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }
