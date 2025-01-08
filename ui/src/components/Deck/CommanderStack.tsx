@@ -1,4 +1,3 @@
-// CommanderStack.tsx
 import { Box, Typography } from '@mui/joy';
 import React from 'react';
 import CommanderCard from './CommanderCard';
@@ -7,7 +6,7 @@ import { ICommanderDetail } from 'src/types';
 
 interface CommanderStackProps {
   commanders: ICommanderDetail[];
-  isInitialLoad?: boolean;
+  isInitialLoad: boolean;
 }
 
 const CommanderStack: React.FC<CommanderStackProps> = ({
@@ -21,7 +20,7 @@ const CommanderStack: React.FC<CommanderStackProps> = ({
       </Box>
     );
   }
-
+  
   if (commanders.length === 0) {
     return (
       <Box>

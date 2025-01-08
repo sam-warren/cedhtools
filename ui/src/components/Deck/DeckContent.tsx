@@ -12,16 +12,18 @@ export default function DeckContent() {
   const { deckStats, deck, isStatsLoading, isDeckLoading, error } =
     useAppSelector((state) => state.deck);
 
-  // Track initial load - now wait for both deck AND stats
   const [hasLoadedTitle, setHasLoadedTitle] = useState(false);
 
   useEffect(() => {
     if (deck && deckStats && !isStatsLoading && !hasLoadedTitle) {
-      setHasLoadedTitle(true);
+      // Add small delay to allow content to be rendered before transition starts
+      const timer = setTimeout(() => {
+        setHasLoadedTitle(true);
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [deck, deckStats, isStatsLoading, hasLoadedTitle]);
 
-  // Separate fade for stats content
   const { fadeInStyle: contentFadeStyle } = useFadeAnimation({
     data: deckStats?.card_statistics,
     isLoading: isStatsLoading,
@@ -39,6 +41,10 @@ export default function DeckContent() {
     [deckStats],
   );
 
+  const commanderName = deckStats?.commanders
+    .map((commander) => commander.name)
+    .join(' + ');
+
   return (
     <Box>
       <Box
@@ -48,35 +54,50 @@ export default function DeckContent() {
           alignItems: 'flex-start',
           mt: 2,
           mb: 2,
+          height: '3.75rem', // Fixed height to match content
         }}
       >
-        <Box>
-          {!hasLoadedTitle ? (
-            // Keep skeleton until ALL data is ready
-            <Box>
-              <Skeleton variant="text" level="h2" width="300px" />
-              <Skeleton
-                variant="text"
-                level="body-sm"
-                width="150px"
-                sx={{ mt: 1 }}
-              />
-            </Box>
-          ) : (
-            // Content state - only shown when everything is loaded
-            <Box>
-              <Typography level="h2">
-                {deckStats?.commanders
-                  .map((commander) => commander.name)
-                  .join(' + ')}
-              </Typography>
-              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                {numUniqueCards === 0
-                  ? 'No cards found'
-                  : `${numUniqueCards} unique cards`}
-              </Typography>
-            </Box>
-          )}
+        <Box sx={{ flex: 1 }}>
+          <Box
+            sx={{
+              opacity: hasLoadedTitle ? 0 : 1,
+              display: hasLoadedTitle ? 'none' : 'block',
+              transition:
+                'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+              transform: hasLoadedTitle ? 'translateY(0)' : 'translateY(-4px)',
+            }}
+          >
+            <Skeleton variant="text" level="h2" width="300px" />
+            <Skeleton
+              variant="text"
+              level="body-sm"
+              width="150px"
+              sx={{ mt: 0.5 }}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              opacity: hasLoadedTitle ? 1 : 0,
+              display: hasLoadedTitle ? 'block' : 'none',
+              transition:
+                'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+              transform: hasLoadedTitle ? 'translateY(4px)' : 'translateY(0)',
+            }}
+          >
+            <Typography level="h2">{commanderName}</Typography>
+            <Typography
+              level="body-sm"
+              sx={{
+                color: 'text.secondary',
+                mt: 0.5,
+              }}
+            >
+              {numUniqueCards === 0
+                ? 'No cards found'
+                : `${numUniqueCards} unique cards`}
+            </Typography>
+          </Box>
         </Box>
 
         <Box sx={{ mt: 1 }}>

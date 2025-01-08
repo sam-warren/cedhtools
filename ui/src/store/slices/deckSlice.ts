@@ -28,7 +28,7 @@ const initialState: DeckState = {
   statsCache: {},
   filterSettings: {
     timePeriod: 'ban',
-    minSize: 60
+    minSize: 30
   }
 };
 

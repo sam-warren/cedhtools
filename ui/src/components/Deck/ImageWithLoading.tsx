@@ -1,6 +1,5 @@
 import { Skeleton, Box } from '@mui/joy';
 import React, { useState } from 'react';
-import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
 
 const ImageWithLoading: React.FC<{
   src: string;
@@ -9,18 +8,6 @@ const ImageWithLoading: React.FC<{
   sx?: any;
 }> = ({ src, alt, onLoad, sx }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-
-  const { fadeInStyle: skeletonFade } = useFadeAnimation({
-    isLoading: isLoaded,
-    data: src,
-    error: null,
-  });
-
-  const { fadeInStyle: cardFade } = useFadeAnimation({
-    isLoading: !isLoaded,
-    data: src,
-    error: null,
-  });
 
   return (
     <Box
@@ -35,7 +22,8 @@ const ImageWithLoading: React.FC<{
           position: 'absolute',
           top: 0,
           left: 0,
-          ...cardFade,
+          opacity: isLoaded ? 1 : 0,
+          transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
         onLoad={() => {
           setIsLoaded(true);
@@ -49,10 +37,11 @@ const ImageWithLoading: React.FC<{
         height="100%"
         sx={{
           ...sx,
-          ...skeletonFade,
           position: 'absolute',
           top: 0,
           left: 0,
+          opacity: isLoaded ? 0 : 1,
+          transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       />
     </Box>

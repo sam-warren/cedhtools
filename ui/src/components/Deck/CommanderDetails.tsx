@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import BalanceIcon from '@mui/icons-material/Balance';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
@@ -6,12 +6,13 @@ import { Box } from '@mui/joy';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
-import { useMemo } from 'react';
 import { ICommanderDetail } from 'src/types';
 
 function StatsSkeletonSection() {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+    <Box
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}
+    >
       <StatCounter.Skeleton />
       <StatCounter.Skeleton />
       <StatCounter.Skeleton />
@@ -23,51 +24,56 @@ function CommanderDetails(): JSX.Element {
   const isStatsLoading = useAppSelector((state) => state.deck.isStatsLoading);
   const deckStats = useAppSelector((state) => state.deck.deckStats);
 
-  // Track initial commander load
-  const [hasLoadedCommanders, setHasLoadedCommanders] = useState(false);
-  
-  // Track both mount and visibility states
-  const [isMounted, setIsMounted] = useState({ skeleton: true, content: true });
+  const [isMounted, setIsMounted] = useState({
+    skeleton: true,
+    content: false,
+  });
   const [opacity, setOpacity] = useState({ skeleton: 1, content: 0 });
 
-  useEffect(() => {
-    if (deckStats?.commanders && !hasLoadedCommanders) {
-      setHasLoadedCommanders(true);
-    }
-  }, [deckStats?.commanders]);
+  // Track if we've shown content at least once
+  const [hasShownContent, setHasShownContent] = useState(false);
 
   // Handle stats loading state changes
   useEffect(() => {
-    if (isStatsLoading) {
-      // First show skeleton
+    if (!hasShownContent && deckStats) {
+      // First time showing content
+      setHasShownContent(true);
       setIsMounted({ skeleton: true, content: true });
-      setOpacity({ skeleton: 1, content: 0 });
-    } else if (deckStats) {
-      // Then transition to content
-      setOpacity({ skeleton: 0, content: 1 });
-      // Only unmount skeleton after transition
+
+      // Brief delay to ensure content is mounted
       setTimeout(() => {
-        setIsMounted(prev => ({ ...prev, skeleton: false }));
-      }, 0);
+        setOpacity({ skeleton: 0, content: 1 });
+
+        // Unmount skeleton after transition
+        setTimeout(() => {
+          setIsMounted((prev) => ({ ...prev, skeleton: false }));
+        }, 150);
+      }, 50);
+    } else if (isStatsLoading) {
+      // Subsequent loading states - don't remount skeleton if we've shown content
+      if (!hasShownContent) {
+        setIsMounted({ skeleton: true, content: false });
+        setOpacity({ skeleton: 1, content: 0 });
+      }
     }
-  }, [isStatsLoading, deckStats]);
+  }, [isStatsLoading, deckStats, hasShownContent]);
 
   const memoizedCommanders = useMemo(
     () => (deckStats?.commanders ?? []) as ICommanderDetail[],
     [deckStats?.commanders],
   );
 
-  const win_rate = deckStats?.meta_statistics?.baseline_performance?.win_rate ?? 0;
-  const draw_rate = deckStats?.meta_statistics?.baseline_performance?.draw_rate ?? 0;
-  const total_decks = deckStats?.meta_statistics?.sample_size?.total_decks ?? 0;
+  const win_rate = deckStats?.meta_statistics?.baseline_performance?.win_rate;
+  const draw_rate = deckStats?.meta_statistics?.baseline_performance?.draw_rate;
+  const total_decks = deckStats?.meta_statistics?.sample_size?.total_decks;
 
   return (
     <Box sx={{ position: 'relative', width: '100%' }}>
-      <CommanderStack 
-        commanders={memoizedCommanders} 
-        isInitialLoad={!hasLoadedCommanders}
+      <CommanderStack
+        commanders={memoizedCommanders}
+        isInitialLoad={isStatsLoading || !deckStats}
       />
-      
+
       {/* Stats section */}
       <Box sx={{ position: 'relative' }}>
         {/* Skeleton layer */}
@@ -94,7 +100,14 @@ function CommanderDetails(): JSX.Element {
               transition: 'opacity 150ms ease-out',
             }}
           >
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                width: '100%',
+              }}
+            >
               <StatCounter
                 value={win_rate}
                 label="average win rate"
