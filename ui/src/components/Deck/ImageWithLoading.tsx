@@ -1,18 +1,20 @@
 import { Skeleton, Box } from '@mui/joy';
 import React, { useState } from 'react';
 import { ANIMATION_DURATIONS } from 'src/constants/animations';
-
-const ImageWithLoading: React.FC<{
+interface ImageWithLoadingProps {
   src: string;
   alt: string;
   onLoad?: () => void;
   sx?: any;
-}> = ({ src, alt, onLoad, sx }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+}
 
-  const transitionStyle = {
-    transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-  };
+const ImageWithLoading: React.FC<ImageWithLoadingProps> = ({
+  src,
+  alt,
+  onLoad,
+  sx,
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
 
   return (
     <Box
@@ -28,7 +30,7 @@ const ImageWithLoading: React.FC<{
           top: 0,
           left: 0,
           opacity: isLoaded ? 1 : 0,
-          ...transitionStyle,
+          transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
         onLoad={() => {
           setIsLoaded(true);
@@ -46,7 +48,7 @@ const ImageWithLoading: React.FC<{
           top: 0,
           left: 0,
           opacity: isLoaded ? 0 : 1,
-          ...transitionStyle,
+          transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
       />
     </Box>
