@@ -1,51 +1,93 @@
-// src/components/DeckBanner.tsx
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import { Link, Skeleton } from '@mui/joy';
-
 import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
-import LoadingWrapper from '../Feedback/LoadingWrapper';
+import TransitionWrapper from '../Feedback/TransitionWrapper';
 
-const DeckBannerSkeleton = () => {
+const DeckBannerSkeleton = () => (
+  <Box
+    sx={{
+      ...bannerStyles.titleContainer,
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+    }}
+  >
+    <Typography
+      level="title-lg"
+      sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
+    >
+      <Skeleton variant="text" level="title-lg" width="500px" />
+    </Typography>
+    <Typography
+      level="body-sm"
+      color="neutral"
+      sx={{ display: 'flex', alignItems: 'center' }}
+    >
+      <Skeleton variant="text" level="body-sm" width="250px" />
+    </Typography>
+  </Box>
+);
+
+const AuthorsList = ({
+  authors,
+}: {
+  authors?: Array<{ userName: string; displayName: string }>;
+}) => {
+  if (!authors?.length) return null;
+
   return (
-    <Box sx={bannerStyles.titleContainer}>
-      <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-        <Skeleton variant="text" level="title-lg" width="500px"/>
-      </Typography>
-      <Typography level="body-sm" color="neutral">
-        <Skeleton variant="text" level="body-sm" width="250px"/>
-      </Typography>
-    </Box>
+    <>
+      created by{' '}
+      {authors.map((author, index) => (
+        <span key={author.userName}>
+          {index > 0 && ', '}
+          <Link
+            href={`https://www.moxfield.com/users/${author.userName}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={bannerStyles.authorLink}
+          >
+            {author.displayName}
+          </Link>
+        </span>
+      ))}
+    </>
   );
 };
 
-// DeckBanner.tsx
+const DeckContent = ({ deck }: { deck: any }) => (
+  <Box
+    sx={{
+      ...bannerStyles.titleContainer,
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+    }}
+  >
+    <Typography level="title-lg" sx={{ flexShrink: 0 }}>
+      <Link
+        href={deck?.publicUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={bannerStyles.authorLink}
+      >
+        {deck?.name || ''}
+      </Link>
+    </Typography>
+    <Typography level="body-sm" color="neutral">
+      <AuthorsList authors={deck?.authors} />
+    </Typography>
+  </Box>
+);
+
 function DeckBanner() {
   const { deck, isDeckLoading } = useAppSelector((state) => state.deck);
-  
-  const renderAuthors = () => {
-    if (!deck?.authors) return null;
-    return (
-      <>
-        created by{' '}
-        {deck.authors.map((author, index) => (
-          <span key={author.userName}>
-            {index > 0 && ', '}
-            <Link
-              href={`https://www.moxfield.com/users/${author.userName}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={bannerStyles.authorLink}
-            >
-              {author.displayName}
-            </Link>
-          </span>
-        ))}
-      </>
-    );
-  };
+  const isLoading = isDeckLoading || !deck;
 
   return (
     <Box sx={bannerStyles.container}>
@@ -57,27 +99,19 @@ function DeckBanner() {
           justifyContent: 'space-between',
         }}
       >
-        <LoadingWrapper
-          loading={isDeckLoading}
+        <TransitionWrapper
+          loading={isLoading}
           skeleton={<DeckBannerSkeleton />}
+          sx={{
+            height: '4rem',
+            display: 'flex',
+            alignItems: 'center',
+          }}
         >
-          <Box sx={bannerStyles.titleContainer}>
-            <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-              <Link
-                href={deck?.publicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={bannerStyles.authorLink}
-              >
-                {deck?.name || ''}
-              </Link>
-            </Typography>
-            <Typography level="body-sm" color="neutral">
-              {renderAuthors()}
-            </Typography>
-          </Box>
-        </LoadingWrapper>
-        <DeckFilters deckId={deck ? deck.publicId : ''} />
+          <DeckContent deck={deck} />
+        </TransitionWrapper>
+
+        <DeckFilters deckId={deck?.publicId || ''} />
       </Box>
     </Box>
   );

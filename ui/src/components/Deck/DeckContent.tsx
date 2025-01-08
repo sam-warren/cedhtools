@@ -5,7 +5,57 @@ import DeckGrid from './DeckGrid';
 import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
 import { useMemo } from 'react';
-import LoadingWrapper from '../Feedback/LoadingWrapper';
+import TransitionWrapper from '../Feedback/TransitionWrapper';
+
+const NoDataAlert = () => (
+  <Alert
+    startDecorator={<InfoIcon />}
+    color="primary"
+    variant="soft"
+    sx={{ gap: 2, mb: 2 }}
+  >
+    <Box>
+      <Typography>No data found</Typography>
+      <Typography level="body-sm">
+        We don't have enough data for this commander given the search filter
+        criteria.
+      </Typography>
+    </Box>
+  </Alert>
+);
+
+const CardDisplay = ({ viewMode }: { viewMode: 'list' | 'grid' }) => (
+  <Box
+    sx={{
+      display: 'grid',
+      '& > div': {
+        gridArea: '1 / 1',
+        opacity: 0,
+        visibility: 'hidden',
+        transition: 'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
+      },
+      '& > div[data-active="true"]': {
+        opacity: 1,
+        visibility: 'visible',
+      },
+    }}
+  >
+    <Box data-active={viewMode === 'list'}>
+      <DeckList />
+    </Box>
+    <Box data-active={viewMode === 'grid'}>
+      <DeckGrid />
+    </Box>
+  </Box>
+);
+
+interface DeckStats {
+  card_statistics: {
+    main: Record<string, any[]>;
+    other: any[];
+  };
+  commanders: Array<{ name: string }>;
+}
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
@@ -13,20 +63,22 @@ export default function DeckContent() {
     (state) => state.deck,
   );
 
-  const numUniqueCards = useMemo(
-    () =>
-      deckStats
-        ? Object.values(deckStats.card_statistics.main).reduce(
-            (acc, cards) => acc + cards.length,
-            0,
-          ) + deckStats.card_statistics.other.length
-        : 0,
-    [deckStats],
-  );
+  const isLoading = isStatsLoading || isDeckLoading || !deckStats;
 
-  const commanderName = deckStats?.commanders
-    .map((commander) => commander.name)
-    .join(' + ');
+  const numUniqueCards = useMemo(() => {
+    if (!deckStats) return 0;
+    return (
+      Object.values(deckStats.card_statistics.main).reduce(
+        (acc, cards) => acc + cards.length,
+        0,
+      ) + deckStats.card_statistics.other.length
+    );
+  }, [deckStats]);
+
+  const commanderName = useMemo(() => {
+    if (isLoading) return '';
+    return deckStats?.commanders.map((commander) => commander.name).join(' + ');
+  }, [deckStats, isLoading]);
 
   const showNoData = !isStatsLoading && numUniqueCards === 0;
   const showCardDisplay = !isStatsLoading && numUniqueCards > 0;
@@ -47,15 +99,15 @@ export default function DeckContent() {
         <Box
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}
         >
-          <LoadingWrapper
-            loading={isDeckLoading || isStatsLoading}
+          <TransitionWrapper
+            loading={isLoading}
             skeleton={<Skeleton variant="text" level="h2" width="600px" />}
-            staticRender={true}
+            staticRender
           >
-            <Typography level="h2">{commanderName || 'Commander'}</Typography>
-          </LoadingWrapper>
+            <Typography level="h2">{commanderName}</Typography>
+          </TransitionWrapper>
 
-          <LoadingWrapper loading={isStatsLoading} when={!!deckStats}>
+          <TransitionWrapper.Section when={!!deckStats}>
             <Typography
               level="body-sm"
               sx={{
@@ -67,7 +119,7 @@ export default function DeckContent() {
                 ? 'No cards found'
                 : `${numUniqueCards} unique cards`}
             </Typography>
-          </LoadingWrapper>
+          </TransitionWrapper.Section>
         </Box>
 
         <Box sx={{ mt: 1 }}>
@@ -78,52 +130,15 @@ export default function DeckContent() {
       <Divider sx={{ mb: 2 }} />
 
       {/* Main Content Section */}
-      <LoadingWrapper loading={isStatsLoading}>
-        {/* No Data Alert */}
-        <LoadingWrapper loading={!showNoData} when={showNoData}>
-          <Alert
-            startDecorator={<InfoIcon />}
-            color="primary"
-            variant="soft"
-            sx={{ gap: 2, mb: 2 }}
-          >
-            <Box>
-              <Typography>No data found</Typography>
-              <Typography level="body-sm">
-                We don't have enough data for this commander given the search
-                filter criteria.
-              </Typography>
-            </Box>
-          </Alert>
-        </LoadingWrapper>
+      <TransitionWrapper loading={isStatsLoading}>
+        <TransitionWrapper.Section when={showNoData}>
+          <NoDataAlert />
+        </TransitionWrapper.Section>
 
-        {/* Card Display */}
-        <LoadingWrapper loading={!showCardDisplay} when={showCardDisplay}>
-          <Box
-            sx={{
-              display: 'grid',
-              '& > div': {
-                gridArea: '1 / 1',
-                opacity: 0,
-                visibility: 'hidden',
-                transition:
-                  'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
-              },
-              '& > div[data-active="true"]': {
-                opacity: 1,
-                visibility: 'visible',
-              },
-            }}
-          >
-            <Box data-active={viewMode === 'list'}>
-              <DeckList />
-            </Box>
-            <Box data-active={viewMode === 'grid'}>
-              <DeckGrid />
-            </Box>
-          </Box>
-        </LoadingWrapper>
-      </LoadingWrapper>
+        <TransitionWrapper.Section when={showCardDisplay}>
+          <CardDisplay viewMode={viewMode} />
+        </TransitionWrapper.Section>
+      </TransitionWrapper>
     </Box>
   );
 }

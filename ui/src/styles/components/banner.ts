@@ -12,7 +12,6 @@ export const bannerStyles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     flexShrink: 0,
-    // Remove fixed height and let content determine it
     minHeight: `${cardConstants.BANNER_HEIGHT}px`,
   },
   titleContainer: {
