@@ -54,7 +54,7 @@ export default function DeckContent() {
           alignItems: 'flex-start',
           mt: 2,
           mb: 2,
-          height: '3.75rem', // Fixed height to match content
+          height: '3.75rem',
         }}
       >
         <Box sx={{ flex: 1 }}>

@@ -36,6 +36,6 @@ export const deckPageLayout = {
     pb: 2,
     pt: 2,
     pr: 4,
-    pl: `${GLOW_PADDING}px`, // Add padding for the glow effect
+    pl: `${GLOW_PADDING}px`,
   },
 } as const;
