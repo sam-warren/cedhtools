@@ -5,17 +5,16 @@ import { useInView } from 'react-intersection-observer';
 import { useAppSelector } from 'src/hooks';
 import { getSortedSections, organizeRows } from 'src/utilities/gridUtils';
 import DeckSection from './DeckSection';
+import { conditionalStyles } from 'src/styles/layouts/conditional';
 
 const CARD_WIDTH = 200;
 const CARD_GAP = 16;
 
 const GridRow = React.memo(function GridRow({
   row,
-  cardsPerRow,
   inView,
 }: {
   row: { typeCode: string; cards: any[] }[];
-  cardsPerRow: number;
   inView: boolean;
 }) {
   return (
@@ -39,7 +38,7 @@ const GridRow = React.memo(function GridRow({
           {inView ? (
             <DeckSection typeCode={typeCode} cards={cards} />
           ) : (
-            <Box></Box>
+            <Box sx={conditionalStyles(false)} />
           )}
         </Box>
       ))}
@@ -77,7 +76,6 @@ const DeckGrid = React.memo(function DeckGrid() {
     const updateTimer = setTimeout(() => {
       setIsReady(true);
     }, 50);
-
     return () => clearTimeout(updateTimer);
   }, [deckStats, isStatsLoading, isInitialized]);
 
@@ -126,8 +124,9 @@ const DeckGrid = React.memo(function DeckGrid() {
       sx={{
         width: '100%',
         position: 'relative',
-        opacity: isReady ? 1 : 0,
-        transition: 'opacity 0.3s ease-in-out',
+        ...conditionalStyles(isReady, {
+          transition: 'opacity 0.3s ease-in-out',
+        }),
       }}
     >
       <Box
@@ -143,7 +142,6 @@ const DeckGrid = React.memo(function DeckGrid() {
           <GridRow
             key={index}
             row={row}
-            cardsPerRow={cardsPerRow}
             inView={inView}
           />
         ))}

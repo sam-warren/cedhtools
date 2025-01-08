@@ -3,7 +3,11 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
-import { fetchDeckData, clearError, clearDeckData } from 'src/store/slices/deckSlice';
+import {
+  fetchDeckData,
+  clearError,
+  clearDeckData,
+} from 'src/store/slices/deckSlice';
 import DeckBanner from 'src/components/Deck/DeckBanner';
 import { DeckPageLayout } from 'src/components/Layout/DeckPageLayout';
 import CommanderDetails from 'src/components/Deck/CommanderDetails';
@@ -11,24 +15,26 @@ import ErrorModal from 'src/components/Feedback/ErrorModal';
 import DeckContent from 'src/components/Deck/DeckContent';
 
 export default function DeckPage() {
-  const { id } = useParams<{ id: string }>();
+  const { deckId, uniqueCardId, commanderId } = useParams<{
+    deckId?: string;
+    uniqueCardId?: string;
+    commanderId?: string;
+  }>();
   const dispatch = useAppDispatch();
-  const {
-    error,
-    filterSettings,
-  } = useAppSelector((state) => state.deck);
+  const { error, filterSettings } = useAppSelector((state) => state.deck);
 
   const { addSearch } = useSearchHistory();
+  console.log('DeckPage', { deckId, uniqueCardId, commanderId });
 
   useEffect(() => {
-    if (!id) return;
+    if (!deckId) return;
 
     dispatch(clearDeckData());
 
     // Initial load with current filter settings
     dispatch(
       fetchDeckData({
-        deckId: id,
+        deckId: deckId,
         timePeriod: filterSettings.timePeriod, // Uses initial state values
         minSize: filterSettings.minSize,
       }),
@@ -41,11 +47,11 @@ export default function DeckPage() {
           publicUrl: result.deck.publicUrl,
         });
       });
-  }, [id]);
+  }, [deckId]);
 
   const handleRetry = () => {
-    if (id) {
-      dispatch(fetchDeckData({ deckId: id }));
+    if (deckId) {
+      dispatch(fetchDeckData({ deckId: deckId }));
     }
   };
 

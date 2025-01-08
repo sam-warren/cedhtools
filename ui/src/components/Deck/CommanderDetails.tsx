@@ -7,6 +7,7 @@ import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
 import { ICommanderDetail } from 'src/types';
+import { conditionalStyles } from 'src/styles/layouts/conditional';
 
 function StatsSkeletonSection() {
   return (
@@ -28,7 +29,6 @@ function CommanderDetails(): JSX.Element {
     skeleton: true,
     content: false,
   });
-  const [opacity, setOpacity] = useState({ skeleton: 1, content: 0 });
 
   // Track if we've shown content at least once
   const [hasShownContent, setHasShownContent] = useState(false);
@@ -42,18 +42,15 @@ function CommanderDetails(): JSX.Element {
 
       // Brief delay to ensure content is mounted
       setTimeout(() => {
-        setOpacity({ skeleton: 0, content: 1 });
-
         // Unmount skeleton after transition
         setTimeout(() => {
           setIsMounted((prev) => ({ ...prev, skeleton: false }));
-        }, 150);
+        }, 300);
       }, 50);
     } else if (isStatsLoading) {
       // Subsequent loading states - don't remount skeleton if we've shown content
       if (!hasShownContent) {
         setIsMounted({ skeleton: true, content: false });
-        setOpacity({ skeleton: 1, content: 0 });
       }
     }
   }, [isStatsLoading, deckStats, hasShownContent]);
@@ -77,29 +74,20 @@ function CommanderDetails(): JSX.Element {
       {/* Stats section */}
       <Box sx={{ position: 'relative' }}>
         {/* Skeleton layer */}
-        {isMounted.skeleton && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              opacity: opacity.skeleton,
-              transition: 'opacity 150ms ease-in-out',
-            }}
-          >
-            <StatsSkeletonSection />
-          </Box>
-        )}
+        <Box
+          sx={conditionalStyles(isMounted.skeleton, {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+          })}
+        >
+          <StatsSkeletonSection />
+        </Box>
 
         {/* Content layer */}
         {isMounted.content && (
-          <Box
-            sx={{
-              opacity: opacity.content,
-              transition: 'opacity 150ms ease-in-out',
-            }}
-          >
+          <Box sx={conditionalStyles(isMounted && !isMounted.skeleton)}>
             <Box
               sx={{
                 display: 'flex',

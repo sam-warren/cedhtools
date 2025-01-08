@@ -28,7 +28,11 @@ function CEDHTools() {
               <AppLayout.Main>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
-                  <Route path="/deck/:id" element={<DeckPage />} />
+                  <Route path="/deck/:deckId" element={<DeckPage />} />
+                  <Route path="/deck/:deckId/card/:uniqueCardId" element={<DeckPage />} />
+                  <Route path="/commander/:commanderId" element={<DeckPage />} />
+                  <Route path="/commander/:commanderId/card/:uniqueCardId" element={<DeckPage />} />
+                  <Route path="*" element={<LandingPage />} />
                 </Routes>
               </AppLayout.Main>
               <AppLayout.Footer>

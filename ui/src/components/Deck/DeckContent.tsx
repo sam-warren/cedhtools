@@ -6,6 +6,7 @@ import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
 import { useMemo, useState, useEffect } from 'react';
 import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
+import { conditionalStyles } from 'src/styles/layouts/conditional';
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
@@ -16,7 +17,6 @@ export default function DeckContent() {
 
   useEffect(() => {
     if (deck && deckStats && !isStatsLoading && !hasLoadedTitle) {
-      // Add small delay to allow content to be rendered before transition starts
       const timer = setTimeout(() => {
         setHasLoadedTitle(true);
       }, 10);
@@ -58,14 +58,11 @@ export default function DeckContent() {
         }}
       >
         <Box sx={{ flex: 1 }}>
+          {/* Loading Title */}
           <Box
-            sx={{
-              opacity: hasLoadedTitle ? 0 : 1,
-              display: hasLoadedTitle ? 'none' : 'block',
-              transition:
-                'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+            sx={conditionalStyles(!hasLoadedTitle, {
               transform: hasLoadedTitle ? 'translateY(0)' : 'translateY(-4px)',
-            }}
+            })}
           >
             <Skeleton variant="text" level="h2" width="300px" />
             <Skeleton
@@ -76,14 +73,11 @@ export default function DeckContent() {
             />
           </Box>
 
+          {/* Loaded Title */}
           <Box
-            sx={{
-              opacity: hasLoadedTitle ? 1 : 0,
-              display: hasLoadedTitle ? 'block' : 'none',
-              transition:
-                'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+            sx={conditionalStyles(hasLoadedTitle, {
               transform: hasLoadedTitle ? 'translateY(4px)' : 'translateY(0)',
-            }}
+            })}
           >
             <Typography level="h2">{commanderName}</Typography>
             <Typography
@@ -109,16 +103,11 @@ export default function DeckContent() {
 
       {deckStats && !isStatsLoading && (
         <Box sx={{ minHeight: 0, ...contentFadeStyle }}>
+          {/* No Data Alert */}
           <Box
-            sx={{
-              position: 'relative',
-              visibility: 'visible',
-              opacity: numUniqueCards === 0 ? 1 : 0,
+            sx={conditionalStyles(numUniqueCards === 0, {
               height: numUniqueCards === 0 ? 'auto' : 0,
-              overflow: numUniqueCards === 0 ? 'visible' : 'hidden',
-              transition: 'opacity 0.3s ease-in-out, height 0.3s ease-in-out',
-              pointerEvents: numUniqueCards === 0 ? 'auto' : 'none',
-            }}
+            })}
           >
             <Alert
               startDecorator={<InfoIcon />}
@@ -136,40 +125,24 @@ export default function DeckContent() {
             </Alert>
           </Box>
 
-          {numUniqueCards > 0 && (
-            <>
-              <Box
-                sx={{
-                  position: 'relative',
-                  visibility: 'visible',
-                  opacity: viewMode === 'list' ? 1 : 0,
-                  height: viewMode === 'list' ? 'auto' : 0,
-                  overflow: viewMode === 'list' ? 'visible' : 'hidden',
-                  transition:
-                    'opacity 0.3s ease-in-out, height 0.3s ease-in-out',
-                  pointerEvents: viewMode === 'list' ? 'auto' : 'none',
-                }}
-              >
-                <DeckList />
-              </Box>
+          {/* Deck List View */}
+          <Box
+            sx={conditionalStyles(
+              viewMode === 'list' && numUniqueCards > 0,
+              {},
+            )}
+          >
+            <DeckList />
+          </Box>
 
-              <Box
-                sx={{
-                  position: 'relative',
-                  visibility: 'visible',
-                  opacity: viewMode === 'grid' ? 1 : 0,
-                  height: viewMode === 'grid' ? 'auto' : 0,
-                  overflow: viewMode === 'grid' ? 'visible' : 'hidden',
-                  transition:
-                    'opacity 0.3s ease-in-out, height 0.3s ease-in-out',
-                  pointerEvents: viewMode === 'grid' ? 'auto' : 'none',
-                  zIndex: viewMode === 'grid' ? 1 : 0,
-                }}
-              >
-                <DeckGrid />
-              </Box>
-            </>
-          )}
+          {/* Deck Grid View */}
+          <Box
+            sx={conditionalStyles(viewMode === 'grid' && numUniqueCards > 0, {
+              zIndex: 1,
+            })}
+          >
+            <DeckGrid />
+          </Box>
         </Box>
       )}
     </Box>
