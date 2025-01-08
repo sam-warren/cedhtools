@@ -63,14 +63,13 @@ function DeckBanner() {
         >
           <Box sx={bannerStyles.titleContainer}>
             <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-              Deck:{' '}
               <Link
                 href={deck?.publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={bannerStyles.authorLink}
               >
-                {deck?.name}
+                {deck?.name || ''}
               </Link>
             </Typography>
             <Typography level="body-sm" color="neutral">
