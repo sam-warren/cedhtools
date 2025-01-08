@@ -85,7 +85,7 @@ function CommanderDetails(): JSX.Element {
               left: 0,
               right: 0,
               opacity: opacity.skeleton,
-              transition: 'opacity 150ms ease-out',
+              transition: 'opacity 150ms ease-in-out',
             }}
           >
             <StatsSkeletonSection />
@@ -97,7 +97,7 @@ function CommanderDetails(): JSX.Element {
           <Box
             sx={{
               opacity: opacity.content,
-              transition: 'opacity 150ms ease-out',
+              transition: 'opacity 150ms ease-in-out',
             }}
           >
             <Box

@@ -1,6 +1,6 @@
 import { Box, Skeleton, Typography } from '@mui/joy';
 import CountUp from 'react-countup';
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface StatCounterProps {
   value?: number;
@@ -111,7 +111,7 @@ export default function StatCounter({
             <CountUp
               key={key} // Add key to force re-mount
               start={0}
-              delay={0.3}
+              delay={1}
               end={displayValue}
               duration={duration}
               decimals={finalFormatOptions.decimals}
