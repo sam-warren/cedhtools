@@ -11,17 +11,16 @@ import {
 import DeckBanner from 'src/components/Deck/DeckBanner';
 import { DeckPageLayout } from 'src/components/Layout/DeckPageLayout';
 import CommanderDetails from 'src/components/Deck/CommanderDetails';
-import ErrorModal from 'src/components/Feedback/ErrorModal';
 import DeckContent from 'src/components/Deck/DeckContent';
 
 export default function DeckPage() {
-  const { deckId, uniqueCardId, commanderId } = useParams<{
+  const { deckId } = useParams<{
     deckId?: string;
     uniqueCardId?: string;
     commanderId?: string;
   }>();
   const dispatch = useAppDispatch();
-  const { error, filterSettings } = useAppSelector((state) => state.deck);
+  const { filterSettings } = useAppSelector((state) => state.deck);
 
   const { addSearch } = useSearchHistory();
 
@@ -45,18 +44,11 @@ export default function DeckPage() {
           publicId: result.deck.publicId,
           publicUrl: result.deck.publicUrl,
         });
-      });
+      }).catch((error) => {
+        console.error('Failed to fetch deck data:', error);
+      })
   }, [deckId]);
 
-  const handleRetry = () => {
-    if (deckId) {
-      dispatch(fetchDeckData({ deckId: deckId }));
-    }
-  };
-
-  const handleClose = () => {
-    dispatch(clearError());
-  };
 
   return (
     <>
@@ -64,12 +56,6 @@ export default function DeckPage() {
         banner={<DeckBanner />}
         leftPane={<CommanderDetails />}
         rightPane={<DeckContent />}
-      />
-      <ErrorModal
-        message={error || ''}
-        onRetry={handleRetry}
-        onClose={handleClose}
-        open={Boolean(error)}
       />
     </>
   );
