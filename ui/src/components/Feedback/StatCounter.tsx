@@ -1,6 +1,5 @@
-import { Box, Skeleton, Typography } from '@mui/joy';
+import { Box, Typography } from '@mui/joy';
 import CountUp from 'react-countup';
-import { useState, useEffect } from 'react';
 
 interface StatCounterProps {
   value?: number;
@@ -18,59 +17,14 @@ interface StatCounterProps {
   };
 }
 
-function StatCounterSkeleton() {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        p: 1.5,
-        borderRadius: 'md',
-        bgcolor: 'background.level1',
-        width: 252,
-        height: 73,
-        opacity: 1,
-        transition: 'opacity 300ms ease-in-out',
-      }}
-    >
-      <Skeleton variant="circular" width={20} height={20} />
-      <Box>
-        <Skeleton variant="text" width={80} height={16} sx={{ mb: 0.5 }} />
-        <Skeleton variant="text" width={60} height={24} />
-      </Box>
-    </Box>
-  );
-}
-
 export default function StatCounter({
   value = 0,
   label,
   icon,
   type = 'percentage',
   duration = 2,
-  isLoading = false,
   formatOptions = {},
 }: StatCounterProps) {
-  const [isMounted, setIsMounted] = useState(false);
-  // Add a key that changes when the value changes
-  const [key, setKey] = useState(0);
-
-  // Reset the counter when value changes
-  useEffect(() => {
-    setKey((prev) => prev + 1);
-  }, [value]);
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      setIsMounted(true);
-    });
-  }, []);
-
-  if (isLoading) {
-    return <StatCounterSkeleton />;
-  }
-
   const displayValue = type === 'percentage' ? (value || 0) * 100 : value || 0;
   const defaultFormatOptions =
     type === 'percentage'
@@ -87,8 +41,6 @@ export default function StatCounter({
         p: 1.5,
         borderRadius: 'md',
         bgcolor: 'background.level1',
-        opacity: isMounted ? 1 : 0,
-        transition: 'opacity 300ms ease-in-out',
       }}
     >
       <Box
@@ -107,23 +59,19 @@ export default function StatCounter({
           {label}
         </Typography>
         <Typography level="h3" sx={{ fontSize: '1.5rem' }}>
-          {isMounted && (
-            <CountUp
-              key={key} // Add key to force re-mount
-              start={0}
-              delay={1}
-              end={displayValue}
-              duration={duration}
-              decimals={finalFormatOptions.decimals}
-              separator={finalFormatOptions.separator}
-              prefix={finalFormatOptions.prefix}
-              suffix={finalFormatOptions.suffix}
-            />
-          )}
+          <CountUp
+            start={0}
+            delay={1}
+            preserveValue={true}
+            end={displayValue}
+            duration={duration}
+            decimals={finalFormatOptions.decimals}
+            separator={finalFormatOptions.separator}
+            prefix={finalFormatOptions.prefix}
+            suffix={finalFormatOptions.suffix}
+          />
         </Typography>
       </Box>
     </Box>
   );
 }
-
-StatCounter.Skeleton = StatCounterSkeleton;

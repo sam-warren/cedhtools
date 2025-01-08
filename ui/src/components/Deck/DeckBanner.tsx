@@ -10,7 +10,7 @@ import LoadingWrapper from '../Feedback/LoadingWrapper';
 
 const DeckBannerSkeleton = () => {
   return (
-    <Box sx={bannerStyles.titleContainer}>
+    <Box>
       <Skeleton variant="text" level="title-lg" width="200px"/>
       <Skeleton variant="text" level="body-sm" width="150px"/>
     </Box>
@@ -59,7 +59,7 @@ function DeckBanner() {
           <LoadingWrapper
             loading={isDeckLoading}
             skeleton={<DeckBannerSkeleton />}
-            staticRender={false}
+            staticRender={true}
           >
             <Typography level="title-lg" sx={{ flexShrink: 0 }}>
               Deck:{' '}

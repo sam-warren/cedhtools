@@ -4,31 +4,13 @@ import { useAppSelector } from 'src/hooks';
 import DeckGrid from './DeckGrid';
 import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
-import { useMemo, useState, useEffect } from 'react';
-import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
-import { conditionalStyles } from 'src/styles/layouts/conditional';
+import { useMemo } from 'react';
+import LoadingWrapper from '../Feedback/LoadingWrapper';
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
-  const { deckStats, deck, isStatsLoading, isDeckLoading, error } =
+  const { deckStats, isStatsLoading, isDeckLoading } =
     useAppSelector((state) => state.deck);
-
-  const [hasLoadedTitle, setHasLoadedTitle] = useState(false);
-
-  useEffect(() => {
-    if (deck && deckStats && !isStatsLoading && !hasLoadedTitle) {
-      const timer = setTimeout(() => {
-        setHasLoadedTitle(true);
-      }, 10);
-      return () => clearTimeout(timer);
-    }
-  }, [deck, deckStats, isStatsLoading, hasLoadedTitle]);
-
-  const { fadeInStyle: contentFadeStyle } = useFadeAnimation({
-    data: deckStats?.card_statistics,
-    isLoading: isStatsLoading,
-    error,
-  });
 
   const numUniqueCards = useMemo(
     () =>
@@ -47,6 +29,7 @@ export default function DeckContent() {
 
   return (
     <Box>
+      {/* Title Section */}
       <Box
         sx={{
           display: 'flex',
@@ -57,29 +40,30 @@ export default function DeckContent() {
           height: '3.75rem',
         }}
       >
-        <Box sx={{ flex: 1 }}>
-          {/* Loading Title */}
-          <Box
-            sx={conditionalStyles(!hasLoadedTitle, {
-              transform: hasLoadedTitle ? 'translateY(0)' : 'translateY(-4px)',
-            })}
+        <Box
+          sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}
+        >
+          {/* Commander Name with its own LoadingWrapper */}
+          <LoadingWrapper
+            loading={isDeckLoading || isStatsLoading}
+            skeleton={<Skeleton variant="text" level="h2" width="300px" />}
+            staticRender={true}
           >
-            <Skeleton variant="text" level="h2" width="300px" />
-            <Skeleton
-              variant="text"
-              level="body-sm"
-              width="150px"
-              sx={{ mt: 0.5 }}
-            />
-          </Box>
+            <Typography level="h2">{commanderName || 'Commander'}</Typography>
+          </LoadingWrapper>
 
-          {/* Loaded Title */}
-          <Box
-            sx={conditionalStyles(hasLoadedTitle, {
-              transform: hasLoadedTitle ? 'translateY(4px)' : 'translateY(0)',
-            })}
+          {/* Number of Cards with its own LoadingWrapper */}
+          <LoadingWrapper
+            loading={isStatsLoading}
+            skeleton={
+              <Skeleton
+                variant="text"
+                level="body-sm"
+                width="150px"
+                sx={{ mt: 0.5 }}
+              />
+            }
           >
-            <Typography level="h2">{commanderName}</Typography>
             <Typography
               level="body-sm"
               sx={{
@@ -91,29 +75,24 @@ export default function DeckContent() {
                 ? 'No cards found'
                 : `${numUniqueCards} unique cards`}
             </Typography>
-          </Box>
+          </LoadingWrapper>
         </Box>
-
         <Box sx={{ mt: 1 }}>
           <DeckViewToggle />
         </Box>
       </Box>
-
       <Divider sx={{ mb: 2 }} />
 
+      {/* Main Content Section */}
       {deckStats && !isStatsLoading && (
-        <Box sx={{ minHeight: 0, ...contentFadeStyle }}>
+        <Box sx={{ minHeight: 0, position: 'relative' }}>
           {/* No Data Alert */}
-          <Box
-            sx={conditionalStyles(numUniqueCards === 0, {
-              height: numUniqueCards === 0 ? 'auto' : 0,
-            })}
-          >
+          {numUniqueCards === 0 && (
             <Alert
               startDecorator={<InfoIcon />}
               color="primary"
               variant="soft"
-              sx={{ gap: 2 }}
+              sx={{ gap: 2, mb: 2 }}
             >
               <Box>
                 <Typography>No data found</Typography>
@@ -123,26 +102,41 @@ export default function DeckContent() {
                 </Typography>
               </Box>
             </Alert>
-          </Box>
+          )}
 
-          {/* Deck List View */}
-          <Box
-            sx={conditionalStyles(
-              viewMode === 'list' && numUniqueCards > 0,
-              {},
-            )}
-          >
-            <DeckList />
-          </Box>
-
-          {/* Deck Grid View */}
-          <Box
-            sx={conditionalStyles(viewMode === 'grid' && numUniqueCards > 0, {
-              zIndex: 1,
-            })}
-          >
-            <DeckGrid />
-          </Box>
+          {/* Both views are always mounted, with opacity transitions */}
+          {numUniqueCards > 0 && (
+            <>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  opacity: viewMode === 'list' ? 1 : 0,
+                  visibility: viewMode === 'list' ? 'visible' : 'hidden',
+                  transition:
+                    'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
+                }}
+              >
+                <DeckList />
+              </Box>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  opacity: viewMode === 'grid' ? 1 : 0,
+                  visibility: viewMode === 'grid' ? 'visible' : 'hidden',
+                  transition:
+                    'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
+                }}
+              >
+                <DeckGrid />
+              </Box>
+            </>
+          )}
         </Box>
       )}
     </Box>

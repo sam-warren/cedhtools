@@ -1,11 +1,10 @@
-import { Box, Skeleton } from '@mui/joy';
+import { Box } from '@mui/joy';
 import _ from 'lodash';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useAppSelector } from 'src/hooks';
 import { getSortedSections, organizeRows } from 'src/utilities/gridUtils';
 import DeckSection from './DeckSection';
-import { conditionalStyles } from 'src/styles/layouts/conditional';
 
 const CARD_WIDTH = 200;
 const CARD_GAP = 16;
@@ -35,11 +34,7 @@ const GridRow = React.memo(function GridRow({
             width: row.length > 1 ? `${CARD_WIDTH}px` : 'auto',
           }}
         >
-          {inView ? (
-            <DeckSection typeCode={typeCode} cards={cards} />
-          ) : (
-            <Box sx={conditionalStyles(false)} />
-          )}
+          {inView && <DeckSection typeCode={typeCode} cards={cards} />}
         </Box>
       ))}
     </Box>
@@ -47,9 +42,7 @@ const GridRow = React.memo(function GridRow({
 });
 
 const DeckGrid = React.memo(function DeckGrid() {
-  const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const { deckStats } = useAppSelector((state) => state.deck);
   const containerRef = useRef<HTMLDivElement>(null);
   const [cardsPerRow, setCardsPerRow] = useState(5);
   const { ref: gridRef, inView } = useInView({
@@ -58,26 +51,6 @@ const DeckGrid = React.memo(function DeckGrid() {
   });
 
   if (!deckStats) return null;
-
-  useEffect(() => {
-    if (!deckStats || isStatsLoading) {
-      setIsReady(false);
-      return;
-    }
-
-    if (!isInitialized) {
-      setIsInitialized(true);
-      const initTimer = setTimeout(() => {
-        setIsReady(true);
-      }, 100);
-      return () => clearTimeout(initTimer);
-    }
-
-    const updateTimer = setTimeout(() => {
-      setIsReady(true);
-    }, 50);
-    return () => clearTimeout(updateTimer);
-  }, [deckStats, isStatsLoading, isInitialized]);
 
   // Memoize sections with a more specific dependency
   const sortedSections = useMemo(() => {
@@ -119,16 +92,7 @@ const DeckGrid = React.memo(function DeckGrid() {
   if (!deckStats || sortedSections.length === 0) return null;
 
   return (
-    <Box
-      ref={containerRef}
-      sx={{
-        width: '100%',
-        position: 'relative',
-        ...conditionalStyles(isReady, {
-          transition: 'opacity 0.3s ease-in-out',
-        }),
-      }}
-    >
+    <Box ref={containerRef}>
       <Box
         ref={gridRef}
         sx={{
@@ -139,11 +103,7 @@ const DeckGrid = React.memo(function DeckGrid() {
         }}
       >
         {rows.map((row, index) => (
-          <GridRow
-            key={index}
-            row={row}
-            inView={inView}
-          />
+          <GridRow key={index} row={row} inView={inView} />
         ))}
       </Box>
     </Box>

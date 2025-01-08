@@ -14,7 +14,6 @@ interface LazyDeckTableProps {
   label: string;
 }
 
-
 const LazyDeckTable = React.memo(
   ({ cards, deckStats, label }: LazyDeckTableProps) => {
     const { ref, inView } = useInView({
@@ -34,37 +33,9 @@ const LazyDeckTable = React.memo(
   },
 );
 
-
 const DeckList = React.memo(function DeckList() {
   const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
   const { isLoading: isManaLoading, isError } = useManaSymbols();
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-
-  // Handle initialization when data and symbols are ready
-  useEffect(() => {
-    if (!deckStats || isStatsLoading || isManaLoading) {
-      setIsReady(false);
-      return;
-    }
-
-    // When data is ready, first ensure initialization
-    if (!isInitialized) {
-      setIsInitialized(true);
-      // Small delay to allow DOM to stabilize
-      const initTimer = setTimeout(() => {
-        setIsReady(true);
-      }, 100);
-      return () => clearTimeout(initTimer);
-    }
-
-    // For subsequent data updates, add a small delay
-    const updateTimer = setTimeout(() => {
-      setIsReady(true);
-    }, 50);
-
-    return () => clearTimeout(updateTimer);
-  }, [deckStats, isStatsLoading, isManaLoading, isInitialized]);
 
   // Memoize the filtered sections
   const sections = useMemo(() => {
@@ -80,26 +51,10 @@ const DeckList = React.memo(function DeckList() {
     return <Typography color="danger">Error loading mana symbols</Typography>;
 
   return (
-    <Box
-      sx={{
-        ...layoutStyles.container,
-        opacity: isReady ? 1 : 0,
-        transition: 'opacity 0.3s ease-in-out',
-      }}
-    >
+    <Box sx={layoutStyles.container}>
       <Box sx={layoutStyles.mainSection}>
         {sections.map(([typeCode, cards], index) => (
-          <Box
-            key={typeCode}
-            sx={{
-              ...layoutStyles.sectionContainer,
-              opacity: isInitialized ? 1 : 0,
-              transform: isInitialized ? 'none' : 'translateY(20px)',
-              transition:
-                'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
-              transitionDelay: `${index * 50}ms`,
-            }}
-          >
+          <Box key={typeCode} sx={layoutStyles.sectionContainer}>
             <Box sx={layoutStyles.tableContainer}>
               <LazyDeckTable
                 cards={cards}
@@ -112,14 +67,7 @@ const DeckList = React.memo(function DeckList() {
       </Box>
 
       {deckStats.card_statistics.other.length > 0 && (
-        <Box
-          sx={{
-            opacity: isInitialized ? 1 : 0,
-            transform: isInitialized ? 'none' : 'translateY(20px)',
-            transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
-            transitionDelay: `${sections.length * 50}ms`,
-          }}
-        >
+        <Box>
           <LazyDeckTable
             cards={deckStats.card_statistics.other}
             deckStats={deckStats}
@@ -131,7 +79,4 @@ const DeckList = React.memo(function DeckList() {
   );
 });
 
-
 export default DeckList;
-
-

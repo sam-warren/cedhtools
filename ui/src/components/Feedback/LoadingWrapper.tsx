@@ -1,5 +1,4 @@
-// src/components/Feedback/LoadingWrapper.tsx
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { Box, Theme } from '@mui/joy';
 import { SxProps } from '@mui/material';
 import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
@@ -7,9 +6,9 @@ import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
 interface LoadingWrapperProps {
   loading: boolean;
   skeleton?: ReactNode;
-  staticRender?: boolean; // Renamed `static` to `staticRender` to avoid reserved keyword
+  staticRender?: boolean;
   children: ReactNode;
-  sx?: SxProps<Theme>; // Optional styling prop
+  sx?: SxProps<Theme>;
 }
 
 /**
@@ -25,6 +24,14 @@ const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   children,
   sx = {},
 }) => {
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!loading && staticRender && !hasLoaded) {
+      setHasLoaded(true);
+    }
+  }, [loading, staticRender, hasLoaded]);
+
   // Fade style for skeleton
   const { fadeStyle: skeletonFadeStyle, isDisplayed: isSkeletonDisplayed } =
     useFadeAnimation({
@@ -34,45 +41,49 @@ const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   // Fade style for content
   const { fadeStyle: contentFadeStyle, isDisplayed: isContentDisplayed } =
     useFadeAnimation({
-      isVisible: !loading,
+      isVisible: !loading || (staticRender && hasLoaded),
     });
 
   return (
     <Box
       sx={{
-        position: 'relative', // Establishes a new positioning context
+        position: 'relative',
         width: '100%',
         height: '100%',
         ...sx,
       }}
     >
       {/* Skeleton Overlay */}
-      {loading && skeleton && isSkeletonDisplayed && (
-        <Box
-          sx={{
-            ...skeletonFadeStyle,
-            zIndex: 1,
-          }}
-        >
-          {skeleton}
-        </Box>
-      )}
+      {loading &&
+        skeleton &&
+        isSkeletonDisplayed &&
+        (!staticRender || !hasLoaded) && (
+          <Box
+            sx={{
+              ...skeletonFadeStyle,
+              zIndex: 1,
+            }}
+          >
+            {skeleton}
+          </Box>
+        )}
 
       {/* Main Content */}
-      {(!loading || (staticRender && isContentDisplayed)) && (
-        <Box
-          sx={{
-            ...contentFadeStyle,
-            position: 'relative',
-            zIndex: 0, // Below the skeleton
-          }}
-        >
-          {children}
-        </Box>
-      )}
+      {isContentDisplayed &&
+        ((!loading && !staticRender) || (staticRender && hasLoaded)) && (
+          <Box
+            sx={{
+              ...contentFadeStyle,
+              position: 'relative',
+              zIndex: 0,
+            }}
+          >
+            {children}
+          </Box>
+        )}
 
       {/* Content Rendered During Loading Without Skeleton */}
-      {loading && !skeleton && (
+      {isContentDisplayed && loading && !skeleton && (
         <Box
           sx={{
             ...contentFadeStyle,

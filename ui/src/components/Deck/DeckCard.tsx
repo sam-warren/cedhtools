@@ -6,7 +6,6 @@ import { useImageCache } from 'src/hooks/useImageCache';
 import { cardStyles } from 'src/styles';
 import { ICardStat } from 'src/types';
 import ImageWithLoading from './ImageWithLoading';
-import { conditionalStyles } from 'src/styles/layouts/conditional';
 
 interface DeckCardProps {
   card: ICardStat;
@@ -52,12 +51,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
             transitionDelay: isImageLoaded ? '0s' : '0.5s',
           }}
         >
-          <Box
-            sx={
-              (conditionalStyles(!isStatsLoading),
-              { ...cardStyles.banner(color) })
-            }
-          >
+          <Box sx={cardStyles.banner(color)}>
             {isStatsLoading ? (
               <Typography
                 level="body-xs"
