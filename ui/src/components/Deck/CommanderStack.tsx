@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/joy';
+import { Box } from '@mui/joy';
 import React from 'react';
 import CommanderCard from './CommanderCard';
 import { commanderStackStyles } from 'src/styles';
@@ -19,7 +19,7 @@ const CommanderStack: React.FC<CommanderStackProps> = ({
         <CommanderCard.Skeleton />
       </Box>
     );
-  }
+  }    
 
   if (commanders.length === 0) {
     return (

@@ -7,11 +7,10 @@ type CacheCallback = {
 class ImageCacheService {
   private worker: Worker;
   private callbacks: Map<string, CacheCallback> = new Map();
-  private static BATCH_SIZE = 2;
-  private static BATCH_DELAY = 200;
+  private static BATCH_SIZE = 2; // Reduced from 3 to 2
+  private static BATCH_DELAY = 200; // Increased from 100 to 200
   private static MAX_RETRIES = 2;
   private static RETRY_DELAY = 1000;
-  private static FALLBACK_IMAGE = import.meta.env.VITE_CARD_NOT_FOUND_IMAGE_URL;
 
   private loadingQueue: Array<{
     scryfall_id: string;
@@ -48,45 +47,21 @@ class ImageCacheService {
       } else if (type === 'cacheClearSuccess') {
         // Handle cache clear success if needed
       } else if (type === 'cacheClearError') {
-        console.warn('Cache clear failed:', payload.error);
+        console.error('Cache clear failed:', payload.error);
       }
     };
 
     this.worker.onerror = (error) => {
-      console.warn('Worker error:', error);
+      console.error('Worker error:', error);
+      // Reject all pending callbacks with the error
       this.callbacks.forEach((callback) => {
-        this.handleFallbackImage(callback.resolve, callback.reject);
+        callback.reject(error);
       });
       this.callbacks.clear();
     };
   }
 
-  private async handleFallbackImage(
-    resolve: (value: string) => void,
-    reject: (reason: unknown) => void,
-  ): Promise<void> {
-    try {
-      const fallbackResponse = await fetch(ImageCacheService.FALLBACK_IMAGE);
-      if (fallbackResponse.ok) {
-        const fallbackDataUrl = await fallbackResponse.text();
-        resolve(fallbackDataUrl);
-      } else {
-        reject(new Error('Failed to load fallback image'));
-      }
-    } catch (error) {
-      reject(error instanceof Error ? error : new Error(String(error)));
-    }
-  }
-
-  async cacheImage(scryfall_id: string, imageUrl?: string): Promise<string> {
-    // Early validation for missing or empty URL
-    if (!imageUrl) {
-      console.warn(`No image URL provided for scryfall_id: ${scryfall_id}`);
-      return new Promise((resolve, reject) => {
-        this.handleFallbackImage(resolve, reject);
-      });
-    }
-
+  async cacheImage(scryfall_id: string, imageUrl: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.loadingQueue.push({
         scryfall_id,
@@ -116,16 +91,8 @@ class ImageCacheService {
           batch.map(
             ({ scryfall_id, imageUrl, resolve, reject, retries = 0 }) => {
               return new Promise<void>((promiseResolve) => {
-                const handleError = async (error: unknown) => {
-                  console.warn(
-                    `Cache attempt ${retries + 1} failed for ${scryfall_id}:`,
-                    error,
-                  );
-
+                const handleError = (error: unknown) => {
                   if (retries < ImageCacheService.MAX_RETRIES) {
-                    const backoffDelay =
-                      ImageCacheService.RETRY_DELAY * Math.pow(2, retries);
-
                     this.loadingQueue.push({
                       scryfall_id,
                       imageUrl,
@@ -133,14 +100,15 @@ class ImageCacheService {
                       reject,
                       retries: retries + 1,
                     });
-
                     setTimeout(() => {
                       if (!this.isProcessingQueue) {
                         void this.processQueue();
                       }
-                    }, backoffDelay);
+                    }, ImageCacheService.RETRY_DELAY);
                   } else {
-                    await this.handleFallbackImage(resolve, reject);
+                    reject(
+                      error instanceof Error ? error : new Error(String(error)),
+                    );
                   }
                   promiseResolve();
                 };
@@ -169,18 +137,12 @@ class ImageCacheService {
         }
       }
     } catch (error) {
-      console.warn('Queue processing failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
+      console.error('Queue processing failed:', error);
+      this.callbacks.forEach((callback) => {
+        callback.reject(
+          error instanceof Error ? error : new Error(String(error)),
+        );
       });
-
-      // Try to resolve with fallback images for all pending callbacks
-      await Promise.all(
-        Array.from(this.callbacks.values()).map(({ resolve, reject }) =>
-          this.handleFallbackImage(resolve, reject),
-        ),
-      );
-
       this.callbacks.clear();
     } finally {
       this.isProcessingQueue = false;

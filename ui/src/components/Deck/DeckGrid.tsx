@@ -50,20 +50,16 @@ const DeckGrid = React.memo(function DeckGrid() {
     rootMargin: '200px 0px',
   });
 
-  if (!deckStats) return null;
-
-  // Memoize sections with a more specific dependency
+  // Move all memoization hooks before any conditional returns
   const sortedSections = useMemo(() => {
-    if (!deckStats.card_statistics) return [];
+    if (!deckStats?.card_statistics) return [];
     return getSortedSections(deckStats.card_statistics);
   }, [deckStats]);
 
-  // Memoize row organization
   const rows = useMemo(() => {
     return organizeRows(sortedSections, cardsPerRow);
   }, [sortedSections, cardsPerRow]);
 
-  // Debounced resize handler
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -79,8 +75,6 @@ const DeckGrid = React.memo(function DeckGrid() {
 
     const resizeObserver = new ResizeObserver(updateCardsPerRow);
     resizeObserver.observe(containerRef.current);
-
-    // Initial calculation
     updateCardsPerRow();
 
     return () => {
@@ -89,6 +83,7 @@ const DeckGrid = React.memo(function DeckGrid() {
     };
   }, []);
 
+  // Move conditional return after all hooks
   if (!deckStats || sortedSections.length === 0) return null;
 
   return (

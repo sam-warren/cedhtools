@@ -28,6 +28,9 @@ export default function DeckContent() {
     .map((commander) => commander.name)
     .join(' + ');
 
+  const showNoData = !isStatsLoading && numUniqueCards === 0;
+  const showCardDisplay = !isStatsLoading && numUniqueCards > 0;
+
   return (
     <Box>
       {/* Title Section */}
@@ -52,7 +55,7 @@ export default function DeckContent() {
             <Typography level="h2">{commanderName || 'Commander'}</Typography>
           </LoadingWrapper>
 
-          <LoadingWrapper loading={isStatsLoading}>
+          <LoadingWrapper loading={isStatsLoading} when={!!deckStats}>
             <Typography
               level="body-sm"
               sx={{
@@ -66,15 +69,18 @@ export default function DeckContent() {
             </Typography>
           </LoadingWrapper>
         </Box>
+
         <Box sx={{ mt: 1 }}>
           <DeckViewToggle />
         </Box>
       </Box>
+
       <Divider sx={{ mb: 2 }} />
 
       {/* Main Content Section */}
       <LoadingWrapper loading={isStatsLoading}>
-        {numUniqueCards === 0 ? (
+        {/* No Data Alert */}
+        <LoadingWrapper loading={!showNoData} when={showNoData}>
           <Alert
             startDecorator={<InfoIcon />}
             color="primary"
@@ -89,7 +95,10 @@ export default function DeckContent() {
               </Typography>
             </Box>
           </Alert>
-        ) : (
+        </LoadingWrapper>
+
+        {/* Card Display */}
+        <LoadingWrapper loading={!showCardDisplay} when={showCardDisplay}>
           <Box
             sx={{
               display: 'grid',
@@ -99,10 +108,10 @@ export default function DeckContent() {
                 visibility: 'hidden',
                 transition:
                   'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
-                '&[data-active="true"]': {
-                  opacity: 1,
-                  visibility: 'visible',
-                },
+              },
+              '& > div[data-active="true"]': {
+                opacity: 1,
+                visibility: 'visible',
               },
             }}
           >
@@ -113,7 +122,7 @@ export default function DeckContent() {
               <DeckGrid />
             </Box>
           </Box>
-        )}
+        </LoadingWrapper>
       </LoadingWrapper>
     </Box>
   );

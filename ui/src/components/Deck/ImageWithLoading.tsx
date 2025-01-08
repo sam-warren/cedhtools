@@ -1,19 +1,13 @@
 import { Skeleton, Box } from '@mui/joy';
 import React, { useState } from 'react';
 import { ANIMATION_DURATIONS } from 'src/constants/animations';
-interface ImageWithLoadingProps {
+
+const ImageWithLoading: React.FC<{
   src: string;
   alt: string;
   onLoad?: () => void;
   sx?: any;
-}
-
-const ImageWithLoading: React.FC<ImageWithLoadingProps> = ({
-  src,
-  alt,
-  onLoad,
-  sx,
-}) => {
+}> = ({ src, alt, onLoad, sx }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
@@ -31,6 +25,7 @@ const ImageWithLoading: React.FC<ImageWithLoadingProps> = ({
           left: 0,
           opacity: isLoaded ? 1 : 0,
           transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+
         }}
         onLoad={() => {
           setIsLoaded(true);

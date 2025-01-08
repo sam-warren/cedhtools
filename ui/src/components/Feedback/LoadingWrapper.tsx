@@ -1,78 +1,101 @@
-import React, { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, memo, useState, useEffect } from 'react';
 import { Box, Theme } from '@mui/joy';
 import { SxProps } from '@mui/material';
-import { useFadeAnimation } from 'src/hooks/useFadeAnimation';
+import { useFadeAnimation } from '../../hooks/useFadeAnimation';
 import { ANIMATION_DURATIONS } from 'src/constants/animations';
 
-interface LoadingWrapperProps {
+export interface LoadingWrapperProps {
+  /** Whether the component is in a loading state */
   loading: boolean;
+  /** Optional skeleton component to show during loading */
   skeleton?: ReactNode;
-  staticRender?: boolean;
+  /** Children to render */
   children: ReactNode;
+  /** Whether the content should be conditionally rendered */
+  when?: boolean;
+  /** Whether to keep content visible after first render */
+  staticRender?: boolean;
+  /** Custom animation duration in milliseconds */
+  duration?: number;
+  /** Optional MUI styling */
   sx?: SxProps<Theme>;
 }
-const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
+
+export const LoadingWrapper = memo(function LoadingWrapper({
   loading,
   skeleton,
-  staticRender = false,
   children,
+  when = true,
+  staticRender = false,
+  duration = ANIMATION_DURATIONS.fadeTransition,
   sx = {},
-}) => {
-  const [hasLoaded, setHasLoaded] = useState(!loading);
+}: LoadingWrapperProps) {
+  const [hasShownContent, setHasShownContent] = useState(false);
 
+  const shouldShow = when && (!loading || !skeleton);
+
+  // Update hasShownContent when content should be shown
   useEffect(() => {
-    if (!loading && staticRender) {
-      setHasLoaded(true);
+    if (shouldShow && !hasShownContent) {
+      // Small delay to ensure we don't show content during initial load
+      const timer = setTimeout(() => {
+        setHasShownContent(true);
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [loading, staticRender]);
+  }, [shouldShow]);
 
-  const shouldShowContent = !loading || (staticRender && hasLoaded);
-  const shouldShowSkeleton = loading && (!staticRender || !hasLoaded);
+  // For static render, once content is shown, it stays visible
+  const effectiveShow = staticRender
+    ? shouldShow || hasShownContent
+    : shouldShow;
 
-  const { fadeStyle: contentFadeStyle, isDisplayed: isContentDisplayed } =
+  const { fadeStyle: contentFadeStyle, isDisplayed: showContent } =
     useFadeAnimation({
-      isVisible: shouldShowContent,
-      duration: ANIMATION_DURATIONS.fadeTransition,
-      isInitialTransition: staticRender,
+      isVisible: effectiveShow,
+      duration,
     });
 
-  const { fadeStyle: skeletonFadeStyle, isDisplayed: isSkeletonDisplayed } =
+  const { fadeStyle: skeletonFadeStyle, isDisplayed: showSkeleton } =
     useFadeAnimation({
-      isVisible: shouldShowSkeleton,
-      duration: ANIMATION_DURATIONS.fadeTransition,
-      isInitialTransition: staticRender,
+      isVisible: loading && !!skeleton && !hasShownContent,
+      duration,
     });
 
   return (
     <Box
       sx={{
         position: 'relative',
-        width: '100%',
-        height: '100%',
+        minWidth: 'fit-content',
+        minHeight: 'fit-content',
         ...sx,
       }}
     >
-      {isContentDisplayed && (
+      {/* Content container with proper flow handling */}
+      <Box
+        sx={{
+          position: 'relative',
+          visibility: showContent ? 'visible' : 'hidden',
+          opacity: showContent ? contentFadeStyle.opacity : 0,
+          transition: contentFadeStyle.transition,
+          height: showContent ? 'auto' : 0,
+          overflow: 'hidden',
+        }}
+      >
+        {children}
+      </Box>
+
+      {/* Skeleton overlay */}
+      {skeleton && showSkeleton && (
         <Box
           sx={{
-            ...contentFadeStyle,
-            position: 'relative',
-            zIndex: 0,
-          }}
-        >
-          {children}
-        </Box>
-      )}
-      {isSkeletonDisplayed && skeleton && (
-        <Box
-          sx={{
-            ...skeletonFadeStyle,
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
+            right: 0,
+            bottom: 0,
             zIndex: 1,
+            ...skeletonFadeStyle,
           }}
         >
           {skeleton}
@@ -80,6 +103,6 @@ const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
       )}
     </Box>
   );
-};
+});
 
 export default LoadingWrapper;
