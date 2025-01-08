@@ -19,7 +19,7 @@ export default function DeckContent() {
       // Add small delay to allow content to be rendered before transition starts
       const timer = setTimeout(() => {
         setHasLoadedTitle(true);
-      }, 50);
+      }, 10);
       return () => clearTimeout(timer);
     }
   }, [deck, deckStats, isStatsLoading, hasLoadedTitle]);

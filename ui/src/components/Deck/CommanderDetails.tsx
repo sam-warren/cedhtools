@@ -71,7 +71,7 @@ function CommanderDetails(): JSX.Element {
     <Box sx={{ position: 'relative', width: '100%' }}>
       <CommanderStack
         commanders={memoizedCommanders}
-        isInitialLoad={isStatsLoading || !deckStats}
+        isInitialLoad={isStatsLoading && !deckStats}
       />
 
       {/* Stats section */}

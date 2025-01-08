@@ -20,11 +20,11 @@ const CommanderStack: React.FC<CommanderStackProps> = ({
       </Box>
     );
   }
-  
+
   if (commanders.length === 0) {
     return (
-      <Box>
-        <Typography>No commanders found</Typography>
+      <Box sx={commanderStackStyles.singleCardContainer}>
+        <CommanderCard.Skeleton />
       </Box>
     );
   }
