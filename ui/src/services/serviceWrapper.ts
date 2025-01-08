@@ -27,22 +27,22 @@ export async function serviceWrapper<T>(
 
         return {
           success: false,
-          error: `Unexpected error (status ${status}): ${data?.error || 'An unexpected error occurred.'}`,
+          error: `Unexpected error (${status}): ${data?.error || 'An unexpected error occurred.'}`,
           statusCode: status,
-        };
+        } as IErrorResponse;
       }
 
       return {
         success: false,
         error: 'No response from the server. Please check your connection.',
         statusCode: 0,
-      };
+      } as IErrorResponse;
     }
 
     return {
       success: false,
       error: `Unexpected error: ${String(error)}`,
       statusCode: 0,
-    };
+    } as IErrorResponse;
   }
 }

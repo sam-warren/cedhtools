@@ -18,6 +18,7 @@ const MAX_CACHE_AGE = 30 * 24 * 60 * 60 * 1000;
 const PRUNE_THRESHOLD = 100;
 const PRUNE_BATCH = 50;
 const PRUNE_COOLDOWN = 5000;
+
 const BASE_URL = import.meta.env.VITE_CEDHTOOLS_API_BASE_URL;
 
 let db: IDBPDatabase<ImageCacheSchema>;
@@ -36,7 +37,7 @@ async function initDB() {
         });
         entryCount = await db.count('images');
       } catch (error) {
-        console.error('DB initialization failed:', error);
+        console.warn('DB initialization failed:', error);
         throw error;
       }
     })();
@@ -75,20 +76,19 @@ async function pruneIfNeeded() {
       lastPruneTime = now;
     }
   } catch (error) {
-    console.error('Pruning failed:', error);
+    console.warn('Pruning failed:', error);
     throw error;
   }
 }
 
-// imageCacheWorker.ts
 async function cacheImage(
   scryfall_id: string,
   imageUrl: string,
 ): Promise<string> {
   try {
+    // Check cache first
     const existingCache = await db.get('images', scryfall_id);
     if (existingCache && Date.now() - existingCache.timestamp < MAX_CACHE_AGE) {
-      // Return the cached dataUrl directly without wrapping in Response
       return existingCache.dataUrl;
     }
 
@@ -102,7 +102,19 @@ async function cacheImage(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        try {
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        } catch {
+          // Fallback to default message
+        }
+      }
+      throw new Error(errorMessage);
     }
 
     const blob = await response.blob();
@@ -127,17 +139,20 @@ async function cacheImage(
     entryCount++;
     await pruneIfNeeded();
 
-    // Return the dataUrl directly
     return dataUrl;
   } catch (error) {
-    console.error('Worker cache error:', error);
+    console.warn('Worker cache error:', {
+      scryfall_id,
+      error: error instanceof Error ? error.message : String(error),
+      url: imageUrl || 'No URL provided',
+    });
     throw error;
   }
 }
 
 // Initialize DB when worker starts
 initDB().catch((error) => {
-  console.error('Failed to initialize DB:', error);
+  console.warn('Failed to initialize DB:', error);
 });
 
 // Handle messages from main thread
@@ -146,15 +161,14 @@ self.addEventListener('message', async (event: MessageEvent) => {
     await initDB(); // Wait for DB initialization before processing any message
 
     if (event.data?.type === 'cacheImage') {
+      const { scryfall_id, imageUrl } = event.data.payload;
+
       try {
-        const dataUrl = await cacheImage(
-          event.data.payload.scryfall_id,
-          event.data.payload.imageUrl,
-        );
+        const dataUrl = await cacheImage(scryfall_id, imageUrl);
         self.postMessage({
           type: 'success',
           payload: {
-            scryfall_id: event.data.payload.scryfall_id,
+            scryfall_id,
             dataUrl,
           },
         });
@@ -162,7 +176,7 @@ self.addEventListener('message', async (event: MessageEvent) => {
         self.postMessage({
           type: 'error',
           payload: {
-            scryfall_id: event.data.payload.scryfall_id,
+            scryfall_id,
             error:
               error instanceof Error ? error.message : 'Unknown error occurred',
           },
@@ -182,6 +196,8 @@ self.addEventListener('message', async (event: MessageEvent) => {
           },
         });
       }
+    } else {
+      throw new Error(`Unknown message type: ${event.data?.type}`);
     }
   } catch (error) {
     self.postMessage({

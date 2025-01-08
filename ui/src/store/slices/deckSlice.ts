@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getDecklistById } from '../../services/moxfield/moxfield';
 import { getDeckStats } from 'src/services';
-import { IMoxfieldDeck, ICommanderStatisticsResponse } from '../../types';
+import {
+  IMoxfieldDeck,
+  ICommanderStatisticsResponse,
+  IErrorResponse,
+} from '../../types';
 import { FilterSettings } from 'src/types/store/rootState';
 
 interface DeckState {
@@ -28,8 +32,8 @@ const initialState: DeckState = {
   statsCache: {},
   filterSettings: {
     timePeriod: 'ban',
-    minSize: 30
-  }
+    minSize: 30,
+  },
 };
 
 export const fetchDeck = createAsyncThunk(
@@ -38,7 +42,9 @@ export const fetchDeck = createAsyncThunk(
     try {
       const response = await getDecklistById(deckId);
       if (!response.success) {
-        throw new Error('Failed to fetch deck details');
+        return rejectWithValue(
+          response.error || 'Failed to fetch deck from Moxfield',
+        );
       }
       return response.data;
     } catch (err) {
@@ -48,7 +54,6 @@ export const fetchDeck = createAsyncThunk(
     }
   },
 );
-
 export const fetchDeckStats = createAsyncThunk(
   'deck/fetchDeckStats',
   async (
@@ -63,7 +68,7 @@ export const fetchDeckStats = createAsyncThunk(
     },
     { rejectWithValue, getState },
   ) => {
-    // Create a cache key
+
     const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
 
     // Check cache
@@ -80,10 +85,18 @@ export const fetchDeckStats = createAsyncThunk(
     try {
       const response = await getDeckStats(deckId, timePeriod, minSize);
       if (!response.success) {
-        throw new Error('Failed to fetch deck statistics');
+        // Important: return the entire error response
+        return rejectWithValue(
+          response.error || 'Failed to fetch statistics for deck',
+        );
       }
       return response.data;
     } catch (err) {
+      // If it's an API response error, use that message
+      if (err && typeof err === 'object' && 'error' in err) {
+        return rejectWithValue((err as IErrorResponse).error);
+      }
+      // Otherwise use the error message
       return rejectWithValue(
         err instanceof Error ? err.message : 'An unexpected error occurred',
       );
@@ -130,12 +143,15 @@ const deckSlice = createSlice({
     clearStatsCache: (state) => {
       state.statsCache = {};
     },
-    updateFilterSettings: (state, action: PayloadAction<Partial<FilterSettings>>) => {
+    updateFilterSettings: (
+      state,
+      action: PayloadAction<Partial<FilterSettings>>,
+    ) => {
       state.filterSettings = {
         ...state.filterSettings,
-        ...action.payload
+        ...action.payload,
       };
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -173,16 +189,31 @@ const deckSlice = createSlice({
       })
       .addCase(fetchDeckStats.rejected, (state, action) => {
         state.isStatsLoading = false;
+        state.deckStats = null;
         state.error = action.payload as string;
+
+        // Clear cache for this request
+        if (action.meta?.arg) {
+          const { deckId, timePeriod = 'all', minSize = 0 } = action.meta.arg;
+          const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
+          delete state.statsCache[cacheKey];
+        }
       })
-      // Combined fetch cases
-      .addCase(fetchDeckData.rejected, (state, action) => {
-        state.isDeckLoading = false;
-        state.isStatsLoading = false;
-        state.error = action.payload as string;
-      });
+      // Combined fetch case - only handle rejection not already handled
+      .addMatcher(
+        (action) => action.type === fetchDeckData.rejected.type,
+        (state) => {
+          state.isDeckLoading = false;
+          state.isStatsLoading = false;
+        },
+      );
   },
 });
 
-export const { clearDeckData, clearError, clearStatsCache, updateFilterSettings } = deckSlice.actions;
+export const {
+  clearDeckData,
+  clearError,
+  clearStatsCache,
+  updateFilterSettings,
+} = deckSlice.actions;
 export default deckSlice.reducer;

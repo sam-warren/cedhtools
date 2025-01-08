@@ -35,7 +35,7 @@ class MoxfieldClient:
 
     def _validate_deck(self, data: dict) -> Optional[dict]:
         if data.get("format") != "commander":
-            return create_error_response("Deck must be in Commander format.", 400)
+            return create_error_response("Moxfield deck format must be Commander", 400)
 
         mainboard_count = data.get("boards", {}).get(
             "mainboard", {}).get("count", {})
@@ -54,7 +54,7 @@ class MoxfieldClient:
 
         if status_code == 404:
             return create_error_response(
-                "No deck found at this URL. Please ensure the deck is public on Moxfield.",
+                "No deck found for the given Moxfield URL. Please ensure the deck is public on Moxfield.",
                 404
             )
 
