@@ -24,7 +24,6 @@ export default function DeckPage() {
   const { error, filterSettings } = useAppSelector((state) => state.deck);
 
   const { addSearch } = useSearchHistory();
-  console.log('DeckPage', { deckId, uniqueCardId, commanderId });
 
   useEffect(() => {
     if (!deckId) return;

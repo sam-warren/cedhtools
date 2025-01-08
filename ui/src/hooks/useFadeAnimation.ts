@@ -1,49 +1,34 @@
-import { useEffect, useState } from 'react';
+// src/hooks/useFadeAnimation.ts
+import { useState, useEffect, CSSProperties } from 'react';
 
-export interface UseFadeAnimationOptions {
-  duration?: number;
-  delay?: number;
-  timingFunction?: string;
+interface FadeAnimationParams {
+  isVisible: boolean;
 }
 
-export const useFadeAnimation = (
-  loadingState: {
-    isLoading: boolean;
-    data: any | null;
-    error: string | null;
-  },
-  options: UseFadeAnimationOptions = {},
-) => {
-  const { duration = 0.3, delay = 0, timingFunction = 'ease-in-out' } = options;
-  const [isVisible, setIsVisible] = useState(false);
+interface FadeAnimationResult {
+  fadeStyle: CSSProperties;
+  isDisplayed: boolean;
+}
+
+export const useFadeAnimation = ({
+  isVisible,
+}: FadeAnimationParams): FadeAnimationResult => {
+  const [display, setDisplay] = useState<boolean>(isVisible);
+  const [fadeStyle, setFadeStyle] = useState<CSSProperties>({
+    opacity: isVisible ? 1 : 0,
+    transition: 'opacity 0.5s',
+  });
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    if (!loadingState.isLoading && loadingState.data && !loadingState.error) {
-      // Delay the visibility change slightly to ensure proper mounting
-      timeoutId = setTimeout(() => {
-        setIsVisible(true);
-      }, 50);
+    if (isVisible) {
+      setDisplay(true);
+      setFadeStyle({ opacity: 1, transition: 'opacity 0.5s' });
     } else {
-      setIsVisible(false);
+      setFadeStyle({ opacity: 0, transition: 'opacity 0.5s' });
+      const timeout = setTimeout(() => setDisplay(false), 500); // Match transition duration
+      return () => clearTimeout(timeout);
     }
+  }, [isVisible]);
 
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [loadingState.isLoading, loadingState.data, loadingState.error]);
-
-  const fadeInStyle = {
-    opacity: isVisible ? 1 : 0,
-    transition: `opacity ${duration}s ${timingFunction} ${delay}s`,
-    visibility: isVisible ? 'visible' : 'hidden',
-  };
-
-  return {
-    fadeInStyle,
-    isReady: isVisible,
-  };
+  return { fadeStyle, isDisplayed: display };
 };

@@ -22,8 +22,8 @@ interface DeckState {
 const initialState: DeckState = {
   deck: null,
   deckStats: null,
-  isDeckLoading: false,
-  isStatsLoading: false,
+  isDeckLoading: true,
+  isStatsLoading: true,
   error: null,
   statsCache: {},
   filterSettings: {

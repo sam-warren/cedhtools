@@ -1,20 +1,24 @@
+// src/components/DeckBanner.tsx
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
-import { Link } from '@mui/joy';
+import { Link, Skeleton } from '@mui/joy';
 
 import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
-import { useFadeAnimation } from '../../hooks/useFadeAnimation'; // Adjust import path as needed
+import LoadingWrapper from '../Feedback/LoadingWrapper';
+
+const DeckBannerSkeleton = () => {
+  return (
+    <Box sx={bannerStyles.titleContainer}>
+      <Skeleton variant="text" level="title-lg" width="200px"/>
+      <Skeleton variant="text" level="body-sm" width="150px"/>
+    </Box>
+  );
+};
 
 function DeckBanner() {
-  const { deck, isDeckLoading, error } = useAppSelector((state) => state.deck);
-
-  const { fadeInStyle } = useFadeAnimation({
-    data: deck,
-    isLoading: isDeckLoading,
-    error,
-  });
+  const { deck, isDeckLoading } = useAppSelector((state) => state.deck);
 
   const renderAuthors = () => {
     if (!deck?.authors) return null;
@@ -52,26 +56,26 @@ function DeckBanner() {
         }}
       >
         <Box sx={bannerStyles.titleContainer}>
-          {deck ? (
-            <Box sx={{ ...fadeInStyle }}>
-              <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-                Deck:{' '}
-                <Link
-                  href={deck.publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={bannerStyles.authorLink}
-                >
-                  {deck.name}
-                </Link>
-              </Typography>
-              <Typography level="body-sm" color="neutral">
-                {renderAuthors()}
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }} />
-          )}
+          <LoadingWrapper
+            loading={isDeckLoading}
+            skeleton={<DeckBannerSkeleton />}
+            staticRender={false}
+          >
+            <Typography level="title-lg" sx={{ flexShrink: 0 }}>
+              Deck:{' '}
+              <Link
+                href={deck?.publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={bannerStyles.authorLink}
+              >
+                {deck?.name}
+              </Link>
+            </Typography>
+            <Typography level="body-sm" color="neutral">
+              {renderAuthors()}
+            </Typography>
+          </LoadingWrapper>
         </Box>
         <DeckFilters deckId={deck ? deck.publicId : ''} />
       </Box>
