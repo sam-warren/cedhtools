@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import BalanceIcon from '@mui/icons-material/Balance';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
-import { Box } from '@mui/joy';
+import { Box, Stack } from '@mui/joy';
 import { useAppSelector } from 'src/hooks';
 import StatCounter from '../Feedback/StatCounter';
 import CommanderStack from './CommanderStack';
@@ -22,7 +22,7 @@ function CommanderDetails(): JSX.Element {
   const total_decks = deckStats?.meta_statistics?.sample_size?.total_decks;
 
   return (
-    <Box sx={{ position: 'relative', width: '100%' }}>
+    <Stack sx={{ position: 'relative', width: '100%' }}>
       <CommanderStack
         commanders={memoizedCommanders}
         isInitialLoad={isStatsLoading && !deckStats}
@@ -66,7 +66,7 @@ function CommanderDetails(): JSX.Element {
           />
         </Box>
       </Box>
-    </Box>
+    </Stack>
   );
 }
 

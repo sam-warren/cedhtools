@@ -1,8 +1,13 @@
 // src/styles/cardStyles.ts
 import { Theme } from '@mui/joy/styles';
 import { cardConstants } from '../constants/cards';
+import { ANIMATION_DURATIONS } from 'src/constants/animations';
 
 type CardVariant = 'deck' | 'commander';
+
+const transitionStyle = {
+  transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+};
 
 export const cardStyles = {
   cardContainer: (variant: CardVariant = 'deck') => ({
@@ -31,13 +36,13 @@ export const cardStyles = {
         inset: 0,
         borderRadius: `${cardConstants.CORNER_RADIUS}px`,
         opacity: 0,
-        transition: 'opacity 0.2s ease-in-out',
         pointerEvents: 'none',
         zIndex: 3,
         boxShadow: `
           inset 0 0 0 ${cardConstants.INNER_BORDER_WIDTH}px ${theme.palette.primary.softActiveBg},
           0 0 ${cardConstants.GLOW_BLUR}px ${cardConstants.GLOW_SPREAD}px ${theme.palette.primary.softActiveBg}
         `,
+        ...transitionStyle,
       },
       '&:hover::before': {
         opacity: 1,

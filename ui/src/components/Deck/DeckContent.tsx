@@ -9,8 +9,9 @@ import LoadingWrapper from '../Feedback/LoadingWrapper';
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
-  const { deckStats, isStatsLoading, isDeckLoading } =
-    useAppSelector((state) => state.deck);
+  const { deckStats, isStatsLoading, isDeckLoading } = useAppSelector(
+    (state) => state.deck,
+  );
 
   const numUniqueCards = useMemo(
     () =>
@@ -43,27 +44,15 @@ export default function DeckContent() {
         <Box
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}
         >
-          {/* Commander Name with its own LoadingWrapper */}
           <LoadingWrapper
             loading={isDeckLoading || isStatsLoading}
-            skeleton={<Skeleton variant="text" level="h2" width="300px" />}
+            skeleton={<Skeleton variant="text" level="h2" width="600px" />}
             staticRender={true}
           >
             <Typography level="h2">{commanderName || 'Commander'}</Typography>
           </LoadingWrapper>
 
-          {/* Number of Cards with its own LoadingWrapper */}
-          <LoadingWrapper
-            loading={isStatsLoading}
-            skeleton={
-              <Skeleton
-                variant="text"
-                level="body-sm"
-                width="150px"
-                sx={{ mt: 0.5 }}
-              />
-            }
-          >
+          <LoadingWrapper loading={isStatsLoading}>
             <Typography
               level="body-sm"
               sx={{
@@ -84,61 +73,48 @@ export default function DeckContent() {
       <Divider sx={{ mb: 2 }} />
 
       {/* Main Content Section */}
-      {deckStats && !isStatsLoading && (
-        <Box sx={{ minHeight: 0, position: 'relative' }}>
-          {/* No Data Alert */}
-          {numUniqueCards === 0 && (
-            <Alert
-              startDecorator={<InfoIcon />}
-              color="primary"
-              variant="soft"
-              sx={{ gap: 2, mb: 2 }}
-            >
-              <Box>
-                <Typography>No data found</Typography>
-                <Typography level="body-sm">
-                  We don't have enough data for this commander given the search
-                  filter criteria.
-                </Typography>
-              </Box>
-            </Alert>
-          )}
-
-          {/* Both views are always mounted, with opacity transitions */}
-          {numUniqueCards > 0 && (
-            <>
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  opacity: viewMode === 'list' ? 1 : 0,
-                  visibility: viewMode === 'list' ? 'visible' : 'hidden',
-                  transition:
-                    'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
-                }}
-              >
-                <DeckList />
-              </Box>
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  opacity: viewMode === 'grid' ? 1 : 0,
-                  visibility: viewMode === 'grid' ? 'visible' : 'hidden',
-                  transition:
-                    'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
-                }}
-              >
-                <DeckGrid />
-              </Box>
-            </>
-          )}
-        </Box>
-      )}
+      <LoadingWrapper loading={isStatsLoading}>
+        {numUniqueCards === 0 ? (
+          <Alert
+            startDecorator={<InfoIcon />}
+            color="primary"
+            variant="soft"
+            sx={{ gap: 2, mb: 2 }}
+          >
+            <Box>
+              <Typography>No data found</Typography>
+              <Typography level="body-sm">
+                We don't have enough data for this commander given the search
+                filter criteria.
+              </Typography>
+            </Box>
+          </Alert>
+        ) : (
+          <Box
+            sx={{
+              display: 'grid',
+              '& > div': {
+                gridArea: '1 / 1',
+                opacity: 0,
+                visibility: 'hidden',
+                transition:
+                  'opacity 0.2s ease-in-out, visibility 0.2s ease-in-out',
+                '&[data-active="true"]': {
+                  opacity: 1,
+                  visibility: 'visible',
+                },
+              },
+            }}
+          >
+            <Box data-active={viewMode === 'list'}>
+              <DeckList />
+            </Box>
+            <Box data-active={viewMode === 'grid'}>
+              <DeckGrid />
+            </Box>
+          </Box>
+        )}
+      </LoadingWrapper>
     </Box>
   );
 }

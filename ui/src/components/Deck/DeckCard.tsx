@@ -48,7 +48,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
             position: 'relative',
             zIndex: isImageLoaded ? 2 : 1,
             transition: 'z-index 0s',
-            transitionDelay: isImageLoaded ? '0s' : '0.5s',
+            transitionDelay: isImageLoaded ? '0s' : '0.2s',
           }}
         >
           <Box sx={cardStyles.banner(color)}>
@@ -93,7 +93,13 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
               animation="pulse"
               width="100%"
               height="100%"
-              sx={cardStyles.image('commander')}
+              sx={{
+                ...cardStyles.image('commander'),
+                bgcolor: (theme) => theme.palette.background.level1, // or any solid color
+                '&::after': {
+                  background: 'none', // Prevents the gradient effect from showing through
+                },
+              }}
             />
           )}
         </Box>
@@ -110,7 +116,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ card }) => {
             sx={{
               ...cardStyles.cardTitle,
               opacity: isImageLoaded ? 1 : 0.7,
-              transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
             {card.name}

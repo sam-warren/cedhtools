@@ -10,19 +10,23 @@ import LoadingWrapper from '../Feedback/LoadingWrapper';
 
 const DeckBannerSkeleton = () => {
   return (
-    <Box>
-      <Skeleton variant="text" level="title-lg" width="200px"/>
-      <Skeleton variant="text" level="body-sm" width="150px"/>
+    <Box sx={bannerStyles.titleContainer}>
+      <Typography level="title-lg" sx={{ flexShrink: 0 }}>
+        <Skeleton variant="text" level="title-lg" width="500px"/>
+      </Typography>
+      <Typography level="body-sm" color="neutral">
+        <Skeleton variant="text" level="body-sm" width="250px"/>
+      </Typography>
     </Box>
   );
 };
 
+// DeckBanner.tsx
 function DeckBanner() {
   const { deck, isDeckLoading } = useAppSelector((state) => state.deck);
-
+  
   const renderAuthors = () => {
     if (!deck?.authors) return null;
-
     return (
       <>
         created by{' '}
@@ -33,9 +37,7 @@ function DeckBanner() {
               href={`https://www.moxfield.com/users/${author.userName}`}
               target="_blank"
               rel="noopener noreferrer"
-              sx={{
-                ...bannerStyles.authorLink,
-              }}
+              sx={bannerStyles.authorLink}
             >
               {author.displayName}
             </Link>
@@ -55,12 +57,11 @@ function DeckBanner() {
           justifyContent: 'space-between',
         }}
       >
-        <Box sx={bannerStyles.titleContainer}>
-          <LoadingWrapper
-            loading={isDeckLoading}
-            skeleton={<DeckBannerSkeleton />}
-            staticRender={true}
-          >
+        <LoadingWrapper
+          loading={isDeckLoading}
+          skeleton={<DeckBannerSkeleton />}
+        >
+          <Box sx={bannerStyles.titleContainer}>
             <Typography level="title-lg" sx={{ flexShrink: 0 }}>
               Deck:{' '}
               <Link
@@ -75,8 +76,8 @@ function DeckBanner() {
             <Typography level="body-sm" color="neutral">
               {renderAuthors()}
             </Typography>
-          </LoadingWrapper>
-        </Box>
+          </Box>
+        </LoadingWrapper>
         <DeckFilters deckId={deck ? deck.publicId : ''} />
       </Box>
     </Box>

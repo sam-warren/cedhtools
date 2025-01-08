@@ -12,12 +12,17 @@ export const bannerStyles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     flexShrink: 0,
-    height: `${cardConstants.BANNER_HEIGHT}px`,
+    // Remove fixed height and let content determine it
+    minHeight: `${cardConstants.BANNER_HEIGHT}px`,
   },
   titleContainer: {
     display: 'flex',
     flexDirection: 'column',
     gap: 0.5,
+    // Ensure container takes full height
+    height: '100%',
+    // Add flex positioning to match parent
+    justifyContent: 'center',
   },
   authorLink: {
     color: 'inherit',
