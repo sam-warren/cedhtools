@@ -102,7 +102,7 @@ function Footer(props: BoxProps) {
           alignItems: 'center',
           borderTop: '1px solid',
           borderColor: 'divider',
-          height: '64px',
+          height: '56px',
           flexShrink: 0, // Prevent footer from shrinking
         },
         ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
