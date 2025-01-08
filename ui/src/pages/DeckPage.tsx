@@ -1,11 +1,9 @@
-// src/pages/DeckPage.tsx
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
 import {
   fetchDeckData,
-  clearError,
   clearDeckData,
 } from 'src/store/slices/deckSlice';
 import DeckBanner from 'src/components/Deck/DeckBanner';
@@ -21,42 +19,55 @@ export default function DeckPage() {
   }>();
   const dispatch = useAppDispatch();
   const { filterSettings } = useAppSelector((state) => state.deck);
-
   const { addSearch } = useSearchHistory();
 
   useEffect(() => {
-    if (!deckId) return;
+    let isSubscribed = true;
 
-    dispatch(clearDeckData());
+    const loadDeck = async () => {
+      if (!deckId) return;
 
-    // Initial load with current filter settings
-    dispatch(
-      fetchDeckData({
-        deckId: deckId,
-        timePeriod: filterSettings.timePeriod, // Uses initial state values
-        minSize: filterSettings.minSize,
-      }),
-    )
-      .unwrap()
-      .then((result) => {
-        addSearch({
-          name: result.deck.name,
-          publicId: result.deck.publicId,
-          publicUrl: result.deck.publicUrl,
-        });
-      }).catch((error) => {
-        console.error('Failed to fetch deck data:', error);
-      })
-  }, [deckId]);
+      // Clear existing data before loading new deck
+      dispatch(clearDeckData());
 
+      try {
+        const result = await dispatch(
+          fetchDeckData({
+            deckId: deckId,
+            timePeriod: filterSettings.timePeriod,
+            minSize: filterSettings.minSize,
+          }),
+        ).unwrap();
+
+        // Only update if component is still mounted
+        if (isSubscribed) {
+          addSearch({
+            name: result.deck.name,
+            publicId: result.deck.publicId,
+            publicUrl: result.deck.publicUrl,
+          });
+        }
+      } catch (error) {
+        if (isSubscribed) {
+          console.error('Failed to fetch deck data:', error);
+        }
+      }
+    };
+
+    loadDeck();
+
+    // Cleanup function to run on unmount or when deckId changes
+    return () => {
+      isSubscribed = false;
+      dispatch(clearDeckData());
+    };
+  }, [deckId, filterSettings.timePeriod, filterSettings.minSize]);
 
   return (
-    <>
-      <DeckPageLayout
-        banner={<DeckBanner />}
-        leftPane={<CommanderDetails />}
-        rightPane={<DeckContent />}
-      />
-    </>
+    <DeckPageLayout
+      banner={<DeckBanner />}
+      leftPane={<CommanderDetails />}
+      rightPane={<DeckContent />}
+    />
   );
 }
