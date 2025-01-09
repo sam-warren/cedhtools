@@ -6,6 +6,7 @@ import DeckList from './DeckList';
 import DeckViewToggle from './DeckViewToggle';
 import { useMemo } from 'react';
 import TransitionWrapper from '../Feedback/TransitionWrapper';
+import { useParams } from 'react-router-dom';
 
 const NoDataAlert = () => (
   <Alert
@@ -49,16 +50,9 @@ const CardDisplay = ({ viewMode }: { viewMode: 'list' | 'grid' }) => (
   </Box>
 );
 
-interface DeckStats {
-  card_statistics: {
-    main: Record<string, any[]>;
-    other: any[];
-  };
-  commanders: Array<{ name: string }>;
-}
-
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
+  const { deckId } = useParams<{ deckId?: string }>(); // Extract deckId from URL
   const { deckStats, isStatsLoading, isDeckLoading } = useAppSelector(
     (state) => state.deck,
   );
@@ -100,9 +94,9 @@ export default function DeckContent() {
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}
         >
           <TransitionWrapper
+            key={deckId} // Add deckId as key to force remount on deck change
             loading={isLoading}
             skeleton={<Skeleton variant="text" level="h2" width="600px" />}
-            staticRender
           >
             <Typography level="h2">{commanderName}</Typography>
           </TransitionWrapper>

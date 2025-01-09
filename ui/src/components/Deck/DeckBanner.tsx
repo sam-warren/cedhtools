@@ -5,6 +5,7 @@ import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
 import TransitionWrapper from '../Feedback/TransitionWrapper';
+import { useParams } from 'react-router-dom';
 
 const DeckBannerSkeleton = () => (
   <Box
@@ -86,6 +87,7 @@ const DeckContent = ({ deck }: { deck: any }) => (
 );
 
 function DeckBanner() {
+  const { deckId } = useParams<{ deckId?: string }>(); // Extract deckId from URL
   const { deck, isDeckLoading } = useAppSelector((state) => state.deck);
   const isLoading = isDeckLoading || !deck;
 
@@ -100,9 +102,10 @@ function DeckBanner() {
         }}
       >
         <TransitionWrapper
+          key={deckId} // Add deckId as key to force remount on deck change
           loading={isLoading}
           skeleton={<DeckBannerSkeleton />}
-          staticRender
+          
           sx={{
             height: '4rem',
             display: 'flex',
