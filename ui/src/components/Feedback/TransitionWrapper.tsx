@@ -5,40 +5,32 @@ import { CSSTransition, SwitchTransition } from 'react-transition-group';
 interface TransitionWrapperProps extends Omit<BoxProps, 'children'> {
   loading?: boolean;
   skeleton?: ReactNode;
-  staticRender?: boolean;
   children: ReactNode;
+  initialLoadOnly?: boolean;
   transitionDuration?: number;
 }
 const TransitionWrapper = ({
   loading = false,
   skeleton,
-  staticRender = false,
   children,
   transitionDuration = 300,
+  initialLoadOnly = false,
   sx,
   ...boxProps
 }: TransitionWrapperProps) => {
   const contentRef = useRef(null);
   const skeletonRef = useRef(null);
-  const [isInitialMount, setIsInitialMount] = useState(true);
-  const [frozenChildren, setFrozenChildren] = useState<ReactNode>(null);
-  const [frozenLoading, setFrozenLoading] = useState(loading);
+  const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
 
   useEffect(() => {
-    if (isInitialMount && staticRender) {
-      // Only freeze on initial mount if staticRender is true
-      if (!loading) {
-        setFrozenChildren(children);
-        setFrozenLoading(false);
-        setIsInitialMount(false);
-      }
+    if (!loading && initialLoadOnly && !hasInitialLoaded) {
+      setHasInitialLoaded(true);
     }
-  }, [loading, children, staticRender, isInitialMount]);
+  }, [loading, initialLoadOnly, hasInitialLoaded]);
 
-  const effectiveLoading =
-    !staticRender || isInitialMount ? loading : frozenLoading;
-  const effectiveChildren =
-    !staticRender || isInitialMount ? children : frozenChildren;
+  const shouldShowLoading = initialLoadOnly
+    ? !hasInitialLoaded && loading
+    : loading;
 
   return (
     <Box
@@ -70,8 +62,8 @@ const TransitionWrapper = ({
     >
       <SwitchTransition mode="out-in">
         <CSSTransition
-          key={effectiveLoading ? 'skeleton' : 'content'}
-          nodeRef={effectiveLoading ? skeletonRef : contentRef}
+          key={shouldShowLoading ? 'skeleton' : 'content'}
+          nodeRef={shouldShowLoading ? skeletonRef : contentRef}
           timeout={transitionDuration}
           classNames={{
             enter: 'transition-enter',
@@ -80,10 +72,10 @@ const TransitionWrapper = ({
             exitActive: 'transition-exit-active',
           }}
         >
-          {effectiveLoading && skeleton ? (
+          {shouldShowLoading && skeleton ? (
             <Box ref={skeletonRef}>{skeleton}</Box>
           ) : (
-            <Box ref={contentRef}>{effectiveChildren}</Box>
+            <Box ref={contentRef}>{children}</Box>
           )}
         </CSSTransition>
       </SwitchTransition>

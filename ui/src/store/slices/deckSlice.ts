@@ -1,3 +1,4 @@
+// deckSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getDecklistById } from '../../services/moxfield/moxfield';
 import { getDeckStats } from 'src/services';
@@ -26,8 +27,8 @@ interface DeckState {
 const initialState: DeckState = {
   deck: null,
   deckStats: null,
-  isDeckLoading: true,
-  isStatsLoading: true,
+  isDeckLoading: false,
+  isStatsLoading: false,
   error: null,
   statsCache: {},
   filterSettings: {
@@ -39,9 +40,8 @@ const initialState: DeckState = {
 export const fetchDeck = createAsyncThunk(
   'deck/fetchDeck',
   async (deckId: string, { rejectWithValue, signal }) => {
-    console.log("thunk 1")
+    console.log('thunk 1');
     try {
-      // Manually check if the request was aborted
       if (signal.aborted) {
         throw new Error('Request cancelled');
       }
@@ -64,7 +64,6 @@ export const fetchDeck = createAsyncThunk(
   {
     condition: (_, { getState }) => {
       const { deck } = getState() as { deck: DeckState };
-      // Only allow one request at a time
       return !deck.isDeckLoading;
     },
   },
@@ -84,7 +83,7 @@ export const fetchDeckStats = createAsyncThunk(
     },
     { rejectWithValue, getState, signal },
   ) => {
-    console.log("thunk 2")
+    console.log('thunk 2');
     const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
     const state = getState() as { deck: DeckState };
     const cachedStats = state.deck.statsCache[cacheKey];
@@ -96,7 +95,6 @@ export const fetchDeckStats = createAsyncThunk(
     }
 
     try {
-      // Manually check if the request was aborted
       if (signal.aborted) {
         throw new Error('Request cancelled');
       }
@@ -122,7 +120,6 @@ export const fetchDeckStats = createAsyncThunk(
   {
     condition: (_, { getState }) => {
       const { deck } = getState() as { deck: DeckState };
-      // Only allow one request at a time
       return !deck.isStatsLoading;
     },
   },
@@ -142,7 +139,6 @@ export const fetchDeckData = createAsyncThunk(
     },
     { dispatch, signal },
   ) => {
-    // Clear existing data before fetching new data
     dispatch(clearDeckData());
 
     const deck = await dispatch(fetchDeck(deckId)).unwrap();
@@ -162,8 +158,6 @@ const deckSlice = createSlice({
       state.deck = null;
       state.deckStats = null;
       state.error = null;
-      // Don't clear the cache on regular cleanup
-      // state.statsCache = {};
       state.isDeckLoading = false;
       state.isStatsLoading = false;
     },
@@ -197,7 +191,6 @@ const deckSlice = createSlice({
       .addCase(fetchDeck.rejected, (state, action) => {
         state.isDeckLoading = false;
         if (action.payload === 'Request cancelled') {
-          // Don't set error for cancelled requests
           return;
         }
         state.error = action.payload as string;
@@ -211,7 +204,6 @@ const deckSlice = createSlice({
         state.isStatsLoading = false;
         state.deckStats = action.payload;
 
-        // Cache the fetched stats
         const { meta } = action;
         const { deckId, timePeriod = 'all', minSize = 0 } = meta.arg;
         const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
@@ -224,13 +216,11 @@ const deckSlice = createSlice({
       .addCase(fetchDeckStats.rejected, (state, action) => {
         state.isStatsLoading = false;
         if (action.payload === 'Request cancelled') {
-          // Don't clear data or set error for cancelled requests
           return;
         }
         state.deckStats = null;
         state.error = action.payload as string;
 
-        // Clear cache for this request
         if (action.meta?.arg) {
           const { deckId, timePeriod = 'all', minSize = 0 } = action.meta.arg;
           const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
@@ -238,14 +228,12 @@ const deckSlice = createSlice({
         }
       })
       .addCase(fetchDeckData.pending, (state) => {
-        // Only set isDeckLoading since we're fetching deck first
         state.isDeckLoading = true;
         state.error = null;
       })
       .addCase(fetchDeckData.rejected, (state, action) => {
         state.isDeckLoading = false;
         state.isStatsLoading = false;
-        // Don't set error for cancelled requests
         if (action.error.name !== 'AbortError') {
           state.error = action.error.message ?? 'An error occurred';
         }

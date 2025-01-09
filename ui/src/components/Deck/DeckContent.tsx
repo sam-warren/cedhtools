@@ -1,3 +1,4 @@
+// DeckContent.tsx
 import { Box, Divider, Typography, Alert, Skeleton } from '@mui/joy';
 import { Info as InfoIcon } from 'lucide-react';
 import { useAppSelector } from 'src/hooks';
@@ -52,12 +53,13 @@ const CardDisplay = ({ viewMode }: { viewMode: 'list' | 'grid' }) => (
 
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
-  const { deckId } = useParams<{ deckId?: string }>(); // Extract deckId from URL
+  const { deckId } = useParams<{ deckId?: string }>();
   const { deckStats, isStatsLoading, isDeckLoading } = useAppSelector(
     (state) => state.deck,
   );
 
   const isLoading = isStatsLoading || isDeckLoading || !deckStats;
+  const isCommanderNameLoading = !deckStats; // Initial render only
 
   const numUniqueCards = useMemo(() => {
     if (!deckStats) return 0;
@@ -72,7 +74,7 @@ export default function DeckContent() {
   const commanderName = useMemo(() => {
     if (isLoading) return '';
     return deckStats?.commanders.map((commander) => commander.name).join(' + ');
-  }, [deckStats, isLoading]);
+  }, [deckStats, isCommanderNameLoading]);
 
   const showNoData = !!deckStats && !isStatsLoading && numUniqueCards === 0;
   const showCardDisplay = !isStatsLoading && numUniqueCards > 0;
@@ -80,7 +82,7 @@ export default function DeckContent() {
   return (
     <Box>
       {/* Title Section */}
-      <Box
+    <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -94,9 +96,13 @@ export default function DeckContent() {
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}
         >
           <TransitionWrapper
-            key={deckId} // Add deckId as key to force remount on deck change
-            loading={isLoading}
+            key={deckId} // Use deckId to force remount
+            loading={isCommanderNameLoading}
             skeleton={<Skeleton variant="text" level="h2" width="600px" />}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+            }}
           >
             <Typography level="h2">{commanderName}</Typography>
           </TransitionWrapper>

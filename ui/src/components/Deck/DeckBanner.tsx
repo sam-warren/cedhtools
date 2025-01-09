@@ -1,6 +1,5 @@
-import Box from '@mui/joy/Box';
-import Typography from '@mui/joy/Typography';
-import { Link, Skeleton } from '@mui/joy';
+// DeckBanner.tsx
+import { Box, Typography, Link, Skeleton } from '@mui/joy';
 import DeckFilters from './DeckFilters';
 import { bannerStyles } from 'src/styles';
 import { useAppSelector } from 'src/hooks';
@@ -102,10 +101,9 @@ function DeckBanner() {
         }}
       >
         <TransitionWrapper
-          key={deckId} // Add deckId as key to force remount on deck change
+          key={deckId} // Use deckId as key to force remount on deck change
           loading={isLoading}
           skeleton={<DeckBannerSkeleton />}
-          
           sx={{
             height: '4rem',
             display: 'flex',
@@ -114,8 +112,7 @@ function DeckBanner() {
         >
           <DeckContent deck={deck} />
         </TransitionWrapper>
-
-        <DeckFilters deckId={deck?.publicId || ''} />
+        <DeckFilters deckId={deckId || ''} /> {/* Pass deckId from URL */}
       </Box>
     </Box>
   );
