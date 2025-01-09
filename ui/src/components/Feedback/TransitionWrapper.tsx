@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState, useEffect } from 'react';
+import { ReactNode, useRef } from 'react';
 import { Box, BoxProps } from '@mui/joy';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import { ANIMATION_DURATIONS } from 'src/constants/animations';
@@ -7,31 +7,19 @@ interface TransitionWrapperProps extends Omit<BoxProps, 'children'> {
   loading?: boolean;
   skeleton?: ReactNode;
   children: ReactNode;
-  initialLoadOnly?: boolean;
   transitionDuration?: number;
 }
+
 const TransitionWrapper = ({
   loading = false,
   skeleton,
   children,
-  transitionDuration = ANIMATION_DURATIONS.fadeTransition,
-  initialLoadOnly = false,
+  transitionDuration = ANIMATION_DURATIONS.transitionDuration,
   sx,
   ...boxProps
 }: TransitionWrapperProps) => {
   const contentRef = useRef(null);
   const skeletonRef = useRef(null);
-  const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!loading && initialLoadOnly && !hasInitialLoaded) {
-      setHasInitialLoaded(true);
-    }
-  }, [loading, initialLoadOnly, hasInitialLoaded]);
-
-  const shouldShowLoading = initialLoadOnly
-    ? !hasInitialLoaded && loading
-    : loading;
 
   return (
     <Box
@@ -63,8 +51,8 @@ const TransitionWrapper = ({
     >
       <SwitchTransition mode="out-in">
         <CSSTransition
-          key={shouldShowLoading ? 'skeleton' : 'content'}
-          nodeRef={shouldShowLoading ? skeletonRef : contentRef}
+          key={loading ? 'skeleton' : 'content'}
+          nodeRef={loading ? skeletonRef : contentRef}
           timeout={transitionDuration}
           classNames={{
             enter: 'transition-enter',
@@ -73,7 +61,7 @@ const TransitionWrapper = ({
             exitActive: 'transition-exit-active',
           }}
         >
-          {shouldShowLoading && skeleton ? (
+          {loading && skeleton ? (
             <Box ref={skeletonRef}>{skeleton}</Box>
           ) : (
             <Box ref={contentRef}>{children}</Box>
@@ -87,17 +75,23 @@ const TransitionWrapper = ({
 interface SectionProps {
   when: boolean;
   children: ReactNode;
+  sectionTransitionDuration?: number;
   sx?: BoxProps['sx'];
 }
 
-const Section = ({ when, children, sx }: SectionProps) => {
+const Section = ({
+  when,
+  children,
+  sectionTransitionDuration = ANIMATION_DURATIONS.sectionTransitionDuration,
+  sx,
+}: SectionProps) => {
   const nodeRef = useRef(null);
 
   return (
     <CSSTransition
       in={when}
       nodeRef={nodeRef}
-      timeout={300}
+      timeout={sectionTransitionDuration}
       unmountOnExit
       classNames={{
         enter: 'section-enter',
