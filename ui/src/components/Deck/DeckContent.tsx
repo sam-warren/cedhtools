@@ -1,4 +1,3 @@
-// DeckContent.tsx
 import { Box, Divider, Typography, Alert, Skeleton } from '@mui/joy';
 import { Info as InfoIcon } from 'lucide-react';
 import { useAppSelector } from 'src/hooks';
@@ -54,32 +53,36 @@ const CardDisplay = ({ viewMode }: { viewMode: 'list' | 'grid' }) => (
 export default function DeckContent() {
   const viewMode = useAppSelector((state) => state.ui.deckViewMode);
   const { deckId } = useParams<{ deckId?: string }>();
-  const { deckStats, isStatsLoading, isDeckLoading } = useAppSelector(
-    (state) => state.deck,
-  );
+  const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
 
-  const isLoading = isStatsLoading || isDeckLoading || !deckStats;
-  const isCommanderNameLoading = !deckStats; // Initial render only
+  // Compute derived states
+  const isInitialLoad = !deckStats;
+
+  const showCardDisplay = useMemo(() => {
+    if (isStatsLoading) return false; // Never show while loading
+    return (
+      !!deckStats && deckStats.meta_statistics.sample_size.num_unique_cards > 0
+    );
+  }, [deckStats, isStatsLoading]);
+
+  const showMissingDataAlert = useMemo(() => {
+    if (isStatsLoading) return false; // Never show while loading
+    return (
+      !!deckStats &&
+      deckStats.meta_statistics.sample_size.num_unique_cards === 0
+    );
+  }, [deckStats, isStatsLoading]);
 
   const commanderName = useMemo(() => {
-    if (isLoading) return '';
-    return deckStats?.commanders.map((commander) => commander.name).join(' + ');
-  }, [deckStats, isCommanderNameLoading]);
+    if (!deckStats || isStatsLoading) return '';
+    return deckStats.commanders.map((commander) => commander.name).join(' + ');
+  }, [deckStats?.commanders]);
 
   const uniqueCardsText = useMemo(() => {
-    if (!deckStats) return '';
+    if (!deckStats || isStatsLoading) return '';
     const count = deckStats.meta_statistics.sample_size.num_unique_cards;
     return count === 0 ? 'No cards found' : `${count} unique cards`;
-  }, [deckStats]);
-
-  const showNoData =
-    !!deckStats &&
-    !isStatsLoading &&
-    deckStats.meta_statistics.sample_size.num_unique_cards === 0;
-  const showCardDisplay =
-    !!deckStats &&
-    !isStatsLoading &&
-    deckStats.meta_statistics.sample_size.num_unique_cards > 0;
+  }, [deckStats?.meta_statistics.sample_size.num_unique_cards]);
 
   return (
     <Box>
@@ -91,15 +94,15 @@ export default function DeckContent() {
           alignItems: 'flex-start',
           mt: 2,
           mb: 2,
-          height: '3.75rem',
+          // height: '3.75rem',
         }}
       >
         <Box
           sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}
         >
           <TransitionWrapper
-            key={deckId} // Use deckId to force remount
-            loading={isCommanderNameLoading}
+            key={deckId}
+            loading={isInitialLoad}
             skeleton={<Skeleton variant="text" level="h2" width="600px" />}
             sx={{
               display: 'flex',
@@ -109,10 +112,11 @@ export default function DeckContent() {
             <Typography level="h2">{commanderName}</Typography>
           </TransitionWrapper>
 
-          <TransitionWrapper loading={isLoading}>
-            <Box>
-              <Typography level="body-sm">{uniqueCardsText}</Typography>
-            </Box>
+          <TransitionWrapper
+            loading={isStatsLoading || isInitialLoad}
+            skeleton={<Box />}
+          >
+            <Typography level="body-sm">{uniqueCardsText}</Typography>
           </TransitionWrapper>
         </Box>
 
@@ -124,13 +128,12 @@ export default function DeckContent() {
       <Divider sx={{ mb: 2 }} />
 
       {/* Main Content Section */}
-      <TransitionWrapper loading={isStatsLoading}>
-        <TransitionWrapper.Section when={showNoData}>
-          <NoDataAlert />
-        </TransitionWrapper.Section>
-
+      <TransitionWrapper loading={isStatsLoading || !deckStats}>
         <TransitionWrapper.Section when={showCardDisplay}>
           <CardDisplay viewMode={viewMode} />
+        </TransitionWrapper.Section>
+        <TransitionWrapper.Section when={showMissingDataAlert}>
+          <NoDataAlert />
         </TransitionWrapper.Section>
       </TransitionWrapper>
     </Box>
