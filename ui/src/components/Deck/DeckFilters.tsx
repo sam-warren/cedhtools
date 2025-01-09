@@ -29,6 +29,7 @@ const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
       setIsAnimating(false);
     });
   };
+
   const handleFilterChange = (newSettings: Partial<FilterSettings>) => {
     dispatch(updateFilterSettings(newSettings));
   };

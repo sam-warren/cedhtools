@@ -9,7 +9,6 @@ interface TransitionWrapperProps extends Omit<BoxProps, 'children'> {
   children: ReactNode;
   transitionDuration?: number;
 }
-
 const TransitionWrapper = ({
   loading = false,
   skeleton,
@@ -26,15 +25,16 @@ const TransitionWrapper = ({
   const [frozenLoading, setFrozenLoading] = useState(loading);
 
   useEffect(() => {
-    if (isInitialMount && !loading && staticRender) {
-      // Lock in the children and loading state after initial mount
-      setFrozenChildren(children);
-      setFrozenLoading(false);
-      setIsInitialMount(false);
+    if (isInitialMount && staticRender) {
+      // Only freeze on initial mount if staticRender is true
+      if (!loading) {
+        setFrozenChildren(children);
+        setFrozenLoading(false);
+        setIsInitialMount(false);
+      }
     }
   }, [loading, children, staticRender, isInitialMount]);
 
-  // Use frozen values if staticRender is true and we're past initial mount
   const effectiveLoading =
     !staticRender || isInitialMount ? loading : frozenLoading;
   const effectiveChildren =

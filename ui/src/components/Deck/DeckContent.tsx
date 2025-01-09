@@ -80,7 +80,7 @@ export default function DeckContent() {
     return deckStats?.commanders.map((commander) => commander.name).join(' + ');
   }, [deckStats, isLoading]);
 
-  const showNoData = !isStatsLoading && numUniqueCards === 0;
+  const showNoData = !!deckStats && !isStatsLoading && numUniqueCards === 0;
   const showCardDisplay = !isStatsLoading && numUniqueCards > 0;
 
   return (

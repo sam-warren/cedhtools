@@ -102,6 +102,7 @@ function DeckBanner() {
         <TransitionWrapper
           loading={isLoading}
           skeleton={<DeckBannerSkeleton />}
+          staticRender
           sx={{
             height: '4rem',
             display: 'flex',

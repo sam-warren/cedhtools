@@ -2,10 +2,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
-import {
-  fetchDeckData,
-  clearDeckData,
-} from 'src/store/slices/deckSlice';
+import { fetchDeckData } from 'src/store/slices/deckSlice';
 import DeckBanner from 'src/components/Deck/DeckBanner';
 import { DeckPageLayout } from 'src/components/Layout/DeckPageLayout';
 import CommanderDetails from 'src/components/Deck/CommanderDetails';
@@ -22,46 +19,37 @@ export default function DeckPage() {
   const { addSearch } = useSearchHistory();
 
   useEffect(() => {
-    let isSubscribed = true;
+    if (!deckId) return;
 
-    const loadDeck = async () => {
-      if (!deckId) return;
+    const promise = dispatch(
+      fetchDeckData({
+        deckId,
+        timePeriod: filterSettings.timePeriod,
+        minSize: filterSettings.minSize,
+      }),
+    );
 
-      // Clear existing data before loading new deck
-      dispatch(clearDeckData());
-
-      try {
-        const result = await dispatch(
-          fetchDeckData({
-            deckId: deckId,
-            timePeriod: filterSettings.timePeriod,
-            minSize: filterSettings.minSize,
-          }),
-        ).unwrap();
-
-        // Only update if component is still mounted
-        if (isSubscribed) {
-          addSearch({
-            name: result.deck.name,
-            publicId: result.deck.publicId,
-            publicUrl: result.deck.publicUrl,
-          });
-        }
-      } catch (error) {
-        if (isSubscribed) {
+    promise
+      .unwrap()
+      .then((result) => {
+        addSearch({
+          name: result.deck.name,
+          publicId: result.deck.publicId,
+          publicUrl: result.deck.publicUrl,
+        });
+      })
+      .catch((error) => {
+        // Only log errors that aren't from cancelled requests
+        if (error.name !== 'AbortError') {
           console.error('Failed to fetch deck data:', error);
         }
-      }
-    };
+      });
 
-    loadDeck();
-
-    // Cleanup function to run on unmount or when deckId changes
     return () => {
-      isSubscribed = false;
-      dispatch(clearDeckData());
+      // This will cancel any pending requests
+      promise.abort();
     };
-  }, [deckId, filterSettings.timePeriod, filterSettings.minSize]);
+  }, [deckId]);
 
   return (
     <DeckPageLayout

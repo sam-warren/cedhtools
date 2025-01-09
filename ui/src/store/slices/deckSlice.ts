@@ -38,8 +38,13 @@ const initialState: DeckState = {
 
 export const fetchDeck = createAsyncThunk(
   'deck/fetchDeck',
-  async (deckId: string, { rejectWithValue }) => {
+  async (deckId: string, { rejectWithValue, signal }) => {
+    console.log("thunk 1")
     try {
+      // Manually check if the request was aborted
+      if (signal.aborted) {
+        throw new Error('Request cancelled');
+      }
       const response = await getDecklistById(deckId);
       if (!response.success) {
         return rejectWithValue(
@@ -48,12 +53,23 @@ export const fetchDeck = createAsyncThunk(
       }
       return response.data;
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return rejectWithValue('Request cancelled');
+      }
       return rejectWithValue(
         err instanceof Error ? err.message : 'An unexpected error occurred',
       );
     }
   },
+  {
+    condition: (_, { getState }) => {
+      const { deck } = getState() as { deck: DeckState };
+      // Only allow one request at a time
+      return !deck.isDeckLoading;
+    },
+  },
 );
+
 export const fetchDeckStats = createAsyncThunk(
   'deck/fetchDeckStats',
   async (
@@ -66,16 +82,13 @@ export const fetchDeckStats = createAsyncThunk(
       minSize?: number;
       timePeriod?: string;
     },
-    { rejectWithValue, getState },
+    { rejectWithValue, getState, signal },
   ) => {
-
+    console.log("thunk 2")
     const cacheKey = `${deckId}-${timePeriod}-${minSize}`;
-
-    // Check cache
     const state = getState() as { deck: DeckState };
     const cachedStats = state.deck.statsCache[cacheKey];
 
-    // Cache is valid for 5 minutes
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
     if (cachedStats && Date.now() - cachedStats.timestamp < CACHE_DURATION) {
@@ -83,28 +96,38 @@ export const fetchDeckStats = createAsyncThunk(
     }
 
     try {
+      // Manually check if the request was aborted
+      if (signal.aborted) {
+        throw new Error('Request cancelled');
+      }
       const response = await getDeckStats(deckId, timePeriod, minSize);
       if (!response.success) {
-        // Important: return the entire error response
         return rejectWithValue(
           response.error || 'Failed to fetch statistics for deck',
         );
       }
       return response.data;
     } catch (err) {
-      // If it's an API response error, use that message
+      if (err instanceof Error && err.name === 'AbortError') {
+        return rejectWithValue('Request cancelled');
+      }
       if (err && typeof err === 'object' && 'error' in err) {
         return rejectWithValue((err as IErrorResponse).error);
       }
-      // Otherwise use the error message
       return rejectWithValue(
         err instanceof Error ? err.message : 'An unexpected error occurred',
       );
     }
   },
+  {
+    condition: (_, { getState }) => {
+      const { deck } = getState() as { deck: DeckState };
+      // Only allow one request at a time
+      return !deck.isStatsLoading;
+    },
+  },
 );
 
-// Async thunk for fetching both deck and stats
 export const fetchDeckData = createAsyncThunk(
   'deck/fetchDeckData',
   async (
@@ -117,12 +140,16 @@ export const fetchDeckData = createAsyncThunk(
       minSize?: number;
       timePeriod?: string;
     },
-    { dispatch },
+    { dispatch, signal },
   ) => {
+    // Clear existing data before fetching new data
+    dispatch(clearDeckData());
+
     const deck = await dispatch(fetchDeck(deckId)).unwrap();
     const stats = await dispatch(
       fetchDeckStats({ deckId: deck.publicId, minSize, timePeriod }),
     ).unwrap();
+
     return { deck, deckStats: stats };
   },
 );
@@ -135,7 +162,10 @@ const deckSlice = createSlice({
       state.deck = null;
       state.deckStats = null;
       state.error = null;
-      state.statsCache = {};
+      // Don't clear the cache on regular cleanup
+      // state.statsCache = {};
+      state.isDeckLoading = false;
+      state.isStatsLoading = false;
     },
     clearError: (state) => {
       state.error = null;
@@ -166,6 +196,10 @@ const deckSlice = createSlice({
       })
       .addCase(fetchDeck.rejected, (state, action) => {
         state.isDeckLoading = false;
+        if (action.payload === 'Request cancelled') {
+          // Don't set error for cancelled requests
+          return;
+        }
         state.error = action.payload as string;
       })
       // Stats fetch cases
@@ -189,6 +223,10 @@ const deckSlice = createSlice({
       })
       .addCase(fetchDeckStats.rejected, (state, action) => {
         state.isStatsLoading = false;
+        if (action.payload === 'Request cancelled') {
+          // Don't clear data or set error for cancelled requests
+          return;
+        }
         state.deckStats = null;
         state.error = action.payload as string;
 
@@ -199,14 +237,19 @@ const deckSlice = createSlice({
           delete state.statsCache[cacheKey];
         }
       })
-      // Combined fetch case - only handle rejection not already handled
-      .addMatcher(
-        (action) => action.type === fetchDeckData.rejected.type,
-        (state) => {
-          state.isDeckLoading = false;
-          state.isStatsLoading = false;
-        },
-      );
+      .addCase(fetchDeckData.pending, (state) => {
+        // Only set isDeckLoading since we're fetching deck first
+        state.isDeckLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchDeckData.rejected, (state, action) => {
+        state.isDeckLoading = false;
+        state.isStatsLoading = false;
+        // Don't set error for cancelled requests
+        if (action.error.name !== 'AbortError') {
+          state.error = action.error.message ?? 'An error occurred';
+        }
+      });
   },
 });
 
@@ -216,4 +259,5 @@ export const {
   clearStatsCache,
   updateFilterSettings,
 } = deckSlice.actions;
+
 export default deckSlice.reducer;
