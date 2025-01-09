@@ -1,6 +1,7 @@
 import { ReactNode, useRef, useState, useEffect } from 'react';
 import { Box, BoxProps } from '@mui/joy';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
+import { ANIMATION_DURATIONS } from 'src/constants/animations';
 
 interface TransitionWrapperProps extends Omit<BoxProps, 'children'> {
   loading?: boolean;
@@ -13,7 +14,7 @@ const TransitionWrapper = ({
   loading = false,
   skeleton,
   children,
-  transitionDuration = 300,
+  transitionDuration = ANIMATION_DURATIONS.fadeTransition,
   initialLoadOnly = false,
   sx,
   ...boxProps

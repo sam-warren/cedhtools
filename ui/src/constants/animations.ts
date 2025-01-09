@@ -1,4 +1,4 @@
 export const ANIMATION_DURATIONS = {
-    fadeTransition: 200,
+    fadeTransition: 600,
     imageLoad: 400,
   } as const;

@@ -20,7 +20,8 @@ class MetaStatisticsDTO:
         """
         return cls(
             sample_size={
-                "total_decks": repo_data.get('total_decks', 0)
+                "total_decks": repo_data.get('total_decks', 0),
+                "num_unique_cards": repo_data.get('num_unique_cards', 0)
             },
             baseline_performance={
                 "win_rate": repo_data.get('avg_win_rate', 0.0),

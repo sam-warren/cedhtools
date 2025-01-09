@@ -61,28 +61,30 @@ export default function DeckContent() {
   const isLoading = isStatsLoading || isDeckLoading || !deckStats;
   const isCommanderNameLoading = !deckStats; // Initial render only
 
-  const numUniqueCards = useMemo(() => {
-    if (!deckStats) return 0;
-    return (
-      Object.values(deckStats.card_statistics.main).reduce(
-        (acc, cards) => acc + cards.length,
-        0,
-      ) + deckStats.card_statistics.other.length
-    );
-  }, [deckStats]);
-
   const commanderName = useMemo(() => {
     if (isLoading) return '';
     return deckStats?.commanders.map((commander) => commander.name).join(' + ');
   }, [deckStats, isCommanderNameLoading]);
 
-  const showNoData = !!deckStats && !isStatsLoading && numUniqueCards === 0;
-  const showCardDisplay = !isStatsLoading && numUniqueCards > 0;
+  const uniqueCardsText = useMemo(() => {
+    if (!deckStats) return '';
+    const count = deckStats.meta_statistics.sample_size.num_unique_cards;
+    return count === 0 ? 'No cards found' : `${count} unique cards`;
+  }, [deckStats]);
+
+  const showNoData =
+    !!deckStats &&
+    !isStatsLoading &&
+    deckStats.meta_statistics.sample_size.num_unique_cards === 0;
+  const showCardDisplay =
+    !!deckStats &&
+    !isStatsLoading &&
+    deckStats.meta_statistics.sample_size.num_unique_cards > 0;
 
   return (
     <Box>
       {/* Title Section */}
-    <Box
+      <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -107,19 +109,11 @@ export default function DeckContent() {
             <Typography level="h2">{commanderName}</Typography>
           </TransitionWrapper>
 
-          <TransitionWrapper.Section when={!!deckStats}>
-            <Typography
-              level="body-sm"
-              sx={{
-                color: 'text.secondary',
-                mt: 0.5,
-              }}
-            >
-              {numUniqueCards === 0
-                ? 'No cards found'
-                : `${numUniqueCards} unique cards`}
-            </Typography>
-          </TransitionWrapper.Section>
+          <TransitionWrapper loading={isLoading}>
+            <Box>
+              <Typography level="body-sm">{uniqueCardsText}</Typography>
+            </Box>
+          </TransitionWrapper>
         </Box>
 
         <Box sx={{ mt: 1 }}>

@@ -88,7 +88,10 @@ class StatisticsService:
         # If no meta stats found, create an empty meta statistics DTO
         if not meta_stats:
             meta_stats_dto = MetaStatisticsDTO(
-                sample_size={"total_decks": 0},
+                sample_size={
+                    "total_decks": 0,
+                    "num_unique_cards": 0
+                },
                 baseline_performance={
                     "win_rate": 0.0,
                     "draw_rate": 0.0,
@@ -115,12 +118,14 @@ class StatisticsService:
         # Process card statistics into categorized structure
         main_cards = {str(i): [] for i in range(1, 9)}
         other_cards = []
+        total_unique_cards = 0
 
         for stat in card_stats:
             card_dto = self._create_card_dto(stat, meta_stats_dto)
             if not card_dto:
                 continue
 
+            total_unique_cards += 1
             # Sort into appropriate category
             if card_dto.unique_card_id in deck_structure:
                 type_code = deck_structure[card_dto.unique_card_id].get(
@@ -132,6 +137,8 @@ class StatisticsService:
                     other_cards.append(card_dto)
             else:
                 other_cards.append(card_dto)
+
+        meta_stats_dto.sample_size["num_unique_cards"] = total_unique_cards
 
         # Sort each category
         for type_code, card_list in main_cards.items():

@@ -25,7 +25,7 @@ class CommanderDeckAnalysisView(APIView):
         # Extract query parameters with default values
         time_period = request.query_params.get('time_period', 'ban')
         min_size = request.query_params.get('min_size', 0)
-
+        print("reached get")
         try:
             # Validate and convert min_size to integer
             try:

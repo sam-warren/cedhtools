@@ -14,6 +14,7 @@ export interface ICommanderStatisticsResponse {
 export interface IMetaStatistics {
   sample_size: {
     total_decks: number;
+    num_unique_cards: number;
   };
   baseline_performance: {
     win_rate: number;

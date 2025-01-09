@@ -74,8 +74,13 @@ class CardStatisticsSerializer(serializers.Serializer):
         return super().to_representation(instance)
 
 
+class SampleSizeSerializer(serializers.Serializer):
+    total_decks = serializers.IntegerField()
+    num_unique_cards = serializers.IntegerField()
+
+
 class MetaStatisticsSerializer(serializers.Serializer):
-    sample_size = serializers.DictField()  # Changed from total_decks to match DTO
+    sample_size = SampleSizeSerializer()
     baseline_performance = serializers.DictField()
 
     def to_representation(self, instance):
