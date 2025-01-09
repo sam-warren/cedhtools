@@ -15,7 +15,6 @@ from cedhtools_backend.models import (
     MoxfieldDeck,
     MoxfieldCard,
     MoxfieldDeckCard,
-    ScryfallCard
 )
 from tqdm import tqdm
 from django.utils import timezone

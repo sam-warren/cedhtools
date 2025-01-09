@@ -32,39 +32,37 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   const { cards, filters, totalDecks } = e.data;
 
   // Run filtering in next tick to allow message queue to clear
-  setTimeout(() => {
-    // If this operation has been superseded, abandon it
-    if (currentFilterOperation !== operationId) return;
+  // If this operation has been superseded, abandon it
+  if (currentFilterOperation !== operationId) return;
 
-    let results = cards;
+  let results = cards;
 
-    if (filters.name) {
-      const searchTerm = filters.name.toLowerCase();
-      results = results.filter((card) =>
-        card.name.toLowerCase().includes(searchTerm),
-      );
-    }
+  if (filters.name) {
+    const searchTerm = filters.name.toLowerCase();
+    results = results.filter((card) =>
+      card.name.toLowerCase().includes(searchTerm),
+    );
+  }
 
-    if (filters.minWinRate !== '' && !isNaN(filters.minWinRate)) {
-      const threshold = filters.minWinRate; // Use directly as percentage
-      results = results.filter(
-        (card) =>
-          (card.performance.card_win_rate - card.performance.deck_win_rate) *
-            100 >=
-          threshold,
-      );
-    }
+  if (filters.minWinRate !== '' && !isNaN(filters.minWinRate)) {
+    const threshold = filters.minWinRate; // Use directly as percentage
+    results = results.filter(
+      (card) =>
+        (card.performance.card_win_rate - card.performance.deck_win_rate) *
+          100 >=
+        threshold,
+    );
+  }
 
-    if (filters.minInclusionRate !== '') {
-      const threshold = filters.minInclusionRate;
-      results = results.filter(
-        (card) => (card.decks_with_card / totalDecks) * 100 >= threshold,
-      );
-    }
+  if (filters.minInclusionRate !== '') {
+    const threshold = filters.minInclusionRate;
+    results = results.filter(
+      (card) => (card.decks_with_card / totalDecks) * 100 >= threshold,
+    );
+  }
 
-    // If this operation is still current, send results
-    if (currentFilterOperation === operationId) {
-      self.postMessage(results);
-    }
-  }, 0);
+  // If this operation is still current, send results
+  if (currentFilterOperation === operationId) {
+    self.postMessage(results);
+  }
 };

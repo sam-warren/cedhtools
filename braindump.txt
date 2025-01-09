@@ -1,0 +1,68 @@
+NOW:
+- need to fix scroll view container height between deck and list view
+- on a related note, need to seriously optimize front end data fetching / sorting / filtering / rendering... very choppy animations on the stat counters and deck list and deck grid
+- design a solution for how to incorporate moxfield decklist (submitted) and cedhtools data in the same view
+- get deck name and commander name first, then render deck image and content
+- always show complete moxfield decklist, do not filter out data when submitted by deckList, if no entry found for that card, api should return a "no data" object that the portal can process
+- card and table view should have statistical significance indicator -> figure out what this will look like
+
+SOON:
+- deck sections should have filter and sort options on grid view
+- need to implement more robust error handling coming back from the API - re-implement totally lost card, graceful error alerts (figure out where to put these)
+- update chi squared test per mons video
+- add t test to commander win rate calculation
+- card specific stats url:
+    /deck/{id}/card/{uniqueCardId}
+    has a back to decklist button that links to /deck/{id}
+- for commanders: 
+    /commander/{commander ids join}/card/{card id}
+    has a back to commander stats button that links to /commander/{commander ids join}
+- card view should show:
+    win percentage
+    draw percentage? need to add calculation to mv?
+    statistical significance of calculations
+    synergy score
+- need to refactor search to be able to search for a specific commander with autocomplete elastic search or a moxfield link
+- search should be available in header when not on landing page
+- add information page describing restrictions on data and how to interpret statistics
+- collapsible tables, collapsible deck grid sections, revert to simpler row calculation by not worrying about putting multiple columns on the same row(?)
+- can optimize initial animations by not loading rows images on initial render (collapsed rows and tables) -> Can lazy load the data when the section becomes clicked.
+- in deckContent, have a filter option at the top to filter through all cards, only show tables or sections containing those cards
+- add image preview to deck list 
+- don't cache moxfield decklist, fetch fresh on each render
+- add collapse all or expand all button to deck grid and list (deckCotnent)
+- add option to sort by section or show all cards for list view
+- refresh table and deck grid data on filter change 
+- when table filters effective, data does not refresh 
+
+
+LATER:
+- get richer data from topdeck api - can access rounds and tables, can calculate on what turn on average the commander wins on if this is interesting?
+- best / worst matchups? How? (Static from API)
+- maybe future opportunity for average elo / deck
+- implement synergy score!!! need reference to commander’s color identity (decks that could play it) (Static from API)
+- future opporunity to report the most overperforming and most underperforming cards across all commanders -> how to represent this?
+- might need to add card type coding to materialized view and refactor for commander view for more robust API (thinking of /commander route)
+- easy url sharing and simple moxfield integration -> moxfield chrome extension??
+- statistics over time (weekly? how do we do this?)
+- dashboard should have metrics displayed (total tournaments, player entries, etc etc etc)
+- dashboard could also have new! tournaments fetched (recent tournaments)
+    if we are only fetching a small amount of data could do it nightly
+- MOBILE FRIENDLY!! (do this last, learned from animation hell)
+- figure out donate button -> buymeacoffee.com
+- design nightly or weekly pipeline
+- design initial seed pipeline
+- dockerize
+- tournament view and bracket breakdown
+- create option for abstract data views
+
+
+
+
+
+
+
+
+
+
+

@@ -21,5 +21,4 @@ urlpatterns = [
     ),
     path('metrics/', MetricsView.as_view(), name='metrics'),
     path('proxy/image/', ScryfallImageProxyView.as_view(), name='proxy-image'),
-
 ]

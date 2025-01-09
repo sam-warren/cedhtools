@@ -37,16 +37,6 @@ class MoxfieldClient:
         if data.get("format") != "commander":
             return create_error_response("Moxfield deck format must be Commander", 400)
 
-        mainboard_count = data.get("boards", {}).get(
-            "mainboard", {}).get("count", {})
-        commanders_count = data.get("boards", {}).get(
-            "commanders", {}).get("count", {})
-        companions_count = data.get("boards", {}).get(
-            "companions", {}).get("count", {})
-
-        if mainboard_count + commanders_count + companions_count != 100:
-            return create_error_response("Deck must contain exactly 100 cards.", 400)
-
         return None
 
     def _handle_http_error(self, http_err: requests.exceptions.HTTPError) -> dict:

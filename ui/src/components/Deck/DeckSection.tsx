@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/joy';
+import { Box, Stack, Typography } from '@mui/joy';
 import React from 'react';
 import { cardTypeMap, gridLayouts } from 'src/styles';
 import { ICardStat } from 'src/types';
@@ -15,7 +15,12 @@ const DeckSection: React.FC<DeckSectionProps> = React.memo(
 
     return (
       <Box sx={{ mb: 2 }}>
-        <Typography level="h3">{displayName}</Typography>
+        <Stack direction="row" gap={1}>
+          <Typography level="h3">{displayName}</Typography>
+          <Typography level="h3" sx={{ color: 'neutral.500' }}>
+            ({cards.length})
+          </Typography>
+        </Stack>
         <Box sx={gridLayouts.cardGrid}>
           {cards.map((card) => (
             <DeckCard

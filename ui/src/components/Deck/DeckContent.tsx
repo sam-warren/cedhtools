@@ -112,6 +112,7 @@ export default function DeckContent() {
             <Typography level="h2">{commanderName}</Typography>
           </TransitionWrapper>
 
+          {/* TODO: When result is small or cached sometimes the updated value shows before the transition fade out finishes causing a jitter */}
           <TransitionWrapper
             loading={isStatsLoading || isInitialLoad}
             skeleton={<Box />}

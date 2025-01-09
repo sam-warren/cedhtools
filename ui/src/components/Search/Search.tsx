@@ -2,51 +2,20 @@ import SearchIcon from '@mui/icons-material/Search';
 import Box from '@mui/joy/Box';
 import Button from '@mui/joy/Button';
 import Input from '@mui/joy/Input';
-import Typography from '@mui/joy/Typography';
 import { ChangeEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDecklistById } from 'src/services/moxfield/moxfield';
-import { IMoxfieldDeck } from 'src/types';
-import { IApiResponse } from 'src/types/api';
 
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
-  const [isValid, setIsValid] = useState(true);
-  const [serverErrorMessage, setServerErrorMessage] = useState('');
 
   const navigate = useNavigate();
 
-  const validateUrl = (url: string): boolean => {
-    const pattern = /^https:\/\/www\.moxfield\.com\/decks\/[A-Za-z0-9_-]+$/;
-    return pattern.test(url);
-  };
-
   const handleDecklist = async () => {
-    setServerErrorMessage('');
-    const valid = validateUrl(inputValue);
-    setIsValid(valid);
-    if (valid) {
-      const id = inputValue.split('/').pop()?.toString();
-      if (id) {
-        try {
-          const response: IApiResponse<IMoxfieldDeck> =
-            await getDecklistById(id);
-          if (response.success) {
-            navigate(`/deck/${response.data.publicId}`); // Redirect to deck page
-          } else {
-            setServerErrorMessage(response.error);
-            setIsValid(false);
-          }
-        } catch (err: any) {
-          setServerErrorMessage(err.message || 'An error occurred');
-          setIsValid(false);
-        } 
-      }
-    }
+    const id = inputValue.split('/').pop()?.toString();
+    navigate(`/deck/${id}`);
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setIsValid(true);
     setInputValue(event.target.value);
   };
 
@@ -65,11 +34,7 @@ export default function Search() {
         autoFocus
         placeholder="Enter a Moxfield deck link to unlock powerful data"
         startDecorator={<SearchIcon />}
-        endDecorator={
-          <Button onClick={handleDecklist}>
-            Analyze
-          </Button>
-        }
+        endDecorator={<Button onClick={handleDecklist}>Analyze</Button>}
         value={inputValue}
         onChange={handleInputChange}
         sx={{
@@ -79,21 +44,8 @@ export default function Search() {
           width: '100%',
           '--Input-radius': '10px',
         }}
-        color={isValid ? 'neutral' : 'danger'}
+        color={'neutral'}
       />
-      {!isValid && (
-        <Typography color="danger" sx={{ mt: 1, textAlign: 'center' }}>
-          {serverErrorMessage ? (
-            serverErrorMessage
-          ) : (
-            <>
-              Please enter a valid Moxfield deck URL in the format:
-              <br />
-              <code>https://www.moxfield.com/decks/[DECK_ID]</code>
-            </>
-          )}
-        </Typography>
-      )}
     </Box>
   );
 }

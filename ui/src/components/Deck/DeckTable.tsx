@@ -15,6 +15,7 @@ import {
   Option,
   Select,
   Sheet,
+  Stack,
   Table,
   Typography,
 } from '@mui/joy';
@@ -417,6 +418,31 @@ const DeckTable = ({
   }, []);
 
   /**
+   * Renders a chip indicating statistical significance level based on p-value
+   */
+  const renderStatSigChip = useCallback((p: number) => {
+    let label: string;
+    let color: 'success' | 'warning' | 'danger';
+
+    if (p < 0.01) {
+      label = 'Strong';
+      color = 'success';
+    } else if (p < 0.05) {
+      label = 'Moderate';
+      color = 'warning';
+    } else {
+      label = 'Weak';
+      color = 'danger';
+    }
+
+    return (
+      <Chip variant="soft" color={color} size="sm">
+        {label}
+      </Chip>
+    );
+  }, []);
+
+  /**
    * Renders the filter inputs.
    */
   const renderFilters = () => (
@@ -496,7 +522,12 @@ const DeckTable = ({
           gap: 2,
         }}
       >
-        <Typography level="h3">{label}</Typography>
+        <Stack direction="row" gap={1}>
+          <Typography level="h3">{label}</Typography>
+          <Typography level="h3" sx={{ color: 'neutral.500' }}>
+            ({cards.length})
+          </Typography>
+        </Stack>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', ml: 'auto' }}>
           {showFilters && renderFilters()}
           <IconButton
@@ -532,6 +563,7 @@ const DeckTable = ({
                 onSort={handleRequestSort}
               />
             </th>
+            <th style={{ width: '120px' }}>Significance</th>
             <th style={{ width: '120px', textAlign: 'right' }}>
               <SortableColumnHeader
                 label="Inclusion Rate"
@@ -577,6 +609,7 @@ const DeckTable = ({
                   <Typography level="body-sm">{card.type_line}</Typography>
                 </td>
                 <td>{renderWinRateChip(card.performance.win_rate_diff)}</td>
+                <td>{renderStatSigChip(card.performance.p_value)}</td>
                 <td style={{ textAlign: 'right' }}>
                   <Typography level="body-sm">
                     {(
@@ -609,7 +642,7 @@ const DeckTable = ({
         {/* Footer Section */}
         <tfoot>
           <tr>
-            <td colSpan={6}>
+            <td colSpan={7}>
               <Box
                 sx={{
                   display: 'flex',
