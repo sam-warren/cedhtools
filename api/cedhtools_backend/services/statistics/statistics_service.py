@@ -4,6 +4,9 @@ from scipy import stats
 from .statistics_repository import StatisticsRepository
 from .dto import MetaStatisticsDTO, CardStatisticsDTO, CardPerformanceDTO
 from ...models import MoxfieldDeck, CommanderDeckRelationships, TopdeckPlayerStanding, MoxfieldCard, CardPrintings
+import logging
+
+logger = logging.getLogger('statistics_service')
 
 
 class StatisticsService:
@@ -34,39 +37,37 @@ class StatisticsService:
                 f"Error fetching card details for {unique_card_id}: {str(e)}")
             return None
 
-    def _calculate_chi_squared_from_totals(
-        self,
-        total_wins: int,
-        total_draws: int,
-        total_losses: int,
-        baseline_performance: Dict[str, float]
-    ) -> Tuple[float, float]:
-        """Calculate chi-squared test statistic and p-value from totals."""
+    def _calculate_chi_squared_from_totals(self, total_wins: int, total_draws: int, total_losses: int,
+                                           baseline_performance: Dict[str, float]) -> Tuple[float, float]:
+        """Calculate chi-squared test from win/loss totals, comparing against baseline performance."""
         try:
-            total_games = total_wins + total_draws + total_losses
+            # Combine actual results into WINS vs LOSS_DRAW categories
+            observed_wins = total_wins
+            observed_loss_draw = total_draws + total_losses
+            total_games = observed_wins + observed_loss_draw
+
             if total_games == 0:
                 return 0.0, 1.0
 
-            # Expected values based on baseline performance
-            expected_wins = total_games * baseline_performance["win_rate"]
-            expected_draws = total_games * \
-                baseline_performance["draw_rate"]
-            expected_losses = total_games * \
-                baseline_performance["loss_rate"]
+            # Calculate expected results based on baseline win rate
+            expected_win_rate = baseline_performance["win_rate"]
+            expected_wins = total_games * expected_win_rate
+            expected_loss_draw = total_games * (1 - expected_win_rate)
 
-            # Observed values
-            observed = np.array([total_wins, total_draws, total_losses])
-            expected = np.array(
-                [expected_wins, expected_draws, expected_losses])
+            # Create arrays for scipy's chisquare function
+            observed = np.array([observed_wins, observed_loss_draw])
+            expected = np.array([expected_wins, expected_loss_draw])
 
-            # Only do chi2 if expected values are all non-zero
-            if np.all(expected > 0):
-                chi2, p_value = stats.chisquare(observed, expected)
-                return float(chi2), float(p_value)
+            # Calculate chi-squared statistic manually
+            chi2 = np.sum((observed - expected) ** 2 / expected)
 
-            return 0.0, 1.0
+            # Calculate p-value using chi-square distribution with df=1
+            p_value = 1 - stats.chi2.cdf(chi2, df=1)
+
+            return float(chi2), float(p_value)
+
         except Exception as e:
-            print(f"Error calculating chi-squared: {str(e)}")
+            print(f"Error in chi-squared calculation: {str(e)}")
             return 0.0, 1.0
 
     def calculate_statistics(

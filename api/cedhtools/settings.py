@@ -182,6 +182,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'statistics_service': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 

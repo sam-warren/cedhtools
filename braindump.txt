@@ -1,4 +1,20 @@
 NOW:
+- drop and recreate database and pg_restore moxfield and scryfall data
+# 1. Drop and recreate database
+dropdb cedhtools
+createdb cedhtools
+
+# 2. Run migrations to set up new schema
+pyman migrate
+
+# 3. Restore Moxfield and Scryfall data
+pg_restore -d cedhtools \
+  -t moxfield_card \
+  -t moxfield_deck \
+  -t moxfield_deck_card \
+  -t scryfall_card \
+  ~/Documents/Code/Personal/Dumps/TIMESTAMP_FOLDER/
+- update import_topdeck_data to include new columns
 - need to fix scroll view container height between deck and list view
 - on a related note, need to seriously optimize front end data fetching / sorting / filtering / rendering... very choppy animations on the stat counters and deck list and deck grid
 - design a solution for how to incorporate moxfield decklist (submitted) and cedhtools data in the same view
@@ -7,6 +23,8 @@ NOW:
 - card and table view should have statistical significance indicator -> figure out what this will look like
 
 SOON:
+- deck average win % from each seat position!
+- want to organize database such that we have weekly views
 - deck sections should have filter and sort options on grid view
 - need to implement more robust error handling coming back from the API - re-implement totally lost card, graceful error alerts (figure out where to put these)
 - update chi squared test per mons video

@@ -17,6 +17,7 @@ import {
   Sheet,
   Stack,
   Table,
+  Tooltip,
   Typography,
 } from '@mui/joy';
 import debounce from 'lodash/debounce';
@@ -421,23 +422,23 @@ const DeckTable = ({
    * Renders a chip indicating statistical significance level based on p-value
    */
   const renderStatSigChip = useCallback((p: number) => {
-    let label: string;
     let color: 'success' | 'warning' | 'danger';
-
+    
+    // Format p-value to 3 decimal places
+    const formattedP = p.toFixed(3);
+    
+    // Determine color based on significance level
     if (p < 0.01) {
-      label = 'Strong';
       color = 'success';
     } else if (p < 0.05) {
-      label = 'Moderate';
       color = 'warning';
     } else {
-      label = 'Weak';
       color = 'danger';
     }
-
+  
     return (
       <Chip variant="soft" color={color} size="sm">
-        {label}
+        p = {formattedP}
       </Chip>
     );
   }, []);
@@ -556,14 +557,85 @@ const DeckTable = ({
             <th style={{ width: '150px' }}>Name</th>
             <th style={{ width: '180px' }}>Type</th>
             <th style={{ width: '80px' }}>
-              <SortableColumnHeader
-                label="Win Rate"
-                property="win_rate"
-                sort={sort}
-                onSort={handleRequestSort}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <SortableColumnHeader
+                  label="Win Rate"
+                  property="win_rate"
+                  sort={sort}
+                  onSort={handleRequestSort}
+                />
+                <Tooltip
+                  title={
+                    <Box sx={{ p: 1, maxWidth: 300 }}>
+                      <Typography level="body-sm" fontWeight="bold" mb={1}>
+                        Win Rate Difference:
+                      </Typography>
+                      <Typography level="body-sm" mb={0.5}>
+                        • Positive values: Decks that include this card have a higher average winrate
+                      </Typography>
+                      <Typography level="body-sm" mb={0.5}>
+                        • Zero (±0.005%): Card performs at average for this deck
+                      </Typography>
+                      <Typography level="body-sm">
+                        • Negative values: Card performs below average for this deck
+                      </Typography>
+                    </Box>
+                  }
+                  variant="soft"
+                  placement="top"
+                >
+                  <InfoOutlinedIcon
+                    sx={{
+                      fontSize: '1rem',
+                      color: 'neutral.500',
+                      cursor: 'help',
+                      '&:hover': {
+                        color: 'primary.plainColor',
+                      },
+                    }}
+                  />
+                </Tooltip>
+              </Box>
             </th>
-            <th style={{ width: '120px' }}>Significance</th>
+            <th style={{ width: '120px' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                Significance
+                <Tooltip
+                  title={
+                    <Box sx={{ p: 1, maxWidth: 300 }}>
+                      <Typography level="body-sm" fontWeight="bold" mb={1}>
+                        Statistical Significance Levels:
+                      </Typography>
+                      <Typography level="body-sm" mb={0.5}>
+                        • Strong (p &lt; 0.01): High confidence in the result
+                      </Typography>
+                      <Typography level="body-sm" mb={0.5}>
+                        • Moderate (0.01 ≤ p &lt; 0.05): Standard significance
+                        level
+                      </Typography>
+                      <Typography level="body-sm">
+                        • Weak (p ≥ 0.05): Insufficient evidence for
+                        significance
+                      </Typography>
+                    </Box>
+                  }
+                  variant="soft"
+                  placement="top"
+                >
+                  <InfoOutlinedIcon
+                    sx={{
+                      fontSize: '1rem',
+                      color: 'neutral.500',
+                      cursor: 'help',
+                      '&:hover': {
+                        color: 'primary.plainColor',
+                      },
+                    }}
+                  />
+                </Tooltip>
+              </Box>
+            </th>
+
             <th style={{ width: '120px', textAlign: 'right' }}>
               <SortableColumnHeader
                 label="Inclusion Rate"
