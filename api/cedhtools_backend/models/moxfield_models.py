@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import GinIndex
 
 
 class MoxfieldCard(models.Model):
@@ -39,14 +40,18 @@ class MoxfieldDeckCard(models.Model):
 
 
 class MoxfieldDeck(models.Model):
-    id = models.CharField(max_length=255, primary_key=True)
+    id = models.CharField(primary_key=True)
     public_id = models.CharField(max_length=255)
+    name = models.CharField(max_length=1023)
+    colors = ArrayField(models.CharField(max_length=10), default=list)
+    color_identity = ArrayField(models.CharField(max_length=10), default=list)
 
     class Meta:
         db_table = 'moxfield_deck'
         indexes = [
-            models.Index(fields=['id']),
             models.Index(fields=['public_id']),
+            GinIndex(fields=['color_identity']),
+            GinIndex(fields=['colors']),
         ]
 
     def __str__(self):

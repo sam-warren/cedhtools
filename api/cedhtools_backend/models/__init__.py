@@ -7,7 +7,7 @@ from .materialized_view_models import (CardPrintings,
                                        CommanderMetaStatisticsFiltered)
 from .moxfield_models import MoxfieldCard, MoxfieldDeck, MoxfieldDeckCard
 from .scryfall_models import ScryfallCard
-from .topdeck_models import TopdeckPlayerStanding, TopdeckTournament
+from .topdeck_models import TopdeckPlayerStanding, TopdeckTournament, TopdeckPlayer, TopdeckMatch, TopdeckMatchPlayer
 
 __all__ = [
     'MoxfieldCard',
@@ -16,6 +16,9 @@ __all__ = [
 
     'TopdeckTournament',
     'TopdeckPlayerStanding',
+    'TopdeckPlayer',
+    'TopdeckMatch',
+    'TopdeckMatchPlayer',
 
     'ScryfallCard',
 

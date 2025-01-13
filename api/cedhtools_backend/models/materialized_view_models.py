@@ -5,7 +5,8 @@ from django.db import models
 class CEDHToolsMetrics(models.Model):
     total_decks = models.IntegerField()
     total_tournaments = models.IntegerField()
-    total_unique_cards = models.IntegerField()
+    total_rounds = models.IntegerField()
+    total_unique_cards = models.IntegerField
 
     class Meta:
         managed = False
@@ -64,10 +65,6 @@ class CardStatisticsByCommander(models.Model):
     commander_list = ArrayField(models.CharField(max_length=255))
     unique_card_id = models.CharField(max_length=255)
     deck_count = models.IntegerField()
-    avg_win_rate = models.FloatField()
-    win_rate_stddev = models.FloatField()
-    avg_draw_rate = models.FloatField()
-    avg_loss_rate = models.FloatField()
     total_wins = models.IntegerField()
     total_draws = models.IntegerField()
     total_losses = models.IntegerField()
@@ -92,7 +89,6 @@ class CardStatisticsByCommander(models.Model):
 class CardPrintings(models.Model):
     unique_card_id = models.CharField(max_length=255, primary_key=True)
     most_common_printing = models.UUIDField()
-    usage_count = models.IntegerField()
 
     class Meta:
         managed = False
@@ -107,13 +103,7 @@ class CardPrintings(models.Model):
 
 class CommanderMetaStatisticsFiltered(models.Model):
     commander_list = ArrayField(models.CharField(max_length=255))
-    period_name = models.CharField(max_length=50)
-    min_tournament_size = models.IntegerField()
     total_decks = models.IntegerField()
-    avg_win_rate = models.FloatField()
-    avg_draw_rate = models.FloatField()
-    avg_loss_rate = models.FloatField()
-    win_rate_stddev = models.FloatField()
     total_wins = models.IntegerField()
     total_draws = models.IntegerField()
     total_losses = models.IntegerField()

@@ -15,6 +15,7 @@ from cedhtools_backend.models import (
     MoxfieldDeck,
     MoxfieldCard,
     MoxfieldDeckCard,
+    ScryfallCard
 )
 from tqdm import tqdm
 from django.utils import timezone
@@ -48,21 +49,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Get existing deck public IDs to filter out
-        existing_deck_public_ids = set(
-            MoxfieldDeck.objects.values_list('public_id', flat=True))
+        # existing_deck_public_ids = set(
+        #     MoxfieldDeck.objects.values_list('public_id', flat=True))
 
         # Fetch unique deck URLs, excluding those with existing decks
         deck_urls_to_skip = set()
         unique_deck_urls = []
-
         for url in TopdeckPlayerStanding.objects.values_list('decklist', flat=True).distinct():
-            match = re.search(r'https://www\.moxfield\.com/decks/([^/]+)', url)
+            # Add type checking and filtering
+            if not url or not isinstance(url, str):
+                continue
+
+            match = re.search(r'.*moxfield\.com/decks/([^/]+)', url)
             if match:
-                deck_id = match.group(1)
-                if deck_id in existing_deck_public_ids:
-                    deck_urls_to_skip.add(url)
-                else:
-                    unique_deck_urls.append(url)
+                # deck_id = match.group(1)
+                # if deck_id in existing_deck_public_ids:
+                #     deck_urls_to_skip.add(url)
+                # else:
+                unique_deck_urls.append(url)
 
         total_decks = len(unique_deck_urls)
         logger.info(f'Total unique decklist URLs to process: {total_decks}')
@@ -90,10 +94,8 @@ class Command(BaseCommand):
 
                         deck_id = self.get_deck_id(decklist_url)
                         if not deck_id:
-                            logger.error(
-                                f'Failed to extract deck ID from URL: {decklist_url}. Deleting associated player standing.')
-                            TopdeckPlayerStanding.objects.filter(
-                                decklist=decklist_url).delete()
+                            logger.warning(
+                                f'Failed to extract deck ID from URL: {decklist_url}. Skipping...')
 
                             pbar.update(1)
                             continue
@@ -115,33 +117,24 @@ class Command(BaseCommand):
                             if deck:
                                 TopdeckPlayerStanding.objects.filter(
                                     decklist=decklist_url).update(deck=deck)
-
                                 logger.info(
                                     f'Successfully imported deck from URL: {decklist_url}')
-                            else:
-                                TopdeckPlayerStanding.objects.filter(
-                                    decklist=decklist_url).delete()
 
                     except requests.exceptions.HTTPError as http_err:
                         if response.status_code == 404:
                             logger.warning(
-                                f"Deck not found (404) for URL: {decklist_url}. Deleting associated player standing.")
-                            TopdeckPlayerStanding.objects.filter(
-                                decklist=decklist_url).delete()
+                                f"Deck not found (404) for URL: {decklist_url}")
+
                         else:
                             logger.error(
                                 f"HTTP error occurred for URL {decklist_url}: {http_err}")
                     except requests.exceptions.RequestException as e:
                         logger.error(
-                            f"Request error for URL {decklist_url}: {e}. Deleting associated player standing.")
-                        TopdeckPlayerStanding.objects.filter(
-                            decklist=decklist_url).delete()
+                            f"Request error for URL {decklist_url}: {e}. Skipping...")
 
                     except Exception as e:
                         logger.exception(
-                            f"Unexpected error for URL {decklist_url}: {e}. Deleting associated player standing.")
-                        TopdeckPlayerStanding.objects.filter(
-                            decklist=decklist_url).delete()
+                            f"Unexpected error for URL {decklist_url}: {e}. Skipping...")
 
                     finally:
                         pbar.update(1)
@@ -162,11 +155,27 @@ class Command(BaseCommand):
             Input: https://www.moxfield.com/decks/UC9RnVbdLU21nOXOexv_3g
             Output: UC9RnVbdLU21nOXOexv_3g
         """
+        # Strip any whitespace from the URL first
+        deck_url = deck_url.strip()
+
         try:
             parsed_url = urlparse(deck_url)
+
+            # Modified check to allow both moxfield.com and www.moxfield.com
+            if parsed_url.netloc not in ['moxfield.com', 'www.moxfield.com']:
+                logger.error(f'Not a Moxfield URL: {deck_url}')
+                return None
+
             path_parts = parsed_url.path.strip('/').split('/')
             if len(path_parts) >= 2 and path_parts[0] == 'decks':
-                return path_parts[1]
+                deck_id = path_parts[1]
+
+                # Optional: Add a length check for deck ID
+                if len(deck_id) > 0:
+                    return deck_id
+                else:
+                    logger.error(f'Empty deck ID in URL: {deck_url}')
+                    return None
             else:
                 logger.error(f'Invalid deck URL format: {deck_url}')
                 return None
@@ -183,7 +192,7 @@ class Command(BaseCommand):
         format = deck_data.get('format')
         if format != 'commander':
             logger.info(
-                f"Deck {deck_data.get('publicUrl')} is not a commander deck, deleting the player standings associated"
+                f"Deck {deck_data.get('publicUrl')} is not a commander deck"
             )
             return None
 
@@ -203,6 +212,9 @@ class Command(BaseCommand):
                 id=deck_data.get('id'),
                 defaults={
                     'public_id': deck_data.get('publicId'),
+                    'name': deck_data.get('name'),
+                    'colors': deck_data.get('colors', []),
+                    'color_identity': deck_data.get('colorIdentity', []),
                 }
             )
 
@@ -229,8 +241,9 @@ class Command(BaseCommand):
                     break
 
             if not valid_cards:
-                # Clean up the invalid deck
-                deck.delete()
+                logger.warning(
+                    f"Deck {deck_data.get('publicUrl')} contains invalid cards. Skipping..."
+                )
                 return None
 
             return deck
@@ -238,31 +251,102 @@ class Command(BaseCommand):
     def get_or_create_card(self, card_info, deck, board_name, quantity=1):
         """
         Retrieves an existing MoxfieldCard or creates a new one and associates it with the deck.
-        Returns None if the card's Scryfall reference is invalid, indicating the deck should be removed.
+        Includes multiple fallback methods to find the correct Scryfall card.
         """
-        from cedhtools_backend.models import ScryfallCard  # Add this import at the top of the file
+        # First, try the original Scryfall ID
+        original_scryfall_id = self.parse_uuid(
+            card_info.get('scryfall_id', ''))
 
-        scryfall_id = self.parse_uuid(card_info.get('scryfall_id', ''))
-
-        if not scryfall_id:
-            logger.warning(
-                f"Invalid Scryfall ID for card {card_info.get('id')}")
-            return None
-
-        # Verify card exists in Scryfall database
-        try:
-            scryfall_card = ScryfallCard.objects.get(id=scryfall_id)
-            if scryfall_card.legality == 'not_legal':
+        # If original Scryfall ID exists and is valid, use it
+        if original_scryfall_id:
+            try:
+                scryfall_card = ScryfallCard.objects.get(
+                    id=original_scryfall_id)
+                if scryfall_card.legality != 'not_legal':
+                    return self._create_moxfield_card(scryfall_card, card_info, deck, board_name, quantity)
+            except ScryfallCard.DoesNotExist:
                 logger.warning(
-                    f"Card {card_info.get('id')} is not legal in Commander format: {scryfall_card.name}"
+                    "Could not find Scryfall card by ID, broadening search...")
+                pass
+
+        # Fallback 1: Search by name and collector number
+        try:
+            # Extract relevant details from card_info
+            card_name = card_info.get('name')
+            set_code = card_info.get('set')
+            collector_number = card_info.get('cn')
+
+            # Try to find a match using name, set, and collector number
+            if card_name and set_code and collector_number:
+                scryfall_card = ScryfallCard.objects.get(
+                    name=card_name,
+                    collector_number=collector_number,
+                    released_at__year=card_info.get('released_at', '').split(
+                        '-')[0] if card_info.get('released_at') else None
                 )
-                return None
+
+                if scryfall_card.legality != 'not_legal':
+                    logger.info(
+                        f"Found Scryfall card by name and collector number: {card_name} ({set_code} - {collector_number})")
+                    return self._create_moxfield_card(scryfall_card, card_info, deck, board_name, quantity)
         except ScryfallCard.DoesNotExist:
             logger.warning(
-                f"Card {card_info.get('id')} references non-existent Scryfall ID: {scryfall_id}"
-            )
-            return None
+                "Could not find Scryfall card by name and collector number. Broadening search...")
+            pass
+        except ScryfallCard.MultipleObjectsReturned:
+            # If multiple cards match, try to narrow down
+            logger.warning(
+                "Multiple Scryfall cards found by name and collector number. Broadening search...")
+            try:
+                scryfall_card = ScryfallCard.objects.get(
+                    name=card_name,
+                    collector_number=collector_number,
+                    layout=card_info.get('layout', '')
+                )
 
+                if scryfall_card.legality != 'not_legal':
+                    logger.info(
+                        f"Found Scryfall card by name, collector number, and layout: {card_name} ({set_code} - {collector_number})")
+                    return self._create_moxfield_card(scryfall_card, card_info, deck, board_name, quantity)
+            except Exception:
+                logger.warning(
+                    "Could not find Scryfall card by name, collector number, and layout. Broadening search..."
+                )
+                pass
+
+        # Fallback 2: Search by name only
+        try:
+            # Get all cards with this name
+            possible_cards = ScryfallCard.objects.filter(name=card_name)
+
+            # If only one card exists, use it
+            if possible_cards.count() == 1 and possible_cards[0].legality != 'not_legal':
+                logger.info(
+                    f"Found Scryfall card by name only: {card_name}")
+                return self._create_moxfield_card(possible_cards[0], card_info, deck, board_name, quantity)
+
+            # If multiple cards exist, try to find the most recent one
+            if possible_cards.exists():
+                # Sort by released date, get the most recent
+                recent_card = possible_cards.order_by('-released_at').first()
+                if recent_card and recent_card.legality != 'not_legal':
+                    logger.info(
+                        f"Found most recent Scryfall card by name: {card_name}"
+                    )
+                    return self._create_moxfield_card(recent_card, card_info, deck, board_name, quantity)
+        except Exception:
+            pass
+
+        # If all fallback methods fail, log and return None
+        logger.error(
+            f"Could not find Scryfall card for: {card_info.get('name')} (Set: {card_info.get('set')}, Collector Number: {card_info.get('cn')})"
+        )
+        return None
+
+    def _create_moxfield_card(self, scryfall_card, card_info, deck, board_name, quantity=1):
+        """
+        Helper method to create MoxfieldCard and MoxfieldDeckCard entries
+        """
         try:
             card, created = MoxfieldCard.objects.get_or_create(
                 id=card_info.get('id', ''),

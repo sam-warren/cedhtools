@@ -67,6 +67,35 @@ class Command(BaseCommand):
             help='Force update all cards even if they exist'
         )
 
+    def _calculate_type(self, type_line: Optional[str]) -> Optional[str]:
+        """Calculate card type from type_line."""
+        if not type_line:
+            return None
+
+        type_text = type_line.split(
+            '//')[0].strip() if '//' in type_line else type_line
+        main_type_section = type_text.split(
+            '—')[0] if '—' in type_text else type_text
+        words = {word.strip() for word in main_type_section.split()}
+
+        type_categories = [
+            "Battle", "Planeswalker", "Creature", "Land",
+            "Sorcery", "Instant", "Artifact", "Enchantment"
+        ]
+
+        for category in type_categories:
+            if category in words:
+                return category
+        return None
+
+    def _validate_array_field(self, data: Any) -> List[str]:
+        """Validate and clean array field data."""
+        if not data:
+            return []
+        if isinstance(data, list):
+            return [str(item) for item in data if item]
+        return []
+
     def handle(self, *args, **options):
         """Execute the command."""
         try:
@@ -143,18 +172,52 @@ class Command(BaseCommand):
                 pbar.update(len(batch))
 
     def _process_batch(self, batch: List[Dict[str, Any]], force_update: bool):
-        """Process a batch of cards within a transaction."""
+        """Process a batch of cards using bulk operations."""
         with transaction.atomic():
+            cards_to_create = []
+            cards_to_update = []
+
             for card_data in batch:
                 if card_data.get('layout') in self.IGNORED_LAYOUTS:
                     continue
 
                 try:
-                    self._save_card(card_data, force_update)
+                    defaults = self._flatten_card_data(card_data)
+                    card_id = defaults['id']
+
+                    if force_update:
+                        cards_to_update.append(ScryfallCard(
+                            **defaults
+                        ))
+                    else:
+                        # Check if card exists
+                        if not ScryfallCard.objects.filter(id=card_id).exists():
+                            cards_to_create.append(ScryfallCard(
+                                **defaults
+                            ))
+
                 except Exception as e:
                     logger.error(
                         f"Error processing card {card_data.get('name')}: {str(e)}"
                     )
+
+            # Bulk create/update
+            if cards_to_create:
+                ScryfallCard.objects.bulk_create(
+                    cards_to_create,
+                    ignore_conflicts=True
+                )
+
+            if cards_to_update:
+                ScryfallCard.objects.bulk_update(
+                    cards_to_update,
+                    fields=[
+                        'name', 'scryfall_uri', 'layout', 'type_line',
+                        'type', 'mana_cost', 'cmc', 'legality',
+                        'image_uris', 'released_at', 'collector_number',
+                        'colors', 'color_identity'
+                    ]
+                )
 
     def _flatten_card_data(self, card_data: Dict[str, Any]) -> Dict[str, Any]:
         """Flatten card data based on its layout."""
@@ -180,17 +243,24 @@ class Command(BaseCommand):
             'legality': commander_legality,
             'released_at': released_at,
             'collector_number': card_data.get('collector_number', ''),
+            'colors': self._validate_array_field(card_data.get('colors')),
+            'color_identity': self._validate_array_field(card_data.get('color_identity'))
         }
 
-        defaults.update(self._process_card_layout(layout, card_data))
+        # Process layout-specific data (including type_line for multi-faced cards)
+        processed_data = self._process_card_layout(layout, card_data)
+        defaults.update(processed_data)
+
+        # Calculate type after processing card layout to use the final type_line
+        defaults['type'] = self._calculate_type(defaults.get('type_line', ''))
 
         return defaults
 
     def _process_card_layout(self, layout: str, card_data: Dict[str, Any]) -> Dict[str, Any]:
-        # Default processing for all cards
+        """Process card data based on its layout."""
         processed_data = {
             'type_line': card_data.get('type_line', ''),
-            'cmc': card_data.get('cmc', 0),
+            'cmc': float(card_data.get('cmc', 0)),
             'mana_cost': card_data.get('mana_cost', ''),
             'image_uris': card_data.get('image_uris', {}),
         }
@@ -229,7 +299,7 @@ class Command(BaseCommand):
                     processed_data.update({
                         'name': front.get('name', card_data['name']),
                         'type_line': front.get('type_line', ''),
-                        'cmc': front.get('cmc', 0),
+                        'cmc': float(front.get('cmc', 0)),
                         'mana_cost': front.get('mana_cost', ''),
                         'image_uris': front.get('image_uris', {}),
                     })
@@ -239,18 +309,3 @@ class Command(BaseCommand):
                 logger.error(f"Card faces: {card_faces}")
 
         return processed_data
-
-    def _save_card(self, card_data: Dict[str, Any], force_update: bool):
-        """Save or update a card in the database."""
-        defaults = self._flatten_card_data(card_data)
-
-        if force_update:
-            ScryfallCard.objects.update_or_create(
-                id=defaults['id'],
-                defaults=defaults
-            )
-        else:
-            ScryfallCard.objects.get_or_create(
-                id=defaults['id'],
-                defaults=defaults
-            )
