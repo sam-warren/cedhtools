@@ -1,30 +1,127 @@
-NOW:
-- drop and recreate database and pg_restore moxfield and scryfall data
-# 1. Drop and recreate database
-dropdb cedhtools
-createdb cedhtools
+NOW: DESIGN MODE
+strategy: 
+i. import scryfall data and topdeck data concurrently DONE.
+ii. import moxfield data after both scryfall and topdeck data are imported to link it all together DONE.
 
-# 2. Run migrations to set up new schema
-pyman migrate
+then we can create materialized views:
+i. helper view for weeks -> each statistic in each materialized view should have a week_id so we can fetch data specific to that week or any time period we want by querying the materialized views with week filters for better bucketing of data DONE.
+    DROP MATERIALIZED VIEW IF EXISTS weeks;
+    CREATE MATERIALIZED VIEW weeks AS
+    WITH RECURSIVE tournament_weeks AS (
+        -- Base case: First week
+        SELECT 
+            1 as id,
+            EXTRACT(EPOCH FROM DATE '2022-06-01')::BIGINT * 1000 as week_start,
+            EXTRACT(EPOCH FROM (DATE '2022-06-01' + INTERVAL '7 days'))::BIGINT * 1000 as week_end
+        UNION ALL
+        SELECT 
+            id + 1,
+            EXTRACT(EPOCH FROM (to_timestamp(week_start/1000) + INTERVAL '7 days'))::BIGINT * 1000,
+            EXTRACT(EPOCH FROM (to_timestamp(week_end/1000) + INTERVAL '7 days'))::BIGINT * 1000
+        FROM tournament_weeks
+        WHERE week_start < EXTRACT(EPOCH FROM CURRENT_DATE)::BIGINT * 1000
+    )
 
-# 3. Restore Moxfield and Scryfall data
-pg_restore -d cedhtools \
-  -t moxfield_card \
-  -t moxfield_deck \
-  -t moxfield_deck_card \
-  -t scryfall_card \
-  ~/Documents/Code/Personal/Dumps/TIMESTAMP_FOLDER/
-- update import_topdeck_data to include new columns
+    SELECT id, week_start, week_end FROM tournament_weeks;
+
+    (need to add an index here)
+
+    This view will be used to filter data by week_id for all materialized views. This will allow us to query data for specific weeks or time periods.
+    All statistical data will be timestamped with a week_id that is based on the tournament date of the data. This will allow us to filter data by week_id for all materialized views.
+
+ii. create materialized view to find most common printings for each card across all decks and store in mv for faster lookup when creating other materialized views with index DONE.
+    drop materialized view if exists card_printings;
+    CREATE MATERIALIZED VIEW card_printings AS
+                WITH printing_counts AS (
+                    SELECT 
+                        mc.unique_card_id,
+                        mc.scryfall_id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY mc.unique_card_id 
+                            ORDER BY COUNT(*) DESC, mc.scryfall_id
+                        ) as rank
+                    FROM moxfield_card mc
+                    JOIN moxfield_deck_card mdc ON mc.id = mdc.card_id
+                    WHERE mc.unique_card_id IS NOT NULL
+                    AND mc.scryfall_id IS NOT NULL
+                    GROUP BY mc.unique_card_id, mc.scryfall_id
+                )
+                SELECT 
+                    unique_card_id,
+                    scryfall_id as most_common_printing
+                FROM printing_counts
+                WHERE rank = 1;
+                
+                CREATE UNIQUE INDEX card_printings_unique_card_id_idx 
+                ON card_printings (unique_card_id);
+
+    This links cards to their most common printings for faster lookup when creating other materialized views. This is useful for linking cards to their scryfall data and for linking cards to their commander_card_stats data.
+
+(other setup materialized views for better / faster queries - please suggest.)
+
+1. pre-compute elo scores for players with a week_id for each time that player played
+    - this is a view that shows player's elo score temporally
+    - player's current elo is the most recent elo score! this is neat 
+    - what other setup is needed for this? how can we make this reusable? note that sometimes players play in pods ranging in size of 0 to 5. How do we handle these cases?
+    - How do we handle cases where some of the players at the table are guests and do not have a TopDeck ID or profile or entry in the topdeck_user table?
+
+2. compute commander_card stats for each week -> need this for synergy score
+    - this is a per-commander-per-card view showing statistics temporally
+    - card win rate for this commander temporally (what is the average win rate for this card when played with this commander? excluding commander decks of this commander that did not play this card) over time
+    - card draw rate for this commander temporally - calculated similarly to above, when included in decks with this commander, how does this card contribute to draws?
+    - might need total_wins, total_losses, total_draws for each card in this commander - what should I calculate on the Django side vs. pre-compute?
+    - synergy score of this card with this commander, calculated by % of decks that played this card with this commander, minus the % of decks that played this card that could have played this card given color identity besides the commander chosen
+    - popularity over time - how many decks with this commander played this card over time?
+    - statistical significance tests of calculations need to be done on the Django view side since our sample size changes with each week
+
+3. compute commander stats for each week
+    - this encapsulates overall commander statistics temporally
+    - commander's win rate over time across all decks that played that commander/pair
+    - t-test result of win rate to show statistical significance (does this depend on pod size? how to calculate this?)
+    - commander's draw rate over time across all decks that played that commander/pair
+    - commander's best match up over time
+    - commander's worst match up over time
+    - average player elo for each commander by week
+    - average win rate per seat position for that commander by week
+    - average synergy score of cards played in that commander by week
+    - average staple score of cards played in that commander by week
+    - commander's staple/synergy split by week (% could show a commander's reliance on staples vs synergy cards in a pie chart)
+    - number of unique cards played by decks with that commander by week
+    - number of tournament entries with that commander by week (popularity)
+    - average win rate per seat position for that commander by week/month/year/period
+    - most synergistic cards per week? (how to calculate this?)
+
+4. compute commander agnostic card stats for each week
+    - this is a view that shows overall card statistics temporally
+    - staple score: what percentage of decks that could have played this card played this card? determined by color identity of commanders vs. color identity of card
+    - card's overall quality (what is the average win rate diff. for decks that played this card vs. decks that did not play this card?) over time -> need to be specific about this.
+        - the diff is drawn from commander_card_stats - should display the average increase or decrease in each commander's win rate with decks that included this card vs. did not include this card, i.e. does this card increase each commander's win rate on average?
+    - card's overall draw rate over time for ALL commander decks - calculated similarly to above - how does this card contribute to draws in all decks?
+5. compute cedh stats for each week:
+    - this is a view that shows overall cedh statistics temporally
+    - best color combination by deck win rate
+    - worst color combination by deck win rate
+    - best performing cards by card win rate across all decks -> relies on commander_card_stats to aggregate data on all cards across all commanders and find out which cards boost win rates the most across all decks
+    - best performing commanders by commander win rate by week
+    - top cut conversion rates for each commander by week
+    - average win rate for each seat position 1-4 by week
+    - can we show percent of games that went to a draw by time period? (how to calculate this?)
+
+
+
+
+    
+- moxfield deck view should be a simple layer applied on top of existing commander statistics return. cards included in deck that do not have meaningful statistics should still be returned in the deck view, with no data for statistics
 - need to fix scroll view container height between deck and list view
 - on a related note, need to seriously optimize front end data fetching / sorting / filtering / rendering... very choppy animations on the stat counters and deck list and deck grid
-- design a solution for how to incorporate moxfield decklist (submitted) and cedhtools data in the same view
 - get deck name and commander name first, then render deck image and content
-- always show complete moxfield decklist, do not filter out data when submitted by deckList, if no entry found for that card, api should return a "no data" object that the portal can process
 - card and table view should have statistical significance indicator -> figure out what this will look like
 
 SOON:
-- deck average win % from each seat position!
-- want to organize database such that we have weekly views
+
+- pipeline design: import scryfall and topdeck data concurrently and when both finish import new moxfield data
+- repeating pipeline: import new scryfall data, import new topdeck data, import new moxfield data
+- implement tanstack-virtual or virtua? needs investigation
 - deck sections should have filter and sort options on grid view
 - need to implement more robust error handling coming back from the API - re-implement totally lost card, graceful error alerts (figure out where to put these)
 - update chi squared test per mons video
@@ -55,15 +152,12 @@ SOON:
 
 
 LATER:
-- get richer data from topdeck api - can access rounds and tables, can calculate on what turn on average the commander wins on if this is interesting?
-- best / worst matchups? How? (Static from API)
 - maybe future opportunity for average elo / deck
 - implement synergy score!!! need reference to commander’s color identity (decks that could play it) (Static from API)
 - future opporunity to report the most overperforming and most underperforming cards across all commanders -> how to represent this?
 - might need to add card type coding to materialized view and refactor for commander view for more robust API (thinking of /commander route)
 - easy url sharing and simple moxfield integration -> moxfield chrome extension??
 - statistics over time (weekly? how do we do this?)
-- dashboard should have metrics displayed (total tournaments, player entries, etc etc etc)
 - dashboard could also have new! tournaments fetched (recent tournaments)
     if we are only fetching a small amount of data could do it nightly
 - MOBILE FRIENDLY!! (do this last, learned from animation hell)
@@ -73,14 +167,5 @@ LATER:
 - dockerize
 - tournament view and bracket breakdown
 - create option for abstract data views
-
-
-
-
-
-
-
-
-
 
 

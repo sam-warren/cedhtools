@@ -339,12 +339,11 @@ class Command(BaseCommand):
         logger.info(f"Processing matches for tournament {tournament.tid}")
 
         for round_data in tournament_data.get('rounds', []):
-            round_num = round_data['round']
             # If round is not a number, it is a top cut round
-            is_top_cut = not round_num.isdigit()
-
+            round_str = round_data.get('round', '')
+            is_top_cut = self._is_top_cut_round(round_str)
             logger.debug(
-                f"Processing round {round_num} (Top cut: {is_top_cut})")
+                f"Processing round {round_str} (Top cut: {is_top_cut})")
 
             for table_data in round_data.get('tables', []):
                 try:
@@ -364,7 +363,7 @@ class Command(BaseCommand):
                     # Create match record
                     match = TopdeckMatch.objects.create(
                         tournament=tournament,
-                        round=round_num,
+                        round=round_str,
                         table_number=table_data['table'],
                         status=table_data.get('status', 'Unknown'),
                         is_draw=table_data.get('winner') == 'Draw',
@@ -399,6 +398,38 @@ class Command(BaseCommand):
                     logger.error(
                         f"Error processing table {table_data.get('table')}: {str(e)}")
                     raise
+
+    def _is_top_cut_round(round_str: str) -> bool:
+        """
+        Determine if a round is a top cut round based on actual tournament data patterns.
+
+        Top cut rounds either:
+        1. Start with "Top" (e.g., "Top 16", "Top 4")
+        2. Are named rounds (e.g., "Semifinals", "Finals", "Quarterfinals")
+        3. Not numeric or "Round X" format
+        """
+        # Standardize input
+        round_str = str(round_str).strip().lower()
+
+        # Check for named rounds
+        named_rounds = {'semifinals', 'finals', 'quarterfinals'}
+        if round_str in named_rounds:
+            return True
+
+        # Check for "Top X" format
+        if round_str.startswith('top'):
+            return True
+
+        # Remove "round " prefix if present
+        if round_str.startswith('round '):
+            round_str = round_str.replace('round ', '')
+
+        # If what remains is a number, it's a swiss round
+        try:
+            int(round_str)
+            return False
+        except ValueError:
+            return True
 
     def _is_valid_decklist(self, decklist: Optional[str]) -> Optional[str]:
         """
