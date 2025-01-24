@@ -2,3 +2,6 @@
 logs/
 dumps/
 db_seed.gz
+venv/
+__pycache__/
+*.pyc
