@@ -18,8 +18,8 @@ import os
 load_dotenv()
 
 # Database Configuration
-PG_USER = quote_plus(os.getenv('PG_USER'))
-PG_PASSWORD = quote_plus(os.getenv('PG_PASSWORD'))
+PG_USER = os.getenv('PG_USER')
+PG_PASSWORD = os.getenv('PG_PASSWORD')
 PG_DB_NAME = os.getenv('PG_DB_NAME')
 PG_HOST = os.getenv('PG_HOST')
 PG_PORT = os.getenv('PG_PORT')
