@@ -1,120 +1,45 @@
-import Box, { BoxProps } from '@mui/joy/Box';
+import { ReactNode } from 'react';
 
-function Root(props: BoxProps) {
+interface BoxProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function Root({ children, className = '' }: BoxProps) {
   return (
-    <Box
-      {...props}
-      sx={[
-        {
-          bgcolor: 'background.appBody',
-          display: 'flex', // Change to flex
-          flexDirection: 'column',
-          height: '100vh', // Full viewport height
-          overflow: 'hidden', // Prevent body scrolling
-        },
-        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
-      ]}
-    />
+    <div className={`bg-background-light dark:bg-background-dark flex flex-col h-screen overflow-hidden ${className}`}>
+      {children}
+    </div>
   );
 }
 
-function Loader(props: BoxProps) {
+function Header({ children, className = '' }: BoxProps) {
   return (
-    <Box
-      className="AppLoader"
-      {...props}
-      sx={[
-        {
-          display: 'flex',
-          width: '100%',
-          height: '4px',
-          position: 'absolute',
-          top: '64px',
-          zIndex: 1100,
-        },
-        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
-      ]}
-    />
+    <header className={`p-4 gap-4 bg-white dark:bg-gray-800 flex flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700 h-16 flex-shrink-0 ${className}`}>
+      {children}
+    </header>
   );
 }
 
-function Header(props: BoxProps) {
+function Main({ children, className = '' }: BoxProps) {
   return (
-    <Box
-      component="header"
-      className="Header"
-      {...props}
-      sx={[
-        {
-          p: 2,
-          gap: 2,
-          bgcolor: 'background.surface',
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          height: '64px',
-          flexShrink: 0,
-        },
-        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
-      ]}
-    />
+    <main className={`flex-grow overflow-auto relative h-[calc(100vh-8rem)] ${className}`}>
+      {children}
+    </main>
   );
 }
 
-function Main(props: BoxProps) {
+function Footer({ children, className = '' }: BoxProps) {
   return (
-    <Box
-      component="main"
-      className="Main"
-      {...props}
-      sx={[
-        {
-          flexGrow: 1,
-          overflow: 'auto',
-          position: 'relative',
-          '--ScrollArea-radius': '0',
-          height: 'calc(100vh - 128px)', // Account for header and footer
-          // Remove the default padding here since individual pages should control their padding
-          p: 0,
-        },
-        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
-      ]}
-    />
-  );
-}
-
-function Footer(props: BoxProps) {
-  return (
-    <Box
-      component="footer"
-      className="Footer"
-      {...props}
-      sx={[
-        {
-          p: 2,
-          gap: 2,
-          bgcolor: 'background.surface',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          height: '56px',
-          flexShrink: 0, // Prevent footer from shrinking
-        },
-        ...(Array.isArray(props.sx) ? props.sx : [props.sx]),
-      ]}
-    />
+    <footer className={`p-4 gap-4 bg-white dark:bg-gray-800 flex justify-center items-center border-t border-gray-200 dark:border-gray-700 h-14 flex-shrink-0 ${className}`}>
+      {children}
+    </footer>
   );
 }
 
 export default {
   Root,
   Header,
-  Loader,
   Main,
-  Footer,
+  Footer
 };

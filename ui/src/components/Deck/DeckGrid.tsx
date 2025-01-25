@@ -1,5 +1,3 @@
-import { Box } from '@mui/joy';
-import _ from 'lodash';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useAppSelector } from 'src/hooks';
@@ -17,91 +15,59 @@ const GridRow = React.memo(function GridRow({
   inView: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 3,
-        minHeight: '300px',
-        '& > div':
-          row.length === 1 ? { flex: '1 1 100%' } : { width: 'min-content' },
-      }}
-    >
+    <div className="flex gap-3 min-h-[300px] [&>div]:w-min-content [&>div:only-child]:flex-1">
       {row.map(({ typeCode, cards }) => (
-        <Box
+        <div
           key={typeCode}
-          sx={{
-            flex: row.length === 1 ? '1 1 100%' : 'none',
-            width: row.length > 1 ? `${CARD_WIDTH}px` : 'auto',
-          }}
+          className={`${
+            row.length === 1 ? 'flex-1' : `w-[${CARD_WIDTH}px]`
+          }`}
         >
           {inView && <DeckSection typeCode={typeCode} cards={cards} />}
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 });
 
 const DeckGrid = React.memo(function DeckGrid() {
   const { deckStats } = useAppSelector((state) => state.deck);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [cardsPerRow, setCardsPerRow] = useState(5);
-  const { ref: gridRef, inView } = useInView({
-    triggerOnce: true,
-    rootMargin: '200px 0px',
-  });
-
-  // Move all memoization hooks before any conditional returns
-  const sortedSections = useMemo(() => {
-    if (!deckStats?.card_statistics) return [];
-    return getSortedSections(deckStats.card_statistics);
-  }, [deckStats]);
-
-  const rows = useMemo(() => {
-    return organizeRows(sortedSections, cardsPerRow);
-  }, [sortedSections, cardsPerRow]);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    const updateCardsPerRow = _.debounce(() => {
-      if (!containerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth;
-      const newCardsPerRow = Math.max(
-        1,
-        Math.floor(containerWidth / (CARD_WIDTH + CARD_GAP)),
-      );
-      setCardsPerRow(newCardsPerRow);
-    }, 100);
-
-    const resizeObserver = new ResizeObserver(updateCardsPerRow);
-    resizeObserver.observe(containerRef.current);
-    updateCardsPerRow();
-
-    return () => {
-      resizeObserver.disconnect();
-      updateCardsPerRow.cancel();
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
     };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Move conditional return after all hooks
-  if (!deckStats || sortedSections.length === 0) return null;
+  const rows = useMemo(() => {
+    if (!deckStats || !containerWidth) return [];
+    const sections = getSortedSections(deckStats);
+    return organizeRows(sections, containerWidth, CARD_WIDTH, CARD_GAP);
+  }, [deckStats, containerWidth]);
 
   return (
-    <Box ref={containerRef}>
-      <Box
-        ref={gridRef}
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          width: '100%',
-        }}
-      >
-        {rows.map((row, index) => (
-          <GridRow key={index} row={row} inView={inView} />
-        ))}
-      </Box>
-    </Box>
+    <div ref={containerRef} className="flex flex-col gap-3">
+      {rows.map((row, index) => {
+        const { ref, inView } = useInView({
+          triggerOnce: true,
+          rootMargin: '200px 0px',
+        });
+
+        return (
+          <div ref={ref} key={index}>
+            <GridRow row={row} inView={inView} />
+          </div>
+        );
+      })}
+    </div>
   );
 });
 

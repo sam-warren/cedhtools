@@ -1,6 +1,3 @@
-import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
-import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
-import { IconButton, Tooltip, useColorScheme } from '@mui/joy';
 import { useEffect, useState } from 'react';
 
 export default function ColorSchemeToggle() {

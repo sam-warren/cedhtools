@@ -1,13 +1,9 @@
-import SearchIcon from '@mui/icons-material/Search';
-import Box from '@mui/joy/Box';
-import Button from '@mui/joy/Button';
-import Input from '@mui/joy/Input';
+import { Search as SearchIcon } from 'lucide-react';
 import { ChangeEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Search() {
   const [inputValue, setInputValue] = useState('');
-
   const navigate = useNavigate();
 
   const handleDecklist = async () => {
@@ -20,32 +16,23 @@ export default function Search() {
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        width: '100%',
-        margin: '0 auto',
-        pt: 4,
-      }}
-    >
-      <Input
-        autoFocus
-        placeholder="Enter a Moxfield deck link to unlock powerful data"
-        startDecorator={<SearchIcon />}
-        endDecorator={<Button onClick={handleDecklist}>Analyze</Button>}
-        value={inputValue}
-        onChange={handleInputChange}
-        sx={{
-          flexGrow: 1,
-          bgcolor: 'background.level1',
-          maxWidth: { xs: '100%', sm: '700px' },
-          width: '100%',
-          '--Input-radius': '10px',
-        }}
-        color={'neutral'}
-      />
-    </Box>
+    <div className="flex flex-col items-center w-full pt-4">
+      <div className="flex w-full max-w-[700px] relative">
+        <input
+          autoFocus
+          placeholder="Enter a Moxfield deck link to unlock powerful data"
+          value={inputValue}
+          onChange={handleInputChange}
+          className="w-full px-4 py-2 pl-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+        />
+        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <button
+          onClick={handleDecklist}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+        >
+          Analyze
+        </button>
+      </div>
+    </div>
   );
 }

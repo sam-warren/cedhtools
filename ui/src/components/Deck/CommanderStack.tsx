@@ -1,7 +1,5 @@
-import { Box } from '@mui/joy';
 import React from 'react';
 import CommanderCard from './CommanderCard';
-import { commanderStackStyles } from 'src/styles';
 import { ICommanderDetail } from 'src/types';
 
 interface CommanderStackProps {
@@ -15,17 +13,17 @@ const CommanderStack: React.FC<CommanderStackProps> = ({
 }) => {
   if (isInitialLoad) {
     return (
-      <Box sx={commanderStackStyles.singleCardContainer}>
+      <div className="relative">
         <CommanderCard.Skeleton />
-      </Box>
+      </div>
     );
   }    
 
   if (commanders.length === 0) {
     return (
-      <Box sx={commanderStackStyles.singleCardContainer}>
+      <div className="relative">
         <CommanderCard.Skeleton />
-      </Box>
+      </div>
     );
   }
 
@@ -33,28 +31,32 @@ const CommanderStack: React.FC<CommanderStackProps> = ({
     return (
       <>
         {commanders.map((cmdr) => (
-          <Box
+          <div
             key={cmdr.unique_card_id}
-            sx={commanderStackStyles.singleCardContainer}
+            className="relative"
           >
             <CommanderCard card={cmdr} />
-          </Box>
+          </div>
         ))}
       </>
     );
   }
 
   return (
-    <Box sx={commanderStackStyles.container}>
+    <div className="relative h-[400px]">
       {commanders.map((commander, index) => (
-        <Box
+        <div
           key={commander.unique_card_id}
-          sx={commanderStackStyles.card(index)}
+          className={`absolute w-full transition-transform duration-300 ${
+            index === 0 
+              ? 'transform rotate-[-5deg] hover:rotate-0 z-10' 
+              : 'transform rotate-[5deg] hover:rotate-0'
+          }`}
         >
           <CommanderCard card={commander} />
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 };
 

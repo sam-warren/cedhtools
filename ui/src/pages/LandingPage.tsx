@@ -1,60 +1,21 @@
-import Box from '@mui/joy/Box';
-import Typography from '@mui/joy/Typography';
 import Search from 'src/components/Search/Search';
 import SearchHistory from 'src/components/Search/SearchHistory';
 
 export default function LandingPage() {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
-        height: '100%',
-        textAlign: 'center',
-        px: 2,
-        pt: 16,
-      }}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          textAlign: 'center',
-          px: 2,
-        }}
-      >
-        <Typography
-          level="title-lg"
-          sx={{ fontSize: '2.5rem', fontWeight: 'bold' }}
-        >
+    <div className="flex flex-col justify-between items-center w-full h-full text-center px-4 pt-16">
+      <div className="flex flex-col justify-start items-center w-full h-full text-center px-4">
+        <h1 className="text-4xl font-bold mb-2">
           welcome to cedhtools
-        </Typography>
-        <Typography level="body-md" color="neutral">
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300 mb-8">
           equipped with powerful statistics to improve your cEDH decks
-        </Typography>
+        </p>
         <Search />
-      </Box>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          px: 2,
-          pb: 2,
-        }}
-      >
+      </div>
+      <div className="flex flex-col justify-end items-center w-full h-full px-4 pb-4">
         <SearchHistory />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

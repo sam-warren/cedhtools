@@ -1,53 +1,26 @@
-import { Skeleton, Box } from '@mui/joy';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ANIMATION_DURATIONS } from 'src/constants/animations';
 
-const ImageWithLoading: React.FC<{
+interface ImageWithLoadingProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
-  onLoad?: () => void;
-  sx?: any;
-}> = ({ src, alt, onLoad, sx }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+}
+
+export default function ImageWithLoading({ src, alt, className = '', ...props }: ImageWithLoadingProps) {
+  const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <Box
-      sx={{ position: 'relative', width: '100%', height: '100%', zIndex: 2 }}
-    >
-      <Box
-        component="img"
+    <>
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg" />
+      )}
+      <img
         src={src}
         alt={alt}
-        sx={{
-          ...sx,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          opacity: isLoaded ? 1 : 0,
-          transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-
-        }}
-        onLoad={() => {
-          setIsLoaded(true);
-          onLoad?.();
-        }}
+        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-${ANIMATION_DURATIONS.imageLoad}`}
+        onLoad={() => setIsLoading(false)}
+        {...props}
       />
-      <Skeleton
-        variant="rectangular"
-        animation="pulse"
-        width="100%"
-        height="100%"
-        sx={{
-          ...sx,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          opacity: isLoaded ? 0 : 1,
-          transition: `opacity ${ANIMATION_DURATIONS.imageLoad}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-        }}
-      />
-    </Box>
+    </>
   );
-};
-
-export default React.memo(ImageWithLoading);
+}

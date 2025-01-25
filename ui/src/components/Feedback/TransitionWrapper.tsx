@@ -1,13 +1,13 @@
 import { ReactNode, useRef } from 'react';
-import { Box, BoxProps } from '@mui/joy';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import { ANIMATION_DURATIONS } from 'src/constants/animations';
 
-interface TransitionWrapperProps extends Omit<BoxProps, 'children'> {
+interface TransitionWrapperProps {
   loading?: boolean;
   skeleton?: ReactNode;
   children: ReactNode;
   transitionDuration?: number;
+  className?: string;
 }
 
 const TransitionWrapper = ({
@@ -15,60 +15,29 @@ const TransitionWrapper = ({
   skeleton,
   children,
   transitionDuration = ANIMATION_DURATIONS.transitionDuration,
-  sx,
-  ...boxProps
+  className = '',
 }: TransitionWrapperProps) => {
-  const contentRef = useRef(null);
-  const skeletonRef = useRef(null);
+  const nodeRef = useRef(null);
 
   return (
-    <Box
-      {...boxProps}
-      className="transition-wrapper"
-      sx={{
-        position: 'relative',
-        minHeight: skeleton ? '2rem' : 'auto',
-        '& .transition-enter': {
-          opacity: 0,
-          transform: 'translateY(10px)',
-        },
-        '& .transition-enter-active': {
-          opacity: 1,
-          transform: 'translateY(0)',
-          transition: `all ${transitionDuration}ms ease-in-out`,
-        },
-        '& .transition-exit': {
-          opacity: 1,
-          transform: 'translateY(0)',
-        },
-        '& .transition-exit-active': {
-          opacity: 0,
-          transform: 'translateY(10px)',
-          transition: `all ${transitionDuration}ms ease-in-out`,
-        },
-        ...sx,
-      }}
-    >
+    <div className={className}>
       <SwitchTransition mode="out-in">
         <CSSTransition
-          key={loading ? 'skeleton' : 'content'}
-          nodeRef={loading ? skeletonRef : contentRef}
+          key={loading ? 'loading' : 'content'}
+          nodeRef={nodeRef}
           timeout={transitionDuration}
           classNames={{
-            enter: 'transition-enter',
-            enterActive: 'transition-enter-active',
-            exit: 'transition-exit',
-            exitActive: 'transition-exit-active',
+            enter: 'opacity-0',
+            enterActive: 'opacity-100 transition-opacity',
+            exit: 'opacity-0 transition-opacity',
           }}
         >
-          {loading && skeleton ? (
-            <Box ref={skeletonRef}>{skeleton}</Box>
-          ) : (
-            <Box ref={contentRef}>{children}</Box>
-          )}
+          <div ref={nodeRef}>
+            {loading ? skeleton : children}
+          </div>
         </CSSTransition>
       </SwitchTransition>
-    </Box>
+    </div>
   );
 };
 

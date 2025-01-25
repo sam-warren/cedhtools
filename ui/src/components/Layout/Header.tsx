@@ -1,37 +1,45 @@
-import { Typography } from '@mui/joy';
-import Box from '@mui/joy/Box';
-import Button from '@mui/joy/Button';
-import Stack from '@mui/joy/Stack';
+import { Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import ColorSchemeToggle from 'src/components/ColorSchemeToggle/ColorSchemeToggle'; // Export * does not re-export a default
+import { useEffect, useState } from 'react';
 
 export default function Header() {
   const navigate = useNavigate();
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
   return (
-    <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'space-between' }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          paddingLeft: 4,
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 2,
-          display: { xs: 'none', sm: 'flex' },
-        }}
-      >
-        <Typography level="h3">cedhtools</Typography>
-        <Button
-          variant="plain"
-          color="neutral"
-          size="lg"
+    <div className="flex flex-grow justify-between">
+      <div className="flex flex-row items-center gap-4 pl-4 hidden sm:flex">
+        <h3 className="text-2xl font-bold">cedhtools</h3>
+        <button
           onClick={() => navigate('/')}
-          sx={{ alignSelf: 'center' }}
+          className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
           search
-        </Button>
-      </Stack>
-      <ColorSchemeToggle />
-    </Box>
+        </button>
+      </div>
+      <button
+        onClick={toggleTheme}
+        className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        title="Toggle theme"
+      >
+        {theme === 'light' ? (
+          <Moon className="w-5 h-5" />
+        ) : (
+          <Sun className="w-5 h-5" />
+        )}
+      </button>
+    </div>
   );
 }

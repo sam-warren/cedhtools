@@ -1,45 +1,37 @@
-import Box from '@mui/joy/Box';
-import Link from '@mui/joy/Link';
-import Stack from '@mui/joy/Stack';
-
 export default function Footer() {
   return (
-    <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center' }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          justifyContent: 'center',
-          alignItems: 'center',
-          display: 'flex',
-        }}
-      >
-        <span>
+    <div className="flex flex-grow justify-center">
+      <div className="flex flex-row gap-1 items-center">
+        <span className="text-sm text-gray-600 dark:text-gray-300">
           Powerfully driven by data from{' '}
-          <Link
+          <a
             href="https://www.moxfield.com"
             target="_blank"
             rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Moxfield
-          </Link>{', '}
-          <Link
+          </a>
+          ,{' '}
+          <a
             href="https://www.scryfall.com"
             target="_blank"
             rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Scryfall
-          </Link>{', '}
-          and{' '}
-          <Link
+          </a>
+          , and{' '}
+          <a
             href="https://www.topdeck.gg"
             target="_blank"
             rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Topdeck.gg
-          </Link>
+          </a>
         </span>
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 }

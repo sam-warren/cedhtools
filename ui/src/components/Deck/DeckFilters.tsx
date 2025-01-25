@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { Box, FormControl, Select, Option, Button, FormLabel } from '@mui/joy';
-import { filterStyles } from 'src/styles';
+import React from 'react';
 import { useAppDispatch, useAppSelector } from 'src/hooks';
 import {
   fetchDeckStats,
@@ -12,78 +10,52 @@ import {
 } from 'src/constants/deckFilterOptions';
 import { FilterSettings } from 'src/types/store/rootState';
 
-const DeckFilters: React.FC<{ deckId: string }> = ({ deckId }) => {
-  const [isAnimating, setIsAnimating] = useState(false);
+export default function DeckFilters() {
   const dispatch = useAppDispatch();
-  const filterSettings = useAppSelector((state) => state.deck.filterSettings);
+  const { filterSettings } = useAppSelector((state) => state.deck);
 
-  const handleApplyFilters = () => {
-    setIsAnimating(true);
-    dispatch(
-      fetchDeckStats({
-        deckId,
-        timePeriod: filterSettings.timePeriod,
-        minSize: filterSettings.minSize,
-      }),
-    ).finally(() => {
-      setIsAnimating(false);
-    });
-  };
-
-  const handleFilterChange = (newSettings: Partial<FilterSettings>) => {
-    dispatch(updateFilterSettings(newSettings));
+  const handleFilterChange = (key: keyof FilterSettings, value: string | number) => {
+    dispatch(updateFilterSettings({ [key]: value }));
+    dispatch(fetchDeckStats());
   };
 
   return (
-    <Box sx={filterStyles.container}>
-      <Box sx={filterStyles.filterGroup}>
-        <FormControl size="sm" sx={filterStyles.formControl}>
-          <FormLabel>time period</FormLabel>
-          <Select
+    <div className="flex items-center gap-4">
+      <div className="flex gap-4">
+        <div className="min-w-[160px]">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Time Period
+          </label>
+          <select
             value={filterSettings.timePeriod}
-            onChange={(_, value) =>
-              handleFilterChange({ timePeriod: value || 'ban' })
-            }
-            size="sm"
+            onChange={(e) => handleFilterChange('timePeriod', e.target.value)}
+            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {TIME_PERIOD_OPTIONS.map((option) => (
-              <Option key={option.value} value={option.value}>
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </Option>
+              </option>
             ))}
-          </Select>
-        </FormControl>
+          </select>
+        </div>
 
-        <FormControl size="sm" sx={filterStyles.formControl}>
-          <FormLabel>tournament size</FormLabel>
-          <Select
+        <div className="min-w-[160px]">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tournament Size
+          </label>
+          <select
             value={filterSettings.minSize}
-            onChange={(_, value) =>
-              handleFilterChange({ minSize: value ?? 60 })
-            }
-            size="sm"
+            onChange={(e) => handleFilterChange('minSize', Number(e.target.value))}
+            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {TOURNAMENT_SIZE_OPTIONS.map((option) => (
-              <Option key={option.value} value={option.value}>
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </Option>
+              </option>
             ))}
-          </Select>
-        </FormControl>
-
-        <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-          <Button
-            onClick={handleApplyFilters}
-            size="sm"
-            variant="soft"
-            loading={isAnimating} // Use combined state
-          >
-            apply
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+          </select>
+        </div>
+      </div>
+    </div>
   );
-};
-
-export default DeckFilters;
+}

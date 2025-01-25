@@ -1,43 +1,13 @@
-import { Box, Typography } from '@mui/joy';
-import React, { useMemo, useEffect, useState } from 'react';
-import { useInView } from 'react-intersection-observer';
+import React, { useMemo } from 'react';
 import { useAppSelector } from 'src/hooks';
 import { useManaSymbols } from 'src/hooks/useManaSymbols';
 import { cardTypeMap } from 'src/styles';
-import { layoutStyles } from 'src/styles/layouts/list';
-import { ICardStat, ICommanderStatisticsResponse } from 'src/types';
-import DeckTable from './DeckTable';
-
-interface LazyDeckTableProps {
-  cards: ICardStat[];
-  deckStats: ICommanderStatisticsResponse;
-  label: string;
-}
-
-const LazyDeckTable = React.memo(
-  ({ cards, deckStats, label }: LazyDeckTableProps) => {
-    const { ref, inView } = useInView({
-      triggerOnce: true,
-      rootMargin: '200px 0px',
-    });
-
-    return (
-      <Box ref={ref}>
-        {inView ? (
-          <DeckTable cards={cards} deckStats={deckStats} label={label} />
-        ) : (
-          <Box sx={{ height: 200 }} />
-        )}
-      </Box>
-    );
-  },
-);
+import LazyDeckTable from './DeckTable';
 
 const DeckList = React.memo(function DeckList() {
   const { deckStats, isStatsLoading } = useAppSelector((state) => state.deck);
   const { isLoading: isManaLoading, isError } = useManaSymbols();
 
-  // Memoize the filtered sections
   const sections = useMemo(() => {
     if (!deckStats) return [];
     return Object.entries(deckStats.card_statistics.main)
@@ -46,36 +16,35 @@ const DeckList = React.memo(function DeckList() {
   }, [deckStats]);
 
   if (!deckStats) return null;
-  if (isManaLoading) return <Typography>Loading mana symbols...</Typography>;
-  if (isError)
-    return <Typography color="danger">Error loading mana symbols</Typography>;
+  if (isManaLoading) return <p className="text-gray-600 dark:text-gray-300">Loading mana symbols...</p>;
+  if (isError) return <p className="text-red-600 dark:text-red-400">Error loading mana symbols</p>;
 
   return (
-    <Box sx={layoutStyles.container}>
-      <Box sx={layoutStyles.mainSection}>
-        {sections.map(([typeCode, cards], index) => (
-          <Box key={typeCode} sx={layoutStyles.sectionContainer}>
-            <Box sx={layoutStyles.tableContainer}>
+    <div className="w-full">
+      <div className="mb-6 mt-4">
+        {sections.map(([typeCode, cards]) => (
+          <div key={typeCode} className="mb-4">
+            <div>
               <LazyDeckTable
                 cards={cards}
                 deckStats={deckStats}
                 label={cardTypeMap[typeCode] || `Type ${typeCode}`}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {deckStats.card_statistics.other.length > 0 && (
-        <Box>
+        <div>
           <LazyDeckTable
             cards={deckStats.card_statistics.other}
             deckStats={deckStats}
             label={cardTypeMap.other}
           />
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 });
 

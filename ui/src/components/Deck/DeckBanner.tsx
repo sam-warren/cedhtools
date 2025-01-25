@@ -1,35 +1,18 @@
 // DeckBanner.tsx
-import { Box, Typography, Link, Skeleton } from '@mui/joy';
-import DeckFilters from './DeckFilters';
-import { bannerStyles } from 'src/styles';
+import { Info } from 'lucide-react';
 import { useAppSelector } from 'src/hooks';
-import TransitionWrapper from '../Feedback/TransitionWrapper';
 import { useParams } from 'react-router-dom';
+import DeckFilters from './DeckFilters';
 
 const DeckBannerSkeleton = () => (
-  <Box
-    sx={{
-      ...bannerStyles.titleContainer,
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-    }}
-  >
-    <Typography
-      level="title-lg"
-      sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
-    >
-      <Skeleton variant="text" level="title-lg" width="500px" />
-    </Typography>
-    <Typography
-      level="body-sm"
-      color="neutral"
-      sx={{ display: 'flex', alignItems: 'center' }}
-    >
-      <Skeleton variant="text" level="body-sm" width="250px" />
-    </Typography>
-  </Box>
+  <div className="h-full flex flex-col justify-center">
+    <div className="flex items-center">
+      <div className="h-8 w-[500px] bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
+    </div>
+    <div className="flex items-center mt-2">
+      <div className="h-4 w-[250px] bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
+    </div>
+  </div>
 );
 
 const AuthorsList = ({
@@ -45,77 +28,39 @@ const AuthorsList = ({
       {authors.map((author, index) => (
         <span key={author.userName}>
           {index > 0 && ', '}
-          <Link
+          <a
             href={`https://www.moxfield.com/users/${author.userName}`}
             target="_blank"
             rel="noopener noreferrer"
-            sx={bannerStyles.authorLink}
+            className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             {author.displayName}
-          </Link>
+          </a>
         </span>
       ))}
     </>
   );
 };
 
-const DeckContent = ({ deck }: { deck: any }) => (
-  <Box
-    sx={{
-      ...bannerStyles.titleContainer,
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-    }}
-  >
-    <Typography level="title-lg" sx={{ flexShrink: 0 }}>
-      <Link
-        href={deck?.publicUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        sx={bannerStyles.authorLink}
-      >
-        {deck?.name || ''}
-      </Link>
-    </Typography>
-    <Typography level="body-sm" color="neutral">
-      <AuthorsList authors={deck?.authors} />
-    </Typography>
-  </Box>
-);
-
-function DeckBanner() {
-  const { deckId } = useParams<{ deckId?: string }>(); // Extract deckId from URL
-  const { deck, isDeckLoading } = useAppSelector((state) => state.deck);
-  const isLoading = isDeckLoading || !deck;
+export default function DeckBanner() {
+  const { deck, isLoading } = useAppSelector((state) => state.deck);
+  const { deckId } = useParams();
 
   return (
-    <Box sx={bannerStyles.container}>
-      <Box
-        sx={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <TransitionWrapper
-          key={deckId} // Use deckId as key to force remount on deck change
-          loading={isLoading}
-          skeleton={<DeckBannerSkeleton />}
-          sx={{
-            height: '4rem',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <DeckContent deck={deck} />
-        </TransitionWrapper>
-        <DeckFilters deckId={deckId || ''} /> {/* Pass deckId from URL */}
-      </Box>
-    </Box>
+    <div className="w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-6 flex items-center justify-between flex-shrink-0 min-h-[theme(spacing.24)]">
+      {isLoading ? (
+        <DeckBannerSkeleton />
+      ) : (
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold flex items-center">
+            {deck?.name || 'Deck not found'}
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
+            <AuthorsList authors={deck?.authors} />
+          </p>
+        </div>
+      )}
+      <DeckFilters />
+    </div>
   );
 }
-
-export default DeckBanner;

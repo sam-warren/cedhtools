@@ -1,68 +1,40 @@
-import Box from '@mui/joy/Box';
-import Typography from '@mui/joy/Typography';
-import List from '@mui/joy/List';
-import ListItem from '@mui/joy/ListItem';
-import ListItemButton from '@mui/joy/ListItemButton';
-import ListItemContent from '@mui/joy/ListItemContent';
-import { Link } from 'react-router-dom';
-import Button from '@mui/joy/Button';
 import { useSearchHistory } from 'src/contexts/SearchHistoryContext';
+import { Link } from 'react-router-dom';
 import { ISearchHistoryEntry } from 'src/types';
 
 export default function SearchHistory() {
   const { searchHistory, clearSearchHistory } = useSearchHistory();
 
   if (searchHistory.length === 0) {
-    return;
+    return null;
   }
 
   return (
-    <Box
-      sx={{
-        maxWidth: { xs: '100%', sm: '700px' },
-        width: '100%',
-        mt: 4,
-      }}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-        }}
-      >
-        <Typography level="h4">recently searched decks</Typography>
-        <Button
-          variant="plain"
-          color="neutral"
+    <div className="max-w-[700px] w-full mt-4">
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="text-xl font-semibold">recently searched decks</h4>
+        <button
           onClick={() => clearSearchHistory()}
+          className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
         >
           clear
-        </Button>
-      </Box>
-      <List sx={{ gap: '2px' }}>
+        </button>
+      </div>
+      <ul className="space-y-0.5">
         {searchHistory.map((search: ISearchHistoryEntry) => (
-          <ListItem key={search.publicId}>
-            <ListItemButton
-              component={Link}
+          <li key={search.publicId}>
+            <Link
               to={`/deck/${search.publicId}`}
-              sx={{
-                borderRadius: '8px',
-              }}
+              className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              <ListItemContent>
-                <Typography level="body-sm" noWrap>
-                  {search.name}
-                </Typography>
-                <Typography level="body-xs" color="neutral" noWrap>
-                  {search.publicUrl}
-                </Typography>
-              </ListItemContent>
-            </ListItemButton>
-          </ListItem>
+              <p className="text-sm truncate">{search.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {search.publicUrl}
+              </p>
+            </Link>
+          </li>
         ))}
-      </List>
-    </Box>
+      </ul>
+    </div>
   );
 }
