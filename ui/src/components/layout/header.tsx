@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ModeToggle } from "@/components/mode-toggle";
+import { ModeToggle } from "@/components/shared/mode-toggle";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -13,14 +13,17 @@ import {
 } from "@/components/ui/command";
 import Link from "next/link";
 import { CEDHToolsIcon } from "../icons/cedhtools-icon";
+import { useRouter } from "next/navigation";
+
+// Need to fetch list of commanders from API (names and IDs) for the search functionality.
 
 interface Commander {
   id: string;
   name: string;
-  // Add other fields as needed
 }
 
 export default function Header() {
+  const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [commanders, setCommanders] = React.useState<Commander[]>([
     // Temporary mock data - replace with API call
@@ -45,9 +48,9 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-2 mr-4">
-          <CEDHToolsIcon className="h-6 w-6" />
           <Link href="/" className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex font-bold text-lg">
+            <CEDHToolsIcon className="h-6 w-6" />
+            <span className="hidden sm:inline-flex font-bold text-lg font-mono">
               cedhtools
             </span>
           </Link>
@@ -103,7 +106,9 @@ export default function Header() {
                   // Handle commander selection
                   console.log(`Selected: ${commander.name}`);
                   setOpen(false);
+                  router.push(`/commander/${commander.id}`);
                 }}
+                className="cursor-pointer"
               >
                 {commander.name}
               </CommandItem>
