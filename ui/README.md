@@ -1,56 +1,36 @@
-# cedhtools frontend
-
-This is the frontend repository for the **cedhtools** application. Built with **React** and **Vite**, it connects to a backend API for managing the application functionality.
-
-**Note**: This project uses **MUI Joy** as its component and styling library.
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-Follow the steps below to set up and run the application locally.
+First, run the development server:
 
-### Prerequisites
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-Ensure you have the following tools installed:
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-- [Node.js](https://nodejs.org/) (version 16 or later)
-- [npm](https://www.npmjs.com/)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-### Installation
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/sam-warren/cedhtools.git
-   cd ui
-   ```
+## Learn More
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+To learn more about Next.js, take a look at the following resources:
 
-3. Create an `.env` file in the root directory and add the following:
-   ```env
-   VITE_CEDHTOOLS_API_BASE_URL=http://localhost:8000
-   ```
-### Running the Application
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Start the development server:
-   ```bash
-   npm run dev
-   ```
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-2. Open your browser and navigate to `http://localhost:5173` to view the application.
+## Deploy on Vercel
 
-## Environment Variables
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-The application relies on the `.env` file for configuration. Ensure you provide the following environment variable:
-
-- `VITE_CEDHTOOLS_API_BASE_URL`: Base URL for the backend API.
-
-## Contributing
-
-Contributions are welcome! Please submit a pull request or open an issue to suggest improvements or report bugs.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
