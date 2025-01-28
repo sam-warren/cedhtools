@@ -1,7 +1,7 @@
 import PopularityChart from "@/components/charts/popularity-chart";
 import WinRateChart from "@/components/charts/win-rate-chart";
 import { ManaCost } from "@/components/icons/mana-symbol";
-import { DatePickerWithPresets } from "@/components/shared/date-picker";
+import { DatePickerWithPresets } from "@/components/ui/date-picker";
 import {
   Card,
   CardContent,
@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { DiffBadge } from "@/components/badges/diff-badge";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { InclusionRateBadge } from "@/components/badges/inclusion-rate-badge";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function CommanderCardPage(props: {
   params: Promise<{ commanderIds: string; cardId: string }>;
@@ -63,26 +64,18 @@ export default async function CommanderCardPage(props: {
   return (
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
       {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={`/commander/${params.commanderIds}`}>
-                {cardData.commanderName}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{cardData.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <PageHeader
+        breadcrumbs={[
+          { href: "/", label: "Home" },
+          { href: `/commander/${commanderIds}`, label: cardData.commanderName },
+          {
+            href: `/commander/${commanderIds}/${cardId}`,
+            label: cardData.name,
+          },
+        ]}
+      >
         <DatePickerWithPresets />
-      </div>
+      </PageHeader>
 
       {/* Card Title */}
       <div className="flex items-center justify-between">

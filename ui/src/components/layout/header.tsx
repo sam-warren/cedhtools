@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ModeToggle } from "@/components/shared/mode-toggle";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -15,8 +15,6 @@ import Link from "next/link";
 import { CEDHToolsIcon } from "../icons/cedhtools-icon";
 import { useRouter } from "next/navigation";
 import { ManaCost } from "@/components/icons/mana-symbol";
-
-// Need to fetch list of commanders from API (names and IDs) for the search functionality.
 
 interface Commander {
   id: string;

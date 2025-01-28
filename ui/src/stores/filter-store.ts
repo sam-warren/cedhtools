@@ -19,7 +19,7 @@ export const FILTER_PRESETS = [
 
 export const useFilterStore = create<FilterState>((set) => ({
     dateRange: { from: new Date(2022, 5, 1), to: new Date() },
-    formattedDateRange: "",
+    formattedDateRange: getFormattedRange({ from: new Date(2022, 5, 1), to: new Date() }),
     setDateRange: (range) => set({
         dateRange: range,
         formattedDateRange: getFormattedRange(range)

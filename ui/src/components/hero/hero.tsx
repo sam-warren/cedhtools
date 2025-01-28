@@ -12,7 +12,7 @@ const rotatingTexts = [
 ];
 
 export function Hero() {
-  const { text, isAnimating } = useRotateText(rotatingTexts, 5000);
+  const { text, isAnimating } = useRotateText(rotatingTexts, 3000);
 
   return (
     <section className="p-8">

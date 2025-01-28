@@ -1,6 +1,6 @@
 import PopularityChart from "@/components/charts/popularity-chart";
 import WinRateChart from "@/components/charts/win-rate-chart";
-import { DatePickerWithPresets } from "@/components/shared/date-picker";
+import { DatePickerWithPresets } from "@/components/ui/date-picker";
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { ManaCost } from "@/components/icons/mana-symbol";
 import { DataTable } from "@/components/ui/data-table";
 import { cardColumns, type DeckCard } from "./card-columns";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function CommanderPage(props: {
   params: Promise<{ commanderIds: string }>;
@@ -103,32 +104,14 @@ export default async function CommanderPage(props: {
   return (
     <div className="container max-w-7xl mx-auto p-6 space-y-6">
       {/* Header Section with Date Picker */}
-      <div className="flex items-center justify-between">
-        {/* Breadcrumb */}
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            {commanderIds.map((id, index) => (
-              <BreadcrumbItem key={id}>
-                {index === commanderIds.length - 1 ? (
-                  <BreadcrumbPage>{commanderData.name}</BreadcrumbPage>
-                ) : (
-                  <>
-                    <BreadcrumbLink href={`/commander/${id}`}>
-                      {commanderData.name}
-                    </BreadcrumbLink>
-                    <BreadcrumbSeparator />
-                  </>
-                )}
-              </BreadcrumbItem>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
+      <PageHeader
+        breadcrumbs={[
+          { href: "/", label: "Home" },
+          { href: `/commander/${commanderIds}`, label: commanderData.name },
+        ]}
+      >
         <DatePickerWithPresets />
-      </div>
+      </PageHeader>
       <div>
         <div className="flex items-center justify-between">
           <div>
