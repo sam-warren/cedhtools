@@ -1,5 +1,5 @@
-import PopularityChart from "@/components/commander/popularity-chart";
-import WinRateChart from "@/components/commander/win-rate-chart";
+import PopularityChart from "@/components/charts/popularity-chart";
+import WinRateChart from "@/components/charts/win-rate-chart";
 import { DatePickerWithPresets } from "@/components/shared/date-picker";
 import {
   Card,
@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import {
   Table,
   TableBody,
@@ -17,6 +16,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { SeatWinRateChart } from "@/components/charts/seat-win-rate-chart";
 
 export default async function CommanderPage({
   params,
@@ -24,15 +32,21 @@ export default async function CommanderPage({
   params: { commanderIds: string };
 }) {
   const commanderIds = params.commanderIds.split(",").sort();
-
+  console.log(commanderIds);
   // Expanded mock data
   const commanderData = {
-    name: "Kenrith, the Returned King",
+    name: "Rograkh, Son of Rogahh + Silas Renn, Seeker Adept",
     winRate: 20.2,
     drawRate: 12.4,
     totalGames: 2450,
     metaShare: 4.7,
     conversionRate: 12.4,
+    seatWinRate: [
+      { seat: "1", winRate: 20 },
+      { seat: "2", winRate: 15 },
+      { seat: "3", winRate: 10 },
+      { seat: "4", winRate: 5 },
+    ],
     cards: [
       { name: "Sol Ring", type: "Artifact", manaCost: "{1}", winRate: 62.1 },
       {
@@ -82,10 +96,35 @@ export default async function CommanderPage({
     <div className="container max-w-7xl mx-auto p-6 space-y-8">
       {/* Header Section with Date Picker */}
       <div className="flex items-center justify-between">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mt-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            {commanderIds.map((id, index) => (
+              <BreadcrumbItem key={id}>
+                {index === commanderIds.length - 1 ? (
+                  <BreadcrumbPage>{commanderData.name}</BreadcrumbPage>
+                ) : (
+                  <>
+                    <BreadcrumbLink href={`/commander/${id}`}>
+                      {commanderData.name}
+                    </BreadcrumbLink>
+                    <BreadcrumbSeparator />
+                  </>
+                )}
+              </BreadcrumbItem>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+        <DatePickerWithPresets />
+      </div>
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">
           {commanderData.name}
         </h1>
-        <DatePickerWithPresets />
       </div>
 
       {/* Stats Grid */}
@@ -96,27 +135,9 @@ export default async function CommanderPage({
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.winRate}%</div>
-            <p className="text-xs text-muted-foreground">+2.4% vs average</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Meta Share</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{commanderData.metaShare}%</div>
-            <p className="text-xs text-muted-foreground">#3 most played</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Games</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{commanderData.totalGames}</div>
-            <p className="text-xs text-muted-foreground">Last 6 months</p>
+            <p className="text-xs text-muted-foreground">
+              Reliably high-performing deck
+            </p>
           </CardContent>
         </Card>
 
@@ -128,19 +149,47 @@ export default async function CommanderPage({
             <div className="text-3xl font-bold">
               {commanderData.conversionRate}%
             </div>
-            <p className="text-xs text-muted-foreground">Last 6 months</p>
+            <p className="text-xs text-muted-foreground">
+              Regularly makes top cut
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Meta Share</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{commanderData.metaShare}%</div>
+            <p className="text-xs text-muted-foreground">
+              Very popular in the meta
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total Decks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{commanderData.totalGames}</div>
+            <p className="text-xs text-muted-foreground">High sample size</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <WinRateChart
           data={commanderData.winRateOverTime}
           name={commanderData.name}
         />
         <PopularityChart
           data={commanderData.popularityOverTime}
+          name={commanderData.name}
+        />
+        <SeatWinRateChart
+          data={commanderData.seatWinRate}
           name={commanderData.name}
         />
       </div>

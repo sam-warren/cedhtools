@@ -31,7 +31,7 @@ const PRESETS = [
 
 export function DatePickerWithPresets() {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
-    from: new Date(2022, 5, 1), // June 1 2022
+    from: new Date(2022, 5, 1),
     to: new Date(),
   })
 
@@ -41,10 +41,10 @@ export function DatePickerWithPresets() {
 
     switch (value) {
       case "post-ban":
-        fromDate = new Date(2024, 8, 23) // September 23 2024
+        fromDate = new Date(2024, 8, 23)
         break
       case "all":
-        fromDate = new Date(2022, 5, 1) // June 1 2022
+        fromDate = new Date(2022, 5, 1)
         break
       default:
         fromDate = addDays(today, -parseInt(value))

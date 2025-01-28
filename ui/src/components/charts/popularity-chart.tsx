@@ -2,8 +2,6 @@
 
 import React from "react";
 import {
-  Line,
-  LineChart,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -23,7 +21,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 
 export default function PopularityChart({
@@ -41,11 +39,11 @@ export default function PopularityChart({
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Popularity Over Time</CardTitle>
         <CardDescription>
-          Historical deck registration trends for {name}
+          Historical registration trends for {name}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -53,8 +51,10 @@ export default function PopularityChart({
           <AreaChart
             data={data}
             margin={{
-              left: 12,
-              right: 12,
+              top: 5,
+              right: 35,
+              bottom: 5,
+              left: 35
             }}
           >
             <CartesianGrid vertical={false} />
@@ -63,12 +63,14 @@ export default function PopularityChart({
               tickLine={false}
               axisLine={false}
               tickMargin={10}
+              height={40}
               tickFormatter={(value) => format(value, "MMM dd")}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={10}
+              width={40}
               tickFormatter={(value) => `${value}%`}
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
@@ -88,11 +90,11 @@ export default function PopularityChart({
             </defs>
             <Area
               dataKey="popularity"
-              type="natural"
+              type="monotone"
               fill="url(#fillPopularity)"
               fillOpacity={0.4}
               stroke="var(--color-popularity)"
-              stackId="a"
+              strokeWidth={2}
             />
           </AreaChart>
         </ChartContainer>

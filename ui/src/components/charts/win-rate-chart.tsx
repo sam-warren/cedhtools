@@ -2,8 +2,6 @@
 
 import React from "react";
 import {
-  Line,
-  LineChart,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -44,18 +42,17 @@ export default function WinRateChart({
     <Card>
       <CardHeader>
         <CardTitle>Win Rate Over Time</CardTitle>
-        <CardDescription>
-          Historical win rate trends for {name}
-        </CardDescription>
+        <CardDescription>Historical win rate trends for {name}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
+        <ChartContainer config={chartConfig} className="min-h-[300px]">
           <AreaChart
-            accessibilityLayer
             data={data}
             margin={{
-              left: 12,
-              right: 12,
+              top: 5,
+              right: 35,
+              bottom: 5,
+              left: 35
             }}
           >
             <CartesianGrid vertical={false} />
@@ -64,12 +61,14 @@ export default function WinRateChart({
               tickLine={false}
               axisLine={false}
               tickMargin={10}
+              height={40}
               tickFormatter={(value) => format(value, "MMM dd")}
             />
-             <YAxis
+            <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={10}
+              width={40}
               tickFormatter={(value) => `${value}%`}
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
@@ -89,13 +88,12 @@ export default function WinRateChart({
             </defs>
             <Area
               dataKey="winRate"
-              type="natural"
+              type="monotone"
               fill="url(#fillWinRate)"
               fillOpacity={0.4}
               stroke="var(--color-winRate)"
-              stackId="a"
+              strokeWidth={2}
             />
-
           </AreaChart>
         </ChartContainer>
       </CardContent>
