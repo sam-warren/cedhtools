@@ -48,24 +48,32 @@ export default async function CommanderPage(props: {
         type: "Artifact" as const,
         manaCost: "{1}",
         winRate: 62.1,
+        winRateDiff: 12.3,
+        inclusionRate: 99.4,
       },
       {
         name: "Cyclonic Rift",
         type: "Instant" as const,
         manaCost: "{1}{U}",
         winRate: 59.8,
+        winRateDiff: -8.4,
+        inclusionRate: 13.4,
       },
       {
         name: "Smothering Tithe",
         type: "Enchantment" as const,
         manaCost: "{3}{W}",
         winRate: 64.3,
+        winRateDiff: 0,
+        inclusionRate: 2.4,
       },
       {
         name: "Dockside Extortionist",
         type: "Creature" as const,
         manaCost: "{1}{R}",
         winRate: 67.2,
+        winRateDiff: 12.3,
+        inclusionRate: 75.5,
       },
     ] satisfies DeckCard[],
     winRateOverTime: [
@@ -93,7 +101,7 @@ export default async function CommanderPage(props: {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-8">
+    <div className="container max-w-7xl mx-auto p-6 space-y-6">
       {/* Header Section with Date Picker */}
       <div className="flex items-center justify-between">
         {/* Breadcrumb */}
@@ -127,7 +135,7 @@ export default async function CommanderPage(props: {
             <h1 className="text-3xl font-bold tracking-tight">
               {commanderData.name}
             </h1>
-            <p className="text-sm text-mute d-foreground mt-2">
+            <p className="text-sm text-muted-foreground d-foreground mt-2">
               {commanderData.totalGames} decks
             </p>
           </div>
@@ -143,7 +151,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">10</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Out of 129 tournaments
             </p>
           </CardContent>
@@ -155,7 +163,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">14</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Out of 129 tournaments
             </p>
           </CardContent>
@@ -167,7 +175,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">22</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Out of 129 tournaments
             </p>
           </CardContent>
@@ -178,7 +186,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">513</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Out of 129 tournaments
             </p>
           </CardContent>
@@ -189,7 +197,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.winRate}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Reliably high-performing deck
             </p>
           </CardContent>
@@ -200,7 +208,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.drawRate}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Not prone to drawing games
             </p>
           </CardContent>
@@ -213,7 +221,7 @@ export default async function CommanderPage(props: {
             <div className="text-3xl font-bold">
               {commanderData.conversionRate}%
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Regularly makes top cut
             </p>
           </CardContent>
@@ -225,7 +233,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.metaShare}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Very popular in the meta
             </p>
           </CardContent>
@@ -233,19 +241,27 @@ export default async function CommanderPage(props: {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <WinRateChart
-          data={commanderData.winRateOverTime}
-          name={commanderData.name}
-        />
-        <PopularityChart
-          data={commanderData.popularityOverTime}
-          name={commanderData.name}
-        />
-        <SeatWinRateChart
-          data={commanderData.seatWinRate}
-          name={commanderData.name}
-        />
+      <div className="space-y-4">
+        <div className="w-full">
+          <WinRateChart
+            data={commanderData.winRateOverTime}
+            name={commanderData.name}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-1">
+            <SeatWinRateChart
+              data={commanderData.seatWinRate}
+              name={commanderData.name}
+            />
+          </div>
+          <div className="col-span-2">
+            <PopularityChart
+              data={commanderData.popularityOverTime}
+              name={commanderData.name}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Card Table */}

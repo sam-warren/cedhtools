@@ -46,16 +46,8 @@ export default function WinRateChart({
         <CardDescription>Historical win rate trends for {name}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[300px]">
-          <AreaChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 35,
-              bottom: 5,
-              left: 35,
-            }}
-          >
+        <ChartContainer config={chartConfig} className="min-h-[200px] max-h-[200px] w-full">
+          <AreaChart data={data}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"

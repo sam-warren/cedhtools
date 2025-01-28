@@ -38,63 +38,48 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function SeatWinRateChart({ data, name }: { data: { seat: string; winRate: number }[], name: string }) {
+export function SeatWinRateChart({
+  data,
+  name,
+}: {
+  data: { seat: string; winRate: number }[];
+  name: string;
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Win Rate by Seat Position</CardTitle>
         <CardDescription>
-          Showing win rate for decks with {name}
+          Seat position can have a major impact on win rate
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[300px]">
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{
-              top: 0,
-              right: 40,
-              bottom: 0,
-              left: 40
-            }}
-          >
-            <CartesianGrid horizontal={false} />
-            <YAxis
+        <ChartContainer config={chartConfig} className="min-h-[200px] max-h-[200px] w-full">
+          <BarChart data={data} layout="horizontal">
+            <CartesianGrid vertical={false} />
+            <XAxis
               dataKey="seat"
               type="category"
               tickLine={false}
-              tickMargin={10}
               axisLine={false}
-              width={60}
+              tickFormatter={(value) => `Seat ${value}`}
             />
-            <XAxis 
-              dataKey="winRate" 
-              type="number" 
+            <YAxis
+              dataKey="winRate"
+              type="number"
               tickFormatter={(value) => `${value}%`}
+              width={40}
+              tickMargin={8}
             />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent indicator="line" />}
             />
-            <Bar
-              dataKey="winRate"
-              fill="var(--color-winRate)"
-              radius={4}
-            >
-              <LabelList
-                dataKey="seat"
-                position="insideLeft"
-                offset={8}
-                className="fill-[--color-label]"
-                fontSize={12}
-                formatter={(value: number) => `Seat ${value}`}
-              />
+            <Bar dataKey="winRate" fill="var(--color-winRate)" radius={4}>
               <LabelList
                 dataKey="winRate"
-                position="right"
-                offset={8}
-                className="fill-foreground"
+                position="center"
+                className="fill-[--color-label]"
                 fontSize={12}
                 formatter={(value: number) => `${value}%`}
               />
@@ -102,12 +87,16 @@ export function SeatWinRateChart({ data, name }: { data: { seat: string; winRate
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 font-medium leading-none">
-          This deck is 10% more likely to win from seat 1
-        </div>
-        <div className="leading-none text-muted-foreground">
-          This suggests that the deck moves faster than the average deck
+      <CardFooter>
+        <div className="flex w-full items-start gap-2 text-sm">
+          <div className="grid gap-2">
+            <div className="flex items-center gap-2 font-medium leading-none">
+              This deck is 10% more likely to win from seat 1
+            </div>
+            <div className="flex items-center gap-2 leading-none text-muted-foreground">
+              Based on tournament data from the last 3 months
+            </div>
+          </div>
         </div>
       </CardFooter>
     </Card>

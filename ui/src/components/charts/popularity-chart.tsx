@@ -29,29 +29,21 @@ export default function PopularityChart({
     popularity: {
       label: "Popularity",
       color: "hsl(var(--chart-5))",
-      formatter: (value: number) => `${value.toFixed(1)}%`
+      formatter: (value: number) => `${value.toFixed(1)}%`,
     },
   };
 
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
         <CardTitle>Popularity Over Time</CardTitle>
         <CardDescription>
-          Historical registration trends for {name}
+          Historical popularity trends for {name}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[300px]">
-          <AreaChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 35,
-              bottom: 5,
-              left: 35,
-            }}
-          >
+        <ChartContainer config={chartConfig} className="min-h-[200px] max-h-[200px] w-full">
+          <AreaChart accessibilityLayer data={data}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
@@ -68,10 +60,7 @@ export default function PopularityChart({
               width={40}
               tickFormatter={(value) => `${value}%`}
             />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent />}
-            />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <defs>
               <linearGradient id="fillPopularity" x1="0" y1="0" x2="0" y2="1">
                 <stop

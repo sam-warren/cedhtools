@@ -12,9 +12,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  ExternalLink,
+  Eye,
+  Info,
+  MoreHorizontal,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/ui/column-header";
+import { DiffBadge } from "@/components/badges/diff-badge";
+import Link from "next/link";
 
 export type DeckCard = {
   name: string;
@@ -29,6 +37,8 @@ export type DeckCard = {
     | "Artifact"
     | "Land";
   winRate: number;
+  winRateDiff: number;
+  inclusionRate: number;
 };
 
 export const cardColumns: ColumnDef<DeckCard>[] = [
@@ -68,12 +78,24 @@ export const cardColumns: ColumnDef<DeckCard>[] = [
     accessorKey: "type",
     header: "Type",
   },
+
   {
-    accessorKey: "winRate",
+    accessorKey: "inclusionRate",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Inclusion Rate" />
+    ),
+    cell: ({ row }) => `${row.getValue<number>("inclusionRate")}%`,
+  },
+  {
+    accessorKey: "winRateDiff",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Win Rate" />
     ),
-    cell: ({ row }) => `${row.getValue<number>("winRate")}%`,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <DiffBadge diff={row.getValue<number>("winRateDiff")} />
+      </div>
+    ),
   },
   {
     id: "actions",
@@ -92,7 +114,19 @@ export const cardColumns: ColumnDef<DeckCard>[] = [
             <DropdownMenuItem
               onClick={() => router.push(`/commander/1/card/1`)}
             >
-              View
+              <Info className="h-4 w-4" />
+              View Details
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <Link 
+                href="https://www.scryfall.com/random" 
+                target="_blank"
+                className="flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View on Scryfall
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

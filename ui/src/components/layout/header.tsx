@@ -14,12 +14,14 @@ import {
 import Link from "next/link";
 import { CEDHToolsIcon } from "../icons/cedhtools-icon";
 import { useRouter } from "next/navigation";
+import { ManaCost } from "@/components/icons/mana-symbol";
 
 // Need to fetch list of commanders from API (names and IDs) for the search functionality.
 
 interface Commander {
   id: string;
   name: string;
+  manaCost: string;
 }
 
 export default function Header() {
@@ -27,9 +29,36 @@ export default function Header() {
   const [open, setOpen] = React.useState(false);
   const [commanders, setCommanders] = React.useState<Commander[]>([
     // Temporary mock data - replace with API call
-    { id: "1", name: "Kenrith, the Returned King" },
-    { id: "2", name: "Thrasios, Triton Hero" },
-    { id: "3", name: "Tymna the Weaver" },
+    {
+      id: "1",
+      name: "Kenrith, the Returned King",
+      manaCost: "{W}{U}{B}{R}{G}",
+    },
+    {
+      id: "2",
+      name: "Rograkh, Son of Rogahh + Silas Renn, Seeker Adept",
+      manaCost: "{U}{B}{R}",
+    },
+    {
+      id: "3",
+      name: "Tymna the Weaver + Kraum, Ludevic's Opus",
+      manaCost: "{W}{U}{B}{R}",
+    },
+    {
+      id: "4",
+      name: "Kinnan, Bonder Prodigy",
+      manaCost: "{U}{G}",
+    },
+    {
+      id: "5",
+      name: "Najeela, the Blade-Blossom",
+      manaCost: "{W}{U}{B}{R}{G}",
+    },
+    {
+      id: "6",
+      name: "Thrasios, Triton Hero + Tymna the Weaver",
+      manaCost: "{W}{U}{B}{G}",
+    },
   ]);
 
   React.useEffect(() => {
@@ -46,7 +75,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-8">
+      <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-12">
         <div className="flex items-center gap-2 mr-4">
           <Link href="/" className="flex items-center gap-2">
             <CEDHToolsIcon className="h-6 w-6" />
@@ -68,7 +97,7 @@ export default function Header() {
               </span>
               <span className="inline-flex lg:hidden">Search...</span>
               <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                <span className="text-xs">⌘</span>K
+                <span className="text-xs">⌘ + K</span>
               </kbd>
             </Button>
           </div>
@@ -103,14 +132,16 @@ export default function Header() {
               <CommandItem
                 key={commander.id}
                 onSelect={() => {
-                  // Handle commander selection
                   console.log(`Selected: ${commander.name}`);
                   setOpen(false);
                   router.push(`/commander/${commander.id}`);
                 }}
                 className="cursor-pointer"
               >
-                {commander.name}
+                <div className="flex items-center justify-between w-full">
+                  <span>{commander.name}</span>
+                  <ManaCost cost={commander.manaCost} size={14} />
+                </div>
               </CommandItem>
             ))}
           </CommandGroup>
