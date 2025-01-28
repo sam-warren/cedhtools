@@ -1,5 +1,6 @@
 import PopularityChart from "@/components/charts/popularity-chart";
 import WinRateChart from "@/components/charts/win-rate-chart";
+import { ManaCost } from "@/components/icons/mana-symbol";
 import { DatePickerWithPresets } from "@/components/shared/date-picker";
 import {
   Card,
@@ -16,6 +17,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 
 export default async function CommanderCardPage(props: {
   params: Promise<{ commanderIds: string; cardId: string }>;
@@ -30,12 +32,9 @@ export default async function CommanderCardPage(props: {
     type: "Creature",
     manaCost: "{1}{R}",
     commanderName: "Rograkh, Son of Rogahh + Silas Renn, Seeker Adept",
-    winRate: 67.2,
-    drawRate: 12.4,
-    synergy: 0.85,
-    inclusion: 85.4,
-    playRate: 92.3,
-    totalGames: 1250,
+    winRate: 30.2,
+    drawRate: 3.4,
+    inclusion: 92.4,
     winRateOverTime: [
       { date: "2024-01-01", winRate: "65" },
       { date: "2024-01-08", winRate: "66" },
@@ -80,11 +79,12 @@ export default async function CommanderCardPage(props: {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{cardData.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {cardData.type} • {cardData.manaCost}
-          </p>
+          <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+            {cardData.type} • <ManaCost cost={cardData.manaCost} size={14} />
+          </div>
         </div>
       </div>
+      <Separator />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -100,36 +100,12 @@ export default async function CommanderCardPage(props: {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Synergy Score</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{cardData.synergy}</div>
-            <p className="text-xs text-muted-foreground">
-              Strong synergy with commander
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
             <CardDescription>Inclusion Rate</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{cardData.inclusion}%</div>
             <p className="text-xs text-muted-foreground">
               Of decks include this card
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Sample Size</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{cardData.totalGames}</div>
-            <p className="text-xs text-muted-foreground">
-              Games played with this card
             </p>
           </CardContent>
         </Card>

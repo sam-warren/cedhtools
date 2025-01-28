@@ -9,14 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -26,6 +18,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import { SeatWinRateChart } from "@/components/charts/seat-win-rate-chart";
 import { Separator } from "@/components/ui/separator";
+import { ManaCost } from "@/components/icons/mana-symbol";
+import { DataTable } from "@/components/ui/data-table";
+import { cardColumns, type DeckCard } from "./card-columns";
 
 export default async function CommanderPage(props: {
   params: Promise<{ commanderIds: string }>;
@@ -33,7 +28,7 @@ export default async function CommanderPage(props: {
   const params = await props.params;
   const commanderIds = params.commanderIds.split(",").sort();
   console.log(commanderIds);
-  // Expanded mock data
+  // Mock data structure
   const commanderData = {
     name: "Rograkh, Son of Rogahh + Silas Renn, Seeker Adept",
     winRate: 20.22,
@@ -48,26 +43,26 @@ export default async function CommanderPage(props: {
       { seat: "4", winRate: 15.2 },
     ],
     cards: [
-      { name: "Sol Ring", type: "Artifact", manaCost: "{1}", winRate: 62.1 },
+      { name: "Sol Ring", type: "Artifact" as const, manaCost: "{1}", winRate: 62.1 },
       {
         name: "Cyclonic Rift",
-        type: "Instant",
+        type: "Instant" as const,
         manaCost: "{1}{U}",
         winRate: 59.8,
       },
       {
         name: "Smothering Tithe",
-        type: "Enchantment",
+        type: "Enchantment" as const,
         manaCost: "{3}{W}",
         winRate: 64.3,
       },
       {
         name: "Dockside Extortionist",
-        type: "Creature",
+        type: "Creature" as const,
         manaCost: "{1}{R}",
         winRate: 67.2,
       },
-    ],
+    ] satisfies DeckCard[],
     winRateOverTime: [
       { date: "2024-01-01", winRate: "22" },
       { date: "2024-01-08", winRate: "24" },
@@ -97,7 +92,7 @@ export default async function CommanderPage(props: {
       {/* Header Section with Date Picker */}
       <div className="flex items-center justify-between">
         {/* Breadcrumb */}
-        <Breadcrumb className="mt-2">
+        <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink href="/">Home</BreadcrumbLink>
@@ -123,14 +118,14 @@ export default async function CommanderPage(props: {
       </div>
       <div>
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {commanderData.name}
-          </h1>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-sm text-muted-foreground">
-            {commanderData.totalGames} decks
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {commanderData.name}
+            </h1>
+            <p className="text-sm text-mute d-foreground mt-2">
+              {commanderData.totalGames} decks
+            </p>
+          </div>
         </div>
       </div>
       <Separator />
@@ -259,26 +254,7 @@ export default async function CommanderPage(props: {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Card Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Mana Cost</TableHead>
-                <TableHead className="text-right">Win Rate</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {commanderData.cards.map((card) => (
-                <TableRow key={card.name}>
-                  <TableCell className="font-medium">{card.name}</TableCell>
-                  <TableCell>{card.type}</TableCell>
-                  <TableCell>{card.manaCost}</TableCell>
-                  <TableCell className="text-right">{card.winRate}%</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <DataTable<DeckCard, unknown> columns={cardColumns} data={commanderData.cards} />
         </CardContent>
       </Card>
     </div>
