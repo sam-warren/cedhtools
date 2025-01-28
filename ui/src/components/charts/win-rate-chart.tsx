@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/chart";
 import { TrendingUp } from "lucide-react";
 import { format } from "date-fns";
+import { useFilterStore } from "@/stores/filter-store";
 
 export default function WinRateChart({
   data,
@@ -32,6 +33,8 @@ export default function WinRateChart({
   data: any;
   name: string;
 }) {
+  const { formattedDateRange } = useFilterStore();
+
   const chartConfig = {
     winRate: {
       label: "Win Rate",
@@ -43,7 +46,7 @@ export default function WinRateChart({
     <Card>
       <CardHeader>
         <CardTitle>Win Rate Over Time</CardTitle>
-        <CardDescription>Historical win rate trends for {name}</CardDescription>
+        <CardDescription>Historical win rate trends for {name}.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] max-h-[200px] w-full">
@@ -97,7 +100,7 @@ export default function WinRateChart({
               Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              January - June 2024
+              {formattedDateRange}
             </div>
           </div>
         </div>

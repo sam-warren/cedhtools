@@ -24,6 +24,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { useFilterStore } from "@/stores/filter-store";
 const chartData = [
   { seat: "1", winRate: 50 },
   { seat: "2", winRate: 40 },
@@ -45,16 +46,21 @@ export function SeatWinRateChart({
   data: { seat: string; winRate: number }[];
   name: string;
 }) {
+  const { formattedDateRange } = useFilterStore();
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Win Rate by Seat Position</CardTitle>
         <CardDescription>
-          Seat position can have a major impact on win rate
+          Seat position can have a major impact on win rate.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[200px] max-h-[200px] w-full">
+        <ChartContainer
+          config={chartConfig}
+          className="min-h-[200px] max-h-[200px] w-full"
+        >
           <BarChart data={data} layout="horizontal">
             <CartesianGrid vertical={false} />
             <XAxis
@@ -91,10 +97,10 @@ export function SeatWinRateChart({
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 font-medium leading-none">
-              This deck is 10% more likely to win from seat 1
+              This deck is 10% more likely to win in Seat 1
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              Based on tournament data from the last 3 months
+              {formattedDateRange}
             </div>
           </div>
         </div>

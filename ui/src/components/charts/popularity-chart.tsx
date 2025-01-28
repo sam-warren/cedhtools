@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/chart";
 import { TrendingDown } from "lucide-react";
 import { format } from "date-fns";
+import { useFilterStore } from "@/stores/filter-store";
 
 export default function PopularityChart({
   data,
@@ -33,16 +34,21 @@ export default function PopularityChart({
     },
   };
 
+  const { formattedDateRange } = useFilterStore();
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Popularity Over Time</CardTitle>
         <CardDescription>
-          Historical popularity trends for {name}
+          Historical popularity trends for {name}.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[200px] max-h-[200px] w-full">
+        <ChartContainer
+          config={chartConfig}
+          className="min-h-[200px] max-h-[200px] w-full"
+        >
           <AreaChart accessibilityLayer data={data}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -94,7 +100,7 @@ export default function PopularityChart({
               <TrendingDown className="h-4 w-4" />
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              January - December 2024
+              {formattedDateRange}
             </div>
           </div>
         </div>
