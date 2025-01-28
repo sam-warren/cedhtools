@@ -43,7 +43,12 @@ export default async function CommanderPage(props: {
       { seat: "4", winRate: 15.2 },
     ],
     cards: [
-      { name: "Sol Ring", type: "Artifact" as const, manaCost: "{1}", winRate: 62.1 },
+      {
+        name: "Sol Ring",
+        type: "Artifact" as const,
+        manaCost: "{1}",
+        winRate: 62.1,
+      },
       {
         name: "Cyclonic Rift",
         type: "Instant" as const,
@@ -178,8 +183,6 @@ export default async function CommanderPage(props: {
             </p>
           </CardContent>
         </Card>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Win Rate</CardDescription>
@@ -254,7 +257,10 @@ export default async function CommanderPage(props: {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable<DeckCard, unknown> columns={cardColumns} data={commanderData.cards} />
+          <DataTable<DeckCard, DeckCard>
+            columns={cardColumns}
+            data={commanderData.cards}
+          />
         </CardContent>
       </Card>
     </div>
