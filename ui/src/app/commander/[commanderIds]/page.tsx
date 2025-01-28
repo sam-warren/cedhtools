@@ -26,11 +26,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { SeatWinRateChart } from "@/components/charts/seat-win-rate-chart";
 
-export default async function CommanderPage({
-  params,
-}: {
-  params: { commanderIds: string };
+export default async function CommanderPage(props: {
+  params: Promise<{ commanderIds: string }>;
 }) {
+  const params = await props.params;
   const commanderIds = params.commanderIds.split(",").sort();
   console.log(commanderIds);
   // Expanded mock data

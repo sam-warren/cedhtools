@@ -17,11 +17,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export default async function CommanderCardPage({
-  params,
-}: {
-  params: { commanderIds: string; cardId: string };
+export default async function CommanderCardPage(props: {
+  params: Promise<{ commanderIds: string; cardId: string }>;
 }) {
+  const params = await props.params;
   const commanderIds = params.commanderIds.split(",").sort();
   const cardId = params.cardId;
 
