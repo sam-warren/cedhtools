@@ -1,13 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  AreaChart,
-  Area,
-} from "recharts";
+import { CartesianGrid, XAxis, YAxis, AreaChart, Area } from "recharts";
 import {
   Card,
   CardContent,
@@ -35,6 +29,7 @@ export default function PopularityChart({
     popularity: {
       label: "Popularity",
       color: "hsl(var(--chart-5))",
+      formatter: (value: number) => `${value.toFixed(1)}%`
     },
   };
 
@@ -54,7 +49,7 @@ export default function PopularityChart({
               top: 5,
               right: 35,
               bottom: 5,
-              left: 35
+              left: 35,
             }}
           >
             <CartesianGrid vertical={false} />
@@ -73,7 +68,10 @@ export default function PopularityChart({
               width={40}
               tickFormatter={(value) => `${value}%`}
             />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent />}
+            />
             <defs>
               <linearGradient id="fillPopularity" x1="0" y1="0" x2="0" y2="1">
                 <stop

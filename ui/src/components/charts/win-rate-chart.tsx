@@ -7,6 +7,7 @@ import {
   YAxis,
   AreaChart,
   Area,
+  ReferenceLine,
 } from "recharts";
 import {
   Card,
@@ -52,7 +53,7 @@ export default function WinRateChart({
               top: 5,
               right: 35,
               bottom: 5,
-              left: 35
+              left: 35,
             }}
           >
             <CartesianGrid vertical={false} />
