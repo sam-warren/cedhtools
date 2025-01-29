@@ -22,6 +22,8 @@ import { ManaCost } from "@/components/icons/mana-symbol";
 import { DataTable } from "@/components/ui/data-table";
 import { cardColumns, type DeckCard } from "./card-columns";
 import { PageHeader } from "@/components/layout/page-header";
+import { deckColumns } from "./deck-columns";
+import { Deck } from "./deck-columns";
 
 export default async function CommanderPage(props: {
   params: Promise<{ commanderIds: string }>;
@@ -99,6 +101,38 @@ export default async function CommanderPage(props: {
       { date: "2024-02-19", popularity: "8" },
       { date: "2024-02-26", popularity: "6" },
     ],
+    decks: [
+      {
+        name: "New Genesis",
+        player: "John Doe",
+        standing: "1",
+        tournament: "The Boil 2",
+        wins: 10,
+        draws: 2,
+        losses: 0,
+        moxfieldUrl: "https://www.moxfield.com/decks/1234567890",
+      },
+      {
+        name: "Cabal Pit",
+        player: "Jane Doe",
+        standing: "1",
+        tournament: "Friday Night CEDH",
+        wins: 10,
+        draws: 2,
+        losses: 0,
+        moxfieldUrl: "https://www.moxfield.com/decks/1234567890",
+      },
+      {
+        name: "Turbo Durbo",
+        player: "Eustace Caudswallop",
+        standing: "1",
+        tournament: "Calgary Locals",
+        wins: 10,
+        draws: 2,
+        losses: 0,
+        moxfieldUrl: "https://www.moxfield.com/decks/1234567890",
+      },
+    ] satisfies Deck[],
   };
 
   return (
@@ -107,7 +141,7 @@ export default async function CommanderPage(props: {
       <PageHeader
         breadcrumbs={[
           { href: "/", label: "Home" },
-          { href: `/commander/${commanderIds}`, label: commanderData.name },
+          { href: `/commanders/${commanderIds}`, label: commanderData.name },
         ]}
       >
         <DatePickerWithPresets />
@@ -259,6 +293,22 @@ export default async function CommanderPage(props: {
           <DataTable<DeckCard, DeckCard>
             columns={cardColumns}
             data={commanderData.cards}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Top Performing Decks Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Performing Decks</CardTitle>
+          <CardDescription>
+            Top performing {commanderData.name} decks
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable<Deck, Deck>
+            columns={deckColumns}
+            data={commanderData.decks}
           />
         </CardContent>
       </Card>

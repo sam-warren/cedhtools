@@ -15,6 +15,7 @@ import Link from "next/link";
 import { CEDHToolsIcon } from "../icons/cedhtools-icon";
 import { useRouter } from "next/navigation";
 import { ManaCost } from "@/components/icons/mana-symbol";
+import { MainNavigation } from "./main-navigation";
 
 interface Commander {
   id: string;
@@ -82,6 +83,7 @@ export default function Header() {
             </span>
           </Link>
         </div>
+        <MainNavigation />
 
         <div className="flex flex-1 items-center justify-between gap-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
@@ -132,7 +134,7 @@ export default function Header() {
                 onSelect={() => {
                   console.log(`Selected: ${commander.name}`);
                   setOpen(false);
-                  router.push(`/commander/${commander.id}`);
+                  router.push(`/commanders/${commander.id}`);
                 }}
                 className="cursor-pointer"
               >

@@ -112,7 +112,7 @@ export const cardColumns: ColumnDef<DeckCard>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => router.push(`/commander/1/card/1`)}
+              onClick={() => router.push(`/commanders/1/cards/1`)}
             >
               <Info className="h-4 w-4" />
               View Details

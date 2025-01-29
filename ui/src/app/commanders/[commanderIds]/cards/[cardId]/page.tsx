@@ -18,12 +18,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DiffBadge } from "@/components/badges/diff-badge";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { InclusionRateBadge } from "@/components/badges/inclusion-rate-badge";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 
 export default async function CommanderCardPage(props: {
   params: Promise<{ commanderIds: string; cardId: string }>;
@@ -45,8 +46,9 @@ export default async function CommanderCardPage(props: {
     inclusion: 99.8,
     decksWithCard: 998,
     totalDecks: 1000,
+    synergyScore: 24.2,
     winRateOverTime: [
-      { date: "2024-01-01", winRate: "65" },
+      { date: "2024-01-01", wi3nRate: "65" },
       { date: "2024-01-08", winRate: "66" },
       { date: "2024-01-15", winRate: "68" },
       { date: "2024-01-22", winRate: "67" },
@@ -67,9 +69,12 @@ export default async function CommanderCardPage(props: {
       <PageHeader
         breadcrumbs={[
           { href: "/", label: "Home" },
-          { href: `/commander/${commanderIds}`, label: cardData.commanderName },
           {
-            href: `/commander/${commanderIds}/${cardId}`,
+            href: `/commanders/${commanderIds}`,
+            label: cardData.commanderName,
+          },
+          {
+            href: `/commanders/${commanderIds}/cards/${cardId}`,
             label: cardData.name,
           },
         ]}
@@ -154,6 +159,25 @@ export default async function CommanderCardPage(props: {
             <p className="text-xs text-muted-foreground mt-1">
               {cardData.decksWithCard} of {cardData.totalDecks} decks include
               this card
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardDescription>Synergy Score</CardDescription>
+                <InfoTooltip
+                  content={`Calculated similar to the EDHRec Synergy Score, this score is equal to the percentage of **${cardData.commanderName}** decks that include this card, minus the percentage of decks that play this card in their color identity.`}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{cardData.synergyScore}%</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              This card has high synergy with {cardData.commanderName}
             </p>
           </CardContent>
         </Card>
