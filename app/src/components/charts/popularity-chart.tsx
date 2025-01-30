@@ -1,53 +1,47 @@
 "use client";
 
 import React from "react";
-import {
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  AreaChart,
-  Area,
-  ReferenceLine,
-} from "recharts";
+import { CartesianGrid, XAxis, YAxis, AreaChart, Area } from "recharts";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { TrendingUp } from "lucide-react";
+import { TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { useFilterStore } from "@/stores/filter-store";
 
-export default function WinRateChart({
+export default function PopularityChart({
   data,
   name,
 }: {
-  data: any;
+  data: Array<{ date: Date; popularity: number }>;
   name: string;
 }) {
-  const { formattedDateRange } = useFilterStore();
-
   const chartConfig = {
-    winRate: {
-      label: "Win Rate",
-      color: "hsl(var(--chart-1))",
+    popularity: {
+      label: "Popularity",
+      color: "hsl(var(--chart-5))",
+      formatter: (value: number) => `${value.toFixed(1)}%`,
     },
   };
+
+  const { formattedDateRange } = useFilterStore();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Win Rate Over Time</CardTitle>
+        <CardTitle>Popularity Over Time</CardTitle>
         <CardDescription>
-          Historical win rate trends for {name}.
+          Historical popularity trends for {name}.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -55,7 +49,7 @@ export default function WinRateChart({
           config={chartConfig}
           className="min-h-[200px] max-h-[200px] w-full"
         >
-          <AreaChart data={data}>
+          <AreaChart accessibilityLayer data={data}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
@@ -74,25 +68,25 @@ export default function WinRateChart({
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <defs>
-              <linearGradient id="fillWinRate" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="fillPopularity" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-winRate)"
+                  stopColor="var(--color-popularity)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-winRate)"
+                  stopColor="var(--color-popularity)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
             </defs>
             <Area
-              dataKey="winRate"
+              dataKey="popularity"
               type="monotone"
-              fill="url(#fillWinRate)"
+              fill="url(#fillPopularity)"
               fillOpacity={0.4}
-              stroke="var(--color-winRate)"
+              stroke="var(--color-popularity)"
               strokeWidth={2}
             />
           </AreaChart>
@@ -102,7 +96,8 @@ export default function WinRateChart({
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 font-medium leading-none">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+              Trending down by 3.8% this month{" "}
+              <TrendingDown className="h-4 w-4" />
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
               {formattedDateRange}

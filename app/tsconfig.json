@@ -28,6 +28,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "../src/stores/filter-store.ts"
-  ],
+, "tailwind.config.js"  ],
   "exclude": ["node_modules"]
 }

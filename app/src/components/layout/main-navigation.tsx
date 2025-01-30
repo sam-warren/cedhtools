@@ -32,7 +32,7 @@ export function MainNavigation() {
               </li>
               <li>
                 <NavigationMenuLink asChild>
-                  <a
+                  <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     href="/commanders/top"
                   >
@@ -40,12 +40,12 @@ export function MainNavigation() {
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       See the highest performing commanders.
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
               <li>
                 <NavigationMenuLink asChild>
-                  <a
+                  <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     href="/commanders/new"
                   >
@@ -53,7 +53,7 @@ export function MainNavigation() {
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       Check out recently released commanders
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
             </ul>
@@ -75,7 +75,7 @@ export function MainNavigation() {
               </li>
               <li>
                 <NavigationMenuLink asChild>
-                  <a
+                  <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     href="/tournaments/upcoming"
                   >
@@ -85,12 +85,12 @@ export function MainNavigation() {
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       See all scheduled tournaments
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
               <li>
                 <NavigationMenuLink asChild>
-                  <a
+                  <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     href="/tournaments/past"
                   >
@@ -100,7 +100,7 @@ export function MainNavigation() {
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       Browse previous tournament results
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
             </ul>
@@ -122,7 +122,7 @@ export function MainNavigation() {
               </li>
               <li>
                 <NavigationMenuLink asChild>
-                  <a
+                  <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     href="/players/rankings"
                   >
@@ -130,12 +130,12 @@ export function MainNavigation() {
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       View player rankings and statistics
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
               <li>
                 <NavigationMenuLink asChild>
-                  <a
+                  <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                     href="/players/search"
                   >
@@ -143,7 +143,7 @@ export function MainNavigation() {
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       Find and connect with other players
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
             </ul>
