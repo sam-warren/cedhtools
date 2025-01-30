@@ -1,4 +1,4 @@
-import { Hero } from "@/components/hero/hero";
+import { Hero } from "../lib/components/_molecules/hero/hero";
 
 export default function Home() {
   return (
