@@ -1,9 +1,5 @@
 import React, { useMemo } from "react";
-import {
-  parseManaString,
-  getManaSymbol,
-  getSvgBaseUrl,
-} from "@/lib/mana-symbols/utils";
+import { parseManaString, getManaSymbol, getSvgBaseUrl } from "@/lib/mana-symbols/utils";
 import Image from "next/image";
 
 interface ManaSymbolProps {
@@ -12,11 +8,7 @@ interface ManaSymbolProps {
   className?: string;
 }
 
-export const ManaSymbol: React.FC<ManaSymbolProps> = ({
-  symbol,
-  size = 16,
-  className = "",
-}) => {
+export const ManaSymbol: React.FC<ManaSymbolProps> = ({ symbol, size = 16, className = "" }) => {
   const symbolData = useMemo(() => getManaSymbol(symbol), [symbol]);
 
   if (!symbolData) {
@@ -44,11 +36,7 @@ interface ManaCostProps {
   className?: string;
 }
 
-export const ManaCost: React.FC<ManaCostProps> = ({
-  cost,
-  size = 16,
-  className = "",
-}) => {
+export const ManaCost: React.FC<ManaCostProps> = ({ cost, size = 16, className = "" }) => {
   const symbols = useMemo(() => parseManaString(cost), [cost]);
 
   return (

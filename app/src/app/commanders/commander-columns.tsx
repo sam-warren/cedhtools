@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 
@@ -31,62 +31,46 @@ export type Commander = {
 export const columns: ColumnDef<Commander>[] = [
   {
     accessorKey: "colorIdentity",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Color Identity" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Color Identity" />,
     cell: ({ row }) => {
       const colorIdentity = row.getValue<string>("colorIdentity");
       return <ManaCost cost={colorIdentity} />;
-    },
+    }
   },
   {
     accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Commander" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Commander" />,
     cell: ({ row }) => (
       <Link href={`/commanders/${row.original.id}`} className="hover:underline">
         {row.getValue("name")}
       </Link>
-    ),
+    )
   },
   {
     accessorKey: "winRate",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Win Rate" />
-    ),
-    cell: ({ row }) => `${row.getValue<number>("winRate").toFixed(2)}%`,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Win Rate" />,
+    cell: ({ row }) => `${row.getValue<number>("winRate").toFixed(2)}%`
   },
   {
     accessorKey: "metaShare",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Meta Share" />
-    ),
-    cell: ({ row }) => `${row.getValue<number>("metaShare").toFixed(2)}%`,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Meta Share" />,
+    cell: ({ row }) => `${row.getValue<number>("metaShare").toFixed(2)}%`
   },
   {
     accessorKey: "tournamentWins",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Tournament Wins" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Tournament Wins" />
   },
   {
     accessorKey: "top4s",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Top 4s" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Top 4s" />
   },
   {
     accessorKey: "top16s",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Top 16s" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Top 16s" />
   },
   {
     accessorKey: "entries",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Entries" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Entries" />
   },
   {
     id: "actions",
@@ -109,6 +93,6 @@ export const columns: ColumnDef<Commander>[] = [
           </DropdownMenuContent>
         </DropdownMenu>
       );
-    },
-  },
+    }
+  }
 ];

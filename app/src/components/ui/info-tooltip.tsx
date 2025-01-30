@@ -1,10 +1,5 @@
 import { Info } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface InfoTooltipProps {
   content: string;
@@ -29,7 +24,7 @@ export function InfoTooltip({ content }: InfoTooltipProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors cursor-default" />
+          <Info className="h-4 w-4 cursor-default text-muted-foreground transition-colors hover:text-foreground" />
         </TooltipTrigger>
         <TooltipContent className="max-w-[250px]">
           <p className="text-xs">
@@ -39,4 +34,4 @@ export function InfoTooltip({ content }: InfoTooltipProps) {
       </Tooltip>
     </TooltipProvider>
   );
-} 
+}

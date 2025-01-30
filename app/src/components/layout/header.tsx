@@ -9,7 +9,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
+  CommandList
 } from "@/components/ui/command";
 import Link from "next/link";
 import { CEDHToolsIcon } from "../icons/cedhtools-icon";
@@ -31,33 +31,33 @@ export default function Header() {
     {
       id: "1",
       name: "Kenrith, the Returned King",
-      manaCost: "{W}{U}{B}{R}{G}",
+      manaCost: "{W}{U}{B}{R}{G}"
     },
     {
       id: "2",
       name: "Rograkh, Son of Rogahh + Silas Renn, Seeker Adept",
-      manaCost: "{U}{B}{R}",
+      manaCost: "{U}{B}{R}"
     },
     {
       id: "3",
       name: "Tymna the Weaver + Kraum, Ludevic's Opus",
-      manaCost: "{W}{U}{B}{R}",
+      manaCost: "{W}{U}{B}{R}"
     },
     {
       id: "4",
       name: "Kinnan, Bonder Prodigy",
-      manaCost: "{U}{G}",
+      manaCost: "{U}{G}"
     },
     {
       id: "5",
       name: "Najeela, the Blade-Blossom",
-      manaCost: "{W}{U}{B}{R}{G}",
+      manaCost: "{W}{U}{B}{R}{G}"
     },
     {
       id: "6",
       name: "Thrasios, Triton Hero + Tymna the Weaver",
-      manaCost: "{W}{U}{B}{G}",
-    },
+      manaCost: "{W}{U}{B}{G}"
+    }
   ]);
 
   React.useEffect(() => {
@@ -75,12 +75,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-12">
-        <div className="flex items-center gap-2 mr-4">
+        <div className="mr-4 flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
             <CEDHToolsIcon className="h-6 w-6" />
-            <span className="hidden sm:inline-flex font-bold text-lg font-mono">
-              cedhtools
-            </span>
+            <span className="hidden font-mono text-lg font-bold sm:inline-flex">cedhtools</span>
           </Link>
         </div>
         <MainNavigation />
@@ -90,11 +88,8 @@ export default function Header() {
             <Button
               variant="outline"
               className="relative h-8 w-full justify-start rounded-[0.5rem] bg-muted/50 text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64"
-              onClick={() => setOpen(true)}
-            >
-              <span className="hidden lg:inline-flex">
-                Search for a commander...
-              </span>
+              onClick={() => setOpen(true)}>
+              <span className="hidden lg:inline-flex">Search for a commander...</span>
               <span className="inline-flex lg:hidden">Search...</span>
               <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
                 <span className="text-xs">⌘ + K</span>
@@ -104,11 +99,7 @@ export default function Header() {
 
           <nav className="flex items-center gap-0.5">
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <Link
-                href="https://github.com/sam-warren/cedhtools"
-                target="_blank"
-                rel="noreferrer"
-              >
+              <Link href="https://github.com/sam-warren/cedhtools" target="_blank" rel="noreferrer">
                 <svg viewBox="0 0 438.549 438.549" className="h-4 w-4">
                   <path
                     fill="currentColor"
@@ -136,9 +127,8 @@ export default function Header() {
                   setOpen(false);
                   router.push(`/commanders/${commander.id}`);
                 }}
-                className="cursor-pointer"
-              >
-                <div className="flex items-center justify-between w-full">
+                className="cursor-pointer">
+                <div className="flex w-full items-center justify-between">
                   <span>{commander.name}</span>
                   <ManaCost cost={commander.manaCost} size={14} />
                 </div>

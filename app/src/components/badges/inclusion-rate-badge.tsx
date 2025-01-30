@@ -11,19 +11,19 @@ export function InclusionRateBadge({ rate }: InclusionRateBadgeProps) {
       return {
         label: "Staple",
         icon: Sparkles,
-        classes: "bg-violet-600/10 border-violet-600/20",
+        classes: "bg-violet-600/10 border-violet-600/20"
       };
     } else if (rate >= 20) {
       return {
         label: "Popular",
         icon: Flame,
-        classes: "bg-amber-600/10 border-amber-600/20",
+        classes: "bg-amber-600/10 border-amber-600/20"
       };
     } else {
       return {
         label: "Fringe",
         icon: TriangleAlert,
-        classes: "bg-red-600/10 border-red-600/20",
+        classes: "bg-red-600/10 border-red-600/20"
       };
     }
   };
@@ -32,10 +32,7 @@ export function InclusionRateBadge({ rate }: InclusionRateBadgeProps) {
   const Icon = config.icon;
 
   return (
-    <Badge
-      variant="outline"
-      className={`text-xs font-medium gap-1 ${config.classes}`}
-    >
+    <Badge variant="outline" className={`gap-1 text-xs font-medium ${config.classes}`}>
       <Icon className="h-3 w-3" />
       {config.label}
     </Badge>

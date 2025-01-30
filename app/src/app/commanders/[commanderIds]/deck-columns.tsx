@@ -10,16 +10,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import {
-  ExternalLink,
-  Info,
-  Layers,
-  MoreHorizontal,
-  Trophy,
-  User,
-} from "lucide-react";
+import { ExternalLink, Info, Layers, MoreHorizontal, Trophy, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/ui/column-header";
 import { DiffBadge } from "@/components/badges/diff-badge";
@@ -39,31 +32,31 @@ export type Deck = {
 export const deckColumns: ColumnDef<Deck>[] = [
   {
     accessorKey: "name",
-    header: "Deck Name",
+    header: "Deck Name"
   },
   {
     accessorKey: "player",
-    header: "Player",
+    header: "Player"
   },
   {
     accessorKey: "tournament",
-    header: "Tournament",
+    header: "Tournament"
   },
   {
     accessorKey: "standing",
-    header: "Standing",
+    header: "Standing"
   },
   {
     accessorKey: "wins",
-    header: "Wins",
+    header: "Wins"
   },
   {
     accessorKey: "draws",
-    header: "Draws",
+    header: "Draws"
   },
   {
     accessorKey: "losses",
-    header: "Losses",
+    header: "Losses"
   },
   {
     id: "actions",
@@ -96,8 +89,7 @@ export const deckColumns: ColumnDef<Deck>[] = [
               <Link
                 href="https://moxfield.com/decks/Z_gxTa2YxEy3vBIdHmSd5g"
                 target="_blank"
-                className="flex items-center gap-2"
-              >
+                className="flex items-center gap-2">
                 <ExternalLink className="h-4 w-4" />
                 View deck on Moxfield
               </Link>
@@ -105,6 +97,6 @@ export const deckColumns: ColumnDef<Deck>[] = [
           </DropdownMenuContent>
         </DropdownMenu>
       );
-    },
-  },
+    }
+  }
 ];

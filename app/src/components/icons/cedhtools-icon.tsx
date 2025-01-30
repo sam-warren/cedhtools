@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface CEDHToolsIconProps {
   className?: string;
@@ -6,12 +6,7 @@ interface CEDHToolsIconProps {
 
 export function CEDHToolsIcon({ className }: CEDHToolsIconProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 350 500"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 500" className={className} aria-hidden="true">
       <path
         d="M30 30
            L320 440

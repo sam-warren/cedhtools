@@ -1,20 +1,14 @@
 import PopularityChart from "@/components/charts/popularity-chart";
 import WinRateChart from "@/components/charts/win-rate-chart";
 import { DatePickerWithPresets } from "@/components/ui/date-picker";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { SeatWinRateChart } from "@/components/charts/seat-win-rate-chart";
 import { Separator } from "@/components/ui/separator";
@@ -25,9 +19,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { deckColumns } from "./deck-columns";
 import { Deck } from "./deck-columns";
 
-export default async function CommanderPage(props: {
-  params: Promise<{ commanderIds: string }>;
-}) {
+export default async function CommanderPage(props: { params: Promise<{ commanderIds: string }> }) {
   const params = await props.params;
   const commanderIds = params.commanderIds.split(",").sort();
   console.log(commanderIds);
@@ -43,7 +35,7 @@ export default async function CommanderPage(props: {
       { seat: "1", winRate: 27.2 },
       { seat: "2", winRate: 22.5 },
       { seat: "3", winRate: 17.3 },
-      { seat: "4", winRate: 15.2 },
+      { seat: "4", winRate: 15.2 }
     ],
     cards: [
       {
@@ -52,7 +44,7 @@ export default async function CommanderPage(props: {
         manaCost: "{1}",
         winRate: 62.1,
         winRateDiff: 12.3,
-        inclusionRate: 99.4,
+        inclusionRate: 99.4
       },
       {
         name: "Cyclonic Rift",
@@ -60,7 +52,7 @@ export default async function CommanderPage(props: {
         manaCost: "{1}{U}",
         winRate: 59.8,
         winRateDiff: -8.4,
-        inclusionRate: 13.4,
+        inclusionRate: 13.4
       },
       {
         name: "Smothering Tithe",
@@ -68,7 +60,7 @@ export default async function CommanderPage(props: {
         manaCost: "{3}{W}",
         winRate: 64.3,
         winRateDiff: 0,
-        inclusionRate: 2.4,
+        inclusionRate: 2.4
       },
       {
         name: "Dockside Extortionist",
@@ -76,8 +68,8 @@ export default async function CommanderPage(props: {
         manaCost: "{1}{R}",
         winRate: 67.2,
         winRateDiff: 12.3,
-        inclusionRate: 75.5,
-      },
+        inclusionRate: 75.5
+      }
     ] satisfies DeckCard[],
     winRateOverTime: [
       { date: "2024-01-01", winRate: "22" },
@@ -88,7 +80,7 @@ export default async function CommanderPage(props: {
       { date: "2024-02-05", winRate: "27" },
       { date: "2024-02-12", winRate: "24" },
       { date: "2024-02-19", winRate: "26" },
-      { date: "2024-02-26", winRate: "25" },
+      { date: "2024-02-26", winRate: "25" }
     ],
     popularityOverTime: [
       { date: "2024-01-01", popularity: "4" },
@@ -99,7 +91,7 @@ export default async function CommanderPage(props: {
       { date: "2024-02-05", popularity: "9" },
       { date: "2024-02-12", popularity: "10" },
       { date: "2024-02-19", popularity: "8" },
-      { date: "2024-02-26", popularity: "6" },
+      { date: "2024-02-26", popularity: "6" }
     ],
     decks: [
       {
@@ -110,7 +102,7 @@ export default async function CommanderPage(props: {
         wins: 10,
         draws: 2,
         losses: 0,
-        moxfieldUrl: "https://www.moxfield.com/decks/1234567890",
+        moxfieldUrl: "https://www.moxfield.com/decks/1234567890"
       },
       {
         name: "Cabal Pit",
@@ -120,7 +112,7 @@ export default async function CommanderPage(props: {
         wins: 10,
         draws: 2,
         losses: 0,
-        moxfieldUrl: "https://www.moxfield.com/decks/1234567890",
+        moxfieldUrl: "https://www.moxfield.com/decks/1234567890"
       },
       {
         name: "Turbo Durbo",
@@ -130,47 +122,40 @@ export default async function CommanderPage(props: {
         wins: 10,
         draws: 2,
         losses: 0,
-        moxfieldUrl: "https://www.moxfield.com/decks/1234567890",
-      },
-    ] satisfies Deck[],
+        moxfieldUrl: "https://www.moxfield.com/decks/1234567890"
+      }
+    ] satisfies Deck[]
   };
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6">
+    <div className="container mx-auto max-w-7xl space-y-6 p-6">
       {/* Header Section with Date Picker */}
       <PageHeader
         breadcrumbs={[
           { href: "/", label: "Home" },
-          { href: `/commanders/${commanderIds}`, label: commanderData.name },
-        ]}
-      >
+          { href: `/commanders/${commanderIds}`, label: commanderData.name }
+        ]}>
         <DatePickerWithPresets />
       </PageHeader>
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {commanderData.name}
-            </h1>
-            <p className="text-sm text-muted-foreground d-foreground mt-2">
-              {commanderData.totalGames} decks
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{commanderData.name}</h1>
+            <p className="d-foreground mt-2 text-sm text-muted-foreground">{commanderData.totalGames} decks</p>
           </div>
         </div>
       </div>
       <Separator />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Tournament Wins</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">10</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Out of 129 tournaments
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Out of 129 tournaments</p>
           </CardContent>
         </Card>
 
@@ -180,9 +165,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">14</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Out of 129 tournaments
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Out of 129 tournaments</p>
           </CardContent>
         </Card>
 
@@ -192,9 +175,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">22</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Out of 129 tournaments
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Out of 129 tournaments</p>
           </CardContent>
         </Card>
         <Card>
@@ -203,9 +184,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">513</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Out of 129 tournaments
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Out of 129 tournaments</p>
           </CardContent>
         </Card>
         <Card>
@@ -214,9 +193,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.winRate}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Reliably high-performing deck
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Reliably high-performing deck</p>
           </CardContent>
         </Card>
         <Card>
@@ -225,9 +202,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.drawRate}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Not prone to drawing games
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Not prone to drawing games</p>
           </CardContent>
         </Card>
         <Card>
@@ -235,12 +210,8 @@ export default async function CommanderPage(props: {
             <CardDescription>Conversion Rate</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {commanderData.conversionRate}%
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Regularly makes top cut
-            </p>
+            <div className="text-3xl font-bold">{commanderData.conversionRate}%</div>
+            <p className="mt-1 text-xs text-muted-foreground">Regularly makes top cut</p>
           </CardContent>
         </Card>
 
@@ -250,9 +221,7 @@ export default async function CommanderPage(props: {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{commanderData.metaShare}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Very popular in the meta
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Very popular in the meta</p>
           </CardContent>
         </Card>
       </div>
@@ -260,23 +229,14 @@ export default async function CommanderPage(props: {
       {/* Charts Section */}
       <div className="space-y-4">
         <div className="w-full">
-          <WinRateChart
-            data={commanderData.winRateOverTime}
-            name={commanderData.name}
-          />
+          <WinRateChart data={commanderData.winRateOverTime} name={commanderData.name} />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-1">
-            <SeatWinRateChart
-              data={commanderData.seatWinRate}
-              name={commanderData.name}
-            />
+            <SeatWinRateChart data={commanderData.seatWinRate} name={commanderData.name} />
           </div>
           <div className="col-span-2">
-            <PopularityChart
-              data={commanderData.popularityOverTime}
-              name={commanderData.name}
-            />
+            <PopularityChart data={commanderData.popularityOverTime} name={commanderData.name} />
           </div>
         </div>
       </div>
@@ -285,15 +245,10 @@ export default async function CommanderPage(props: {
       <Card>
         <CardHeader>
           <CardTitle>Cards Played</CardTitle>
-          <CardDescription>
-            All cards played by {commanderData.name}
-          </CardDescription>
+          <CardDescription>All cards played by {commanderData.name}</CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable<DeckCard, DeckCard>
-            columns={cardColumns}
-            data={commanderData.cards}
-          />
+          <DataTable<DeckCard, DeckCard> columns={cardColumns} data={commanderData.cards} />
         </CardContent>
       </Card>
 
@@ -301,15 +256,10 @@ export default async function CommanderPage(props: {
       <Card>
         <CardHeader>
           <CardTitle>Top Performing Decks</CardTitle>
-          <CardDescription>
-            Top performing {commanderData.name} decks
-          </CardDescription>
+          <CardDescription>Top performing {commanderData.name} decks</CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable<Deck, Deck>
-            columns={deckColumns}
-            data={commanderData.decks}
-          />
+          <DataTable<Deck, Deck> columns={deckColumns} data={commanderData.decks} />
         </CardContent>
       </Card>
     </div>

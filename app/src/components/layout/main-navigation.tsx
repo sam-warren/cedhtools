@@ -9,7 +9,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
+  navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu";
 
 export function MainNavigation() {
@@ -22,9 +22,7 @@ export function MainNavigation() {
             <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
               <li className="row-span-3">
                 <div className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6">
-                  <div className="mb-2 mt-4 text-lg font-medium">
-                    Commanders
-                  </div>
+                  <div className="mb-2 mt-4 text-lg font-medium">Commanders</div>
                   <p className="text-sm leading-tight text-muted-foreground">
                     Explore the most powerful and popular commanders in the format.
                   </p>
@@ -34,8 +32,7 @@ export function MainNavigation() {
                 <NavigationMenuLink asChild>
                   <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                    href="/commanders/top"
-                  >
+                    href="/commanders/top">
                     <div className="text-sm font-medium leading-none">Top Commanders</div>
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       See the highest performing commanders.
@@ -47,8 +44,7 @@ export function MainNavigation() {
                 <NavigationMenuLink asChild>
                   <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                    href="/commanders/new"
-                  >
+                    href="/commanders/new">
                     <div className="text-sm font-medium leading-none">New Releases</div>
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       Check out recently released commanders
@@ -65,9 +61,7 @@ export function MainNavigation() {
             <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
               <li className="row-span-3">
                 <div className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6">
-                  <div className="mb-2 mt-4 text-lg font-medium">
-                    Tournaments
-                  </div>
+                  <div className="mb-2 mt-4 text-lg font-medium">Tournaments</div>
                   <p className="text-sm leading-tight text-muted-foreground">
                     View and join upcoming tournaments or browse past events.
                   </p>
@@ -77,11 +71,8 @@ export function MainNavigation() {
                 <NavigationMenuLink asChild>
                   <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                    href="/tournaments/upcoming"
-                  >
-                    <div className="text-sm font-medium leading-none">
-                      Upcoming
-                    </div>
+                    href="/tournaments/upcoming">
+                    <div className="text-sm font-medium leading-none">Upcoming</div>
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       See all scheduled tournaments
                     </p>
@@ -92,11 +83,8 @@ export function MainNavigation() {
                 <NavigationMenuLink asChild>
                   <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                    href="/tournaments/past"
-                  >
-                    <div className="text-sm font-medium leading-none">
-                      Past Events
-                    </div>
+                    href="/tournaments/past">
+                    <div className="text-sm font-medium leading-none">Past Events</div>
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       Browse previous tournament results
                     </p>
@@ -112,9 +100,7 @@ export function MainNavigation() {
             <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
               <li className="row-span-3">
                 <div className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6">
-                  <div className="mb-2 mt-4 text-lg font-medium">
-                    Players
-                  </div>
+                  <div className="mb-2 mt-4 text-lg font-medium">Players</div>
                   <p className="text-sm leading-tight text-muted-foreground">
                     Connect with the community and track player performance.
                   </p>
@@ -124,8 +110,7 @@ export function MainNavigation() {
                 <NavigationMenuLink asChild>
                   <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                    href="/players/rankings"
-                  >
+                    href="/players/rankings">
                     <div className="text-sm font-medium leading-none">Rankings</div>
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       View player rankings and statistics
@@ -137,8 +122,7 @@ export function MainNavigation() {
                 <NavigationMenuLink asChild>
                   <Link
                     className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                    href="/players/search"
-                  >
+                    href="/players/search">
                     <div className="text-sm font-medium leading-none">Search</div>
                     <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                       Find and connect with other players

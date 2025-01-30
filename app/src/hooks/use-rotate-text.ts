@@ -17,4 +17,4 @@ export function useRotateText(texts: string[], interval: number = 3000) {
   }, [texts, interval]);
 
   return { text: texts[currentIndex], isAnimating };
-} 
+}

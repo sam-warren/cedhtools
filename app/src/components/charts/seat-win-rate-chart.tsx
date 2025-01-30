@@ -1,66 +1,36 @@
 "use client";
 
 // import { TrendingUp } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  LabelList,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useFilterStore } from "@/stores/filter-store";
 const chartData = [
   { seat: "1", winRate: 50 },
   { seat: "2", winRate: 40 },
   { seat: "3", winRate: 30 },
-  { seat: "4", winRate: 20 },
+  { seat: "4", winRate: 20 }
 ];
 
 const chartConfig = {
   winRate: {
     label: "Win Rate",
-    color: "hsl(var(--chart-2))",
-  },
+    color: "hsl(var(--chart-2))"
+  }
 } satisfies ChartConfig;
 
-export function SeatWinRateChart({
-  data,
-  name,
-}: {
-  data: { seat: string; winRate: number }[];
-  name: string;
-}) {
+export function SeatWinRateChart({ data, name }: { data: { seat: string; winRate: number }[]; name: string }) {
   const { formattedDateRange } = useFilterStore();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Win Rate by Seat Position</CardTitle>
-        <CardDescription>
-          Seat position can have a major impact on win rate.
-        </CardDescription>
+        <CardDescription>Seat position can have a major impact on win rate.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer
-          config={chartConfig}
-          className="min-h-[200px] max-h-[200px] w-full"
-        >
+        <ChartContainer config={chartConfig} className="max-h-[200px] min-h-[200px] w-full">
           <BarChart data={data} layout="horizontal">
             <CartesianGrid vertical={false} />
             <XAxis
@@ -70,17 +40,8 @@ export function SeatWinRateChart({
               axisLine={false}
               tickFormatter={(value) => `Seat ${value}`}
             />
-            <YAxis
-              dataKey="winRate"
-              type="number"
-              tickFormatter={(value) => `${value}%`}
-              width={40}
-              tickMargin={8}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
-            />
+            <YAxis dataKey="winRate" type="number" tickFormatter={(value) => `${value}%`} width={40} tickMargin={8} />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
             <Bar dataKey="winRate" fill="var(--color-winRate)" radius={4}>
               <LabelList
                 dataKey="winRate"
@@ -99,9 +60,7 @@ export function SeatWinRateChart({
             <div className="flex items-center gap-2 font-medium leading-none">
               This deck is 10% more likely to win in Seat 1
             </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              {formattedDateRange}
-            </div>
+            <div className="flex items-center gap-2 leading-none text-muted-foreground">{formattedDateRange}</div>
           </div>
         </div>
       </CardFooter>

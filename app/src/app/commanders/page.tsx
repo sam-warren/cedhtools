@@ -4,13 +4,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { columns, type Commander } from "@/app/commanders/commander-columns";
 import { PageHeader } from "@/components/layout/page-header";
 import { DatePickerWithPresets } from "@/components/ui/date-picker";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFilterStore } from "@/stores/filter-store";
 
 export default function CommandersPage() {
@@ -24,7 +18,7 @@ export default function CommandersPage() {
       top4s: 14,
       top16s: 22,
       entries: 513,
-      colorIdentity: "{U}{B}{R}",
+      colorIdentity: "{U}{B}{R}"
     },
     {
       id: "2",
@@ -35,30 +29,27 @@ export default function CommandersPage() {
       top4s: 12,
       top16s: 18,
       entries: 425,
-      colorIdentity: "{W}{U}{B}{G}",
-    },
+      colorIdentity: "{W}{U}{B}{G}"
+    }
     // Add more mock data as needed.
   ];
 
   const { formattedDateRange } = useFilterStore();
 
   return (
-    <div className="container max-w-7xl mx-auto p-6 space-y-6">
+    <div className="container mx-auto max-w-7xl space-y-6 p-6">
       <PageHeader
         breadcrumbs={[
           { href: "/", label: "Home" },
-          { href: "/commanders", label: "Commanders" },
-        ]}
-      >
+          { href: "/commanders", label: "Commanders" }
+        ]}>
         <DatePickerWithPresets />
       </PageHeader>
 
       <Card>
         <CardHeader>
           <CardTitle>Commander Leaderboard</CardTitle>
-          <CardDescription>
-            Top performing commanders in cEDH tournaments for {formattedDateRange}
-          </CardDescription>
+          <CardDescription>Top performing commanders in cEDH tournaments for {formattedDateRange}</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={commanders} />

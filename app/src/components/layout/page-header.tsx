@@ -4,7 +4,7 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import React from "react";
 
@@ -13,13 +13,7 @@ type BreadcrumbItem = {
   label: string;
 };
 
-export function PageHeader({
-  breadcrumbs,
-  children,
-}: {
-  breadcrumbs: BreadcrumbItem[];
-  children?: React.ReactNode;
-}) {
+export function PageHeader({ breadcrumbs, children }: { breadcrumbs: BreadcrumbItem[]; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
       <Breadcrumb>
@@ -30,9 +24,7 @@ export function PageHeader({
                 {index === breadcrumbs.length - 1 ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink href={crumb.href}>
-                    {crumb.label}
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
                 )}
               </BreadcrumbItem>
               {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}

@@ -8,7 +8,7 @@ const rotatingTexts = [
   "Discover emerging trends.",
   "Track meta evolution.",
   "Master your strategy.",
-  "Analyze top performers.",
+  "Analyze top performers."
 ];
 
 export function Hero() {
@@ -16,16 +16,13 @@ export function Hero() {
 
   return (
     <section className="p-8">
-      <div className="text-center space-y-4">
-        <div className="h-[40px] w-[700px] relative">
+      <div className="space-y-4 text-center">
+        <div className="relative h-[40px] w-[700px]">
           <h1
             className={cn(
-              "text-4xl font-bold tracking-tight absolute inset-x-0 transition-all duration-700",
-              isAnimating
-                ? "opacity-0 -translate-y-2"
-                : "opacity-100 translate-y-0"
-            )}
-          >
+              "absolute inset-x-0 text-4xl font-bold tracking-tight transition-all duration-700",
+              isAnimating ? "-translate-y-2 opacity-0" : "translate-y-0 opacity-100"
+            )}>
             {text}
           </h1>
         </div>
