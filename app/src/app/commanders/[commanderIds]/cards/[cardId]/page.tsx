@@ -29,6 +29,9 @@ import { Button } from "@/components/ui/button";
 export default async function CommanderCardPage(props: {
   params: Promise<{ commanderIds: string; cardId: string }>;
 }) {
+
+  
+
   const params = await props.params;
   const commanderIds = params.commanderIds.split(",").sort();
   const cardId = params.cardId;
@@ -48,7 +51,7 @@ export default async function CommanderCardPage(props: {
     totalDecks: 1000,
     synergyScore: 24.2,
     winRateOverTime: [
-      { date: "2024-01-01", wi3nRate: "65" },
+      { date: "2024-01-01", winRate: "65" },
       { date: "2024-01-08", winRate: "66" },
       { date: "2024-01-15", winRate: "68" },
       { date: "2024-01-22", winRate: "67" },

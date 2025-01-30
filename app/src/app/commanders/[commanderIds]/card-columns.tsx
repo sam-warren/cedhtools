@@ -3,7 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { ManaCost } from "@/components/icons/mana-symbol";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import {
   DropdownMenu,
   DropdownMenuLabel,

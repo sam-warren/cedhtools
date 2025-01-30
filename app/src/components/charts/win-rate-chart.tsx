@@ -30,7 +30,10 @@ export default function WinRateChart({
   data,
   name,
 }: {
-  data: Array<{ date: Date; winRate: number }>;
+  data: Array<{
+    date: string;
+    winRate: string;
+  }>;
   name: string;
 }) {
   const { formattedDateRange } = useFilterStore();

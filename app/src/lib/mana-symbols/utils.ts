@@ -9,7 +9,7 @@ const symbolMap = new Map<string, ManaSymbol>(
 const manaCache = new Map<string, ParsedManaCost>();
 
 /**
- * Parse a mana cost string into its component symbols
+ * Parse a mana cost a string into its component symbols
  * @param manaCost - A string like "{2}{W}{W}"
  * @returns An array of individual symbols
  */

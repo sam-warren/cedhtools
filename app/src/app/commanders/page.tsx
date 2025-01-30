@@ -37,7 +37,7 @@ export default function CommandersPage() {
       entries: 425,
       colorIdentity: "{W}{U}{B}{G}",
     },
-    // Add more mock data as needed
+    // Add more mock data as needed.
   ];
 
   const { formattedDateRange } = useFilterStore();

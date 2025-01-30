@@ -23,7 +23,7 @@ export default function PopularityChart({
   data,
   name,
 }: {
-  data: Array<{ date: Date; popularity: number }>;
+  data: Array<{ date: string; popularity: string }>;
   name: string;
 }) {
   const chartConfig = {
