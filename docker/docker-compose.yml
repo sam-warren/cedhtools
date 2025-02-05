@@ -1,0 +1,52 @@
+services:
+  api:
+    build:
+      context: ../api
+      dockerfile: ../docker/api/Dockerfile.dev
+    container_name: cedhtools-api
+    volumes:
+      - ../api:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3100:3100"
+    networks:
+      - cedhtools
+    restart: always
+  app:
+    build:
+      context: ../app
+      dockerfile: ../docker/app/Dockerfile.dev
+    container_name: cedhtools-app
+    volumes:
+      - ../app:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    networks:
+      - cedhtools
+    restart: always
+    depends_on:
+      - api
+
+  mongodb:
+    image: mongo
+    container_name: cedhtools-mongodb
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: cedhtools
+    networks:
+      - cedhtools
+
+networks:
+  cedhtools:
+    driver: bridge
+
+volumes:
+  mongodb_data:
