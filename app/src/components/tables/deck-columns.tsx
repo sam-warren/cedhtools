@@ -1,22 +1,18 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { ManaCost } from "@/components/icons/mana-symbol";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
-  DropdownMenuLabel,
   DropdownMenuContent,
-  DropdownMenuTrigger,
   DropdownMenuItem,
-  DropdownMenuSeparator
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { ExternalLink, Info, Layers, MoreHorizontal, Trophy, User } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DataTableColumnHeader } from "@/components/ui/column-header";
-import { DiffBadge } from "@/components/badges/diff-badge";
+import { ColumnDef } from "@tanstack/react-table";
+import { ExternalLink, Layers, MoreHorizontal, Trophy, User } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export type Deck = {
   name: string;

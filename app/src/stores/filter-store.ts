@@ -1,6 +1,6 @@
-import { create } from "zustand";
-import { DateRange } from "react-day-picker";
 import { addDays, format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { create } from "zustand";
 
 type FilterState = {
   dateRange: DateRange | undefined;

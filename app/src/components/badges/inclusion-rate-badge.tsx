@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Flame, Sparkles, CircleAlert, TriangleAlert } from "lucide-react";
+import { Flame, Sparkles, TriangleAlert } from "lucide-react";
 
 interface InclusionRateBadgeProps {
   rate: number;

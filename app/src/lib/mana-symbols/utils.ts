@@ -1,5 +1,5 @@
 import symbologyData from "@/lib/data/symbology/index.json";
-import type { ManaSymbol, ParsedManaCost } from "./types";
+import type { ManaSymbol, ParsedManaCost } from "@/lib/mana-symbols/types";
 
 const symbolMap = new Map<string, ManaSymbol>(
   symbologyData.map((symbol): [string, ManaSymbol] => [symbol.symbol, symbol as ManaSymbol])

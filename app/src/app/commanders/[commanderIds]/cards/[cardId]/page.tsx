@@ -1,24 +1,11 @@
+import { DiffBadge } from "@/components/badges/diff-badge";
+import { InclusionRateBadge } from "@/components/badges/inclusion-rate-badge";
 import PopularityChart from "@/components/charts/popularity-chart";
 import WinRateChart from "@/components/charts/win-rate-chart";
 import { ManaCost } from "@/components/icons/mana-symbol";
-import { DatePickerWithPresets } from "@/components/ui/date-picker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import { ChevronUp, ChevronDown, ChevronsUpDown, ArrowLeft } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { DiffBadge } from "@/components/badges/diff-badge";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { InclusionRateBadge } from "@/components/badges/inclusion-rate-badge";
-import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 export default async function CommanderCardPage(props: { params: Promise<{ commanderIds: string; cardId: string }> }) {
   const params = await props.params;
@@ -57,22 +44,6 @@ export default async function CommanderCardPage(props: { params: Promise<{ comma
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-6">
-      {/* Header Section */}
-      <PageHeader
-        breadcrumbs={[
-          { href: "/", label: "Home" },
-          {
-            href: `/commanders/${commanderIds}`,
-            label: cardData.commanderName
-          },
-          {
-            href: `/commanders/${commanderIds}/cards/${cardId}`,
-            label: cardData.name
-          }
-        ]}>
-        <DatePickerWithPresets />
-      </PageHeader>
-
       {/* Card Title */}
       <div className="flex items-center justify-between">
         <div>

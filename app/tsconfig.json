@@ -28,7 +28,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "../src/stores/filter-store.ts",
-    "tailwind.config.js"
+    "tailwind.config.ts"
   ],
   "exclude": ["node_modules"]
 }

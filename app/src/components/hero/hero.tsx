@@ -17,7 +17,7 @@ export function Hero() {
   return (
     <section className="p-8">
       <div className="space-y-4 text-center">
-        <div className="relative h-[40px] w-[700px]">
+        <div className="relative mx-auto h-[40px] min-w-[600px] px-4">
           <h1
             className={cn(
               "absolute inset-x-0 text-4xl font-bold tracking-tight transition-all duration-700",

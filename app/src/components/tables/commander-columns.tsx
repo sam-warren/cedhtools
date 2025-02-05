@@ -1,19 +1,18 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Info, MoreHorizontal } from "lucide-react";
-import Link from "next/link";
-import { DataTableColumnHeader } from "@/components/ui/column-header";
 import { ManaCost } from "@/components/icons/mana-symbol";
+import { Button } from "@/components/ui/button";
+import { DataTableColumnHeader } from "@/components/ui/column-header";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import type { ColumnDef } from "@tanstack/react-table";
+import { Info, MoreHorizontal } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export type Commander = {

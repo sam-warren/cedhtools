@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
-import { parseManaString, getManaSymbol, getSvgBaseUrl } from "@/lib/mana-symbols/utils";
+import { getManaSymbol, parseManaString } from "@/lib/mana-symbols/utils";
 import Image from "next/image";
+import React, { useMemo } from "react";
 
 interface ManaSymbolProps {
   symbol: string;
@@ -16,12 +16,9 @@ export const ManaSymbol: React.FC<ManaSymbolProps> = ({ symbol, size = 16, class
     return null;
   }
 
-  // Extract just the filename from the SVG URI
-  const svgFilename = symbolData.svg_uri.split("/").pop();
-
   return (
     <Image
-      src={`${getSvgBaseUrl()}${svgFilename}`}
+      src={symbolData.svg_uri}
       alt={symbolData.english}
       width={size}
       height={size}

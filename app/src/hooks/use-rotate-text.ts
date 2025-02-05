@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function useRotateText(texts: string[], interval: number = 3000) {
   const [currentIndex, setCurrentIndex] = useState(0);

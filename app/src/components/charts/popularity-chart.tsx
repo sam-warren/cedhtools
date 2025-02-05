@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
-import { CartesianGrid, XAxis, YAxis, AreaChart, Area } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { TrendingDown } from "lucide-react";
-import { format } from "date-fns";
 import { useFilterStore } from "@/stores/filter-store";
+import { format } from "date-fns";
+import { TrendingDown } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 export default function PopularityChart({
   data,

@@ -23,8 +23,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { DataTablePagination } from "./pagination";
-import { DataTableViewOptions } from "./column-toggle";
+import { DataTablePagination } from "@/components/ui/pagination";
+import { DataTableViewOptions } from "@/components/ui/column-toggle";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

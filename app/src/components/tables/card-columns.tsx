@@ -1,22 +1,22 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+import { DiffBadge } from "@/components/badges/diff-badge";
 import { ManaCost } from "@/components/icons/mana-symbol";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/router";
-import {
-  DropdownMenu,
-  DropdownMenuLabel,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, ExternalLink, Eye, Info, MoreHorizontal } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/ui/column-header";
-import { DiffBadge } from "@/components/badges/diff-badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { ColumnDef } from "@tanstack/react-table";
+import { ExternalLink, Info, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export type DeckCard = {
   name: string;
@@ -90,9 +90,11 @@ export const cardColumns: ColumnDef<DeckCard>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => router.push(`/commanders/1/cards/1`)}>
-              <Info className="h-4 w-4" />
-              View Details
+            <DropdownMenuItem asChild>
+              <Link href={`/commanders/1/cards/1`}>
+                <Info className="mr-2 h-4 w-4" />
+                View Details
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>

@@ -1,7 +1,6 @@
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import Header from "@/components/layout/header";
 
 export const metadata: Metadata = {
   title: "cedhtools",
@@ -25,8 +24,7 @@ export default function RootLayout({
               backgroundPosition: "0 0"
             }}
           />
-          <Header />
-          <main className="flex flex-1">{children}</main>
+          {children}
         </ThemeProvider>
       </body>
     </html>

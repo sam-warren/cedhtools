@@ -1,69 +1,13 @@
-NOW: DESIGN MODE
-strategy: 
-i. import scryfall data and topdeck data concurrently DONE.
-ii. import moxfield data after both scryfall and topdeck data are imported to link it all together DONE.
-
-then we can create materialized views:
-i. helper view for weeks -> each statistic in each materialized view should have a week_id so we can fetch data specific to that week or any time period we want by querying the materialized views with week filters for better bucketing of data DONE.
-    DROP MATERIALIZED VIEW IF EXISTS weeks;
-    CREATE MATERIALIZED VIEW weeks AS
-    WITH RECURSIVE tournament_weeks AS (
-        -- Base case: First week
-        SELECT 
-            1 as id,
-            EXTRACT(EPOCH FROM DATE '2022-06-01')::BIGINT * 1000 as week_start,
-            EXTRACT(EPOCH FROM (DATE '2022-06-01' + INTERVAL '7 days'))::BIGINT * 1000 as week_end
-        UNION ALL
-        SELECT 
-            id + 1,
-            EXTRACT(EPOCH FROM (to_timestamp(week_start/1000) + INTERVAL '7 days'))::BIGINT * 1000,
-            EXTRACT(EPOCH FROM (to_timestamp(week_end/1000) + INTERVAL '7 days'))::BIGINT * 1000
-        FROM tournament_weeks
-        WHERE week_start < EXTRACT(EPOCH FROM CURRENT_DATE)::BIGINT * 1000
-    )
-
-    SELECT id, week_start, week_end FROM tournament_weeks;
-
-    (need to add an index here)
-
-    This view will be used to filter data by week_id for all materialized views. This will allow us to query data for specific weeks or time periods.
-    All statistical data will be timestamped with a week_id that is based on the tournament date of the data. This will allow us to filter data by week_id for all materialized views.
-
-ii. create materialized view to find most common printings for each card across all decks and store in mv for faster lookup when creating other materialized views with index DONE.
-    drop materialized view if exists card_printings;
-    CREATE MATERIALIZED VIEW card_printings AS
-                WITH printing_counts AS (
-                    SELECT 
-                        mc.unique_card_id,
-                        mc.scryfall_id,
-                        ROW_NUMBER() OVER (
-                            PARTITION BY mc.unique_card_id 
-                            ORDER BY COUNT(*) DESC, mc.scryfall_id
-                        ) as rank
-                    FROM moxfield_card mc
-                    JOIN moxfield_deck_card mdc ON mc.id = mdc.card_id
-                    WHERE mc.unique_card_id IS NOT NULL
-                    AND mc.scryfall_id IS NOT NULL
-                    GROUP BY mc.unique_card_id, mc.scryfall_id
-                )
-                SELECT 
-                    unique_card_id,
-                    scryfall_id as most_common_printing
-                FROM printing_counts
-                WHERE rank = 1;
-                
-                CREATE UNIQUE INDEX card_printings_unique_card_id_idx 
-                ON card_printings (unique_card_id);
-
-    This links cards to their most common printings for faster lookup when creating other materialized views. This is useful for linking cards to their scryfall data and for linking cards to their commander_card_stats data.
-
-(other setup materialized views for better / faster queries - please suggest.)
-
-1. pre-compute elo scores for players with a week_id for each time that player played
-    - this is a view that shows player's elo score temporally
-    - player's current elo is the most recent elo score! this is neat 
-    - what other setup is needed for this? how can we make this reusable? note that sometimes players play in pods ranging in size of 0 to 5. How do we handle these cases?
-    - How do we handle cases where some of the players at the table are guests and do not have a TopDeck ID or profile or entry in the topdeck_user table?
+CALL WITH IAN
+top 10s
+option to filter by top cut
+pre-ban filter
+conversion rate for players based on mons video top players
+nix elo score
+conversion rate
+top 4s/top10s/top16s chart (bar) i.e. rogsi is a great top16 deck terrible top 4 deck.
+tournament size filters
+add phat wiki
 
 2. compute commander_card stats for each week -> need this for synergy score
     - this is a per-commander-per-card view showing statistics temporally
@@ -152,7 +96,6 @@ SOON:
 
 
 LATER:
-- maybe future opportunity for average elo / deck
 - implement synergy score!!! need reference to commander’s color identity (decks that could play it) (Static from API)
 - future opporunity to report the most overperforming and most underperforming cards across all commanders -> how to represent this?
 - might need to add card type coding to materialized view and refactor for commander view for more robust API (thinking of /commander route)

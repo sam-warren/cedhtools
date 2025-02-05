@@ -1,23 +1,12 @@
 import PopularityChart from "@/components/charts/popularity-chart";
-import WinRateChart from "@/components/charts/win-rate-chart";
-import { DatePickerWithPresets } from "@/components/ui/date-picker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
 import { SeatWinRateChart } from "@/components/charts/seat-win-rate-chart";
-import { Separator } from "@/components/ui/separator";
-import { ManaCost } from "@/components/icons/mana-symbol";
+import WinRateChart from "@/components/charts/win-rate-chart";
+import { SidebarLayout } from "@/components/layout/sidebar-layout";
+import { cardColumns, type DeckCard } from "@/components/tables/card-columns";
+import { Deck, deckColumns } from "@/components/tables/deck-columns";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
-import { cardColumns, type DeckCard } from "./card-columns";
-import { PageHeader } from "@/components/layout/page-header";
-import { deckColumns } from "./deck-columns";
-import { Deck } from "./deck-columns";
+import { Separator } from "@/components/ui/separator";
 
 export default async function CommanderPage(props: { params: Promise<{ commanderIds: string }> }) {
   const params = await props.params;
@@ -128,15 +117,12 @@ export default async function CommanderPage(props: { params: Promise<{ commander
   };
 
   return (
-    <div className="container mx-auto max-w-7xl space-y-6 p-6">
-      {/* Header Section with Date Picker */}
-      <PageHeader
-        breadcrumbs={[
-          { href: "/", label: "Home" },
-          { href: `/commanders/${commanderIds}`, label: commanderData.name }
-        ]}>
-        <DatePickerWithPresets />
-      </PageHeader>
+    <SidebarLayout
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Commanders", href: "/commanders" },
+        { label: commanderData.name, current: true }
+      ]}>
       <div>
         <div className="flex items-center justify-between">
           <div>
@@ -262,6 +248,6 @@ export default async function CommanderPage(props: { params: Promise<{ commander
           <DataTable<Deck, Deck> columns={deckColumns} data={commanderData.decks} />
         </CardContent>
       </Card>
-    </div>
+    </SidebarLayout>
   );
 }

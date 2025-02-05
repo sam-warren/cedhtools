@@ -6,6 +6,7 @@ import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useFilterStore } from "@/stores/filter-store";
+
 const chartData = [
   { seat: "1", winRate: 50 },
   { seat: "2", winRate: 40 },

@@ -1,10 +1,9 @@
 "use client";
 
-import { DataTable } from "@/components/ui/data-table";
-import { columns, type Commander } from "@/app/commanders/commander-columns";
-import { PageHeader } from "@/components/layout/page-header";
-import { DatePickerWithPresets } from "@/components/ui/date-picker";
+import { SidebarLayout } from "@/components/layout/sidebar-layout";
+import { columns, type Commander } from "@/components/tables/commander-columns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { useFilterStore } from "@/stores/filter-store";
 
 export default function CommandersPage() {
@@ -37,15 +36,11 @@ export default function CommandersPage() {
   const { formattedDateRange } = useFilterStore();
 
   return (
-    <div className="container mx-auto max-w-7xl space-y-6 p-6">
-      <PageHeader
-        breadcrumbs={[
-          { href: "/", label: "Home" },
-          { href: "/commanders", label: "Commanders" }
-        ]}>
-        <DatePickerWithPresets />
-      </PageHeader>
-
+    <SidebarLayout
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Commanders", current: true }
+      ]}>
       <Card>
         <CardHeader>
           <CardTitle>Commander Leaderboard</CardTitle>
@@ -55,6 +50,6 @@ export default function CommandersPage() {
           <DataTable columns={columns} data={commanders} />
         </CardContent>
       </Card>
-    </div>
+    </SidebarLayout>
   );
 }

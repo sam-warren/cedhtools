@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, ChevronUp } from "lucide-react";
 
 interface DiffBadgeProps {
   diff: number;

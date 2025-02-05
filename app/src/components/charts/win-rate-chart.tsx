@@ -1,19 +1,11 @@
 "use client";
 
-import React from "react";
-import {
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  AreaChart,
-  Area
-  // ReferenceLine,
-} from "recharts";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { TrendingUp } from "lucide-react";
-import { format } from "date-fns";
 import { useFilterStore } from "@/stores/filter-store";
+import { format } from "date-fns";
+import { TrendingUp } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 export default function WinRateChart({
   data,
