@@ -2,12 +2,11 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { useFilterStore } from "@/stores/filter-store";
 import { format } from "date-fns";
 import { TrendingDown } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
-export default function PopularityChart({
+export function PopularityChart({
   data,
   name
 }: {
@@ -21,8 +20,6 @@ export default function PopularityChart({
       formatter: (value: number) => `${value.toFixed(1)}%`
     }
   };
-
-  const { formattedDateRange } = useFilterStore();
 
   return (
     <Card>
@@ -73,7 +70,7 @@ export default function PopularityChart({
             <div className="flex items-center gap-2 font-medium leading-none">
               Trending down by 3.8% this month <TrendingDown className="h-4 w-4" />
             </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">{formattedDateRange}</div>
+            <div className="flex items-center gap-2 leading-none text-muted-foreground">(date range)</div>
           </div>
         </div>
       </CardFooter>

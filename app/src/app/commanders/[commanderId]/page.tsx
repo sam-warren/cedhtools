@@ -1,17 +1,15 @@
-import PopularityChart from "@/components/charts/popularity-chart";
+"use client";
+
+import { PopularityChart } from "@/components/charts/popularity-chart";
 import { SeatWinRateChart } from "@/components/charts/seat-win-rate-chart";
-import WinRateChart from "@/components/charts/win-rate-chart";
-import { SidebarLayout } from "@/components/layout/sidebar-layout";
+import { WinRateChart } from "@/components/charts/win-rate-chart";
 import { cardColumns, type DeckCard } from "@/components/tables/card-columns";
 import { Deck, deckColumns } from "@/components/tables/deck-columns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Separator } from "@/components/ui/separator";
 
-export default async function CommanderPage(props: { params: Promise<{ commanderIds: string }> }) {
-  const params = await props.params;
-  const commanderIds = params.commanderIds.split(",").sort();
-  console.log(commanderIds);
+export default function CommanderPage() {
   // Mock data structure
   const commanderData = {
     name: "Rograkh, Son of Rogahh + Silas Renn, Seeker Adept",
@@ -117,12 +115,7 @@ export default async function CommanderPage(props: { params: Promise<{ commander
   };
 
   return (
-    <SidebarLayout
-      breadcrumbs={[
-        { label: "Home", href: "/" },
-        { label: "Commanders", href: "/commanders" },
-        { label: commanderData.name, current: true }
-      ]}>
+    <div>
       <div>
         <div className="flex items-center justify-between">
           <div>
@@ -248,6 +241,6 @@ export default async function CommanderPage(props: { params: Promise<{ commander
           <DataTable<Deck, Deck> columns={deckColumns} data={commanderData.decks} />
         </CardContent>
       </Card>
-    </SidebarLayout>
+    </div>
   );
 }

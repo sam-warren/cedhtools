@@ -1,11 +1,8 @@
-"use client";
-
-// import { TrendingUp } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+"use client"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { useFilterStore } from "@/stores/filter-store";
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
 const chartData = [
   { seat: "1", winRate: 50 },
@@ -22,8 +19,6 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function SeatWinRateChart({ data, name }: { data: { seat: string; winRate: number }[]; name: string }) {
-  const { formattedDateRange } = useFilterStore();
-
   return (
     <Card>
       <CardHeader>
@@ -61,7 +56,7 @@ export function SeatWinRateChart({ data, name }: { data: { seat: string; winRate
             <div className="flex items-center gap-2 font-medium leading-none">
               This deck is 10% more likely to win in Seat 1
             </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">{formattedDateRange}</div>
+            <div className="flex items-center gap-2 leading-none text-muted-foreground">(date range)</div>
           </div>
         </div>
       </CardFooter>

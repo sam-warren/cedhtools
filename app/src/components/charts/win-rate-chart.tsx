@@ -1,5 +1,3 @@
-"use client";
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useFilterStore } from "@/stores/filter-store";
@@ -7,7 +5,7 @@ import { format } from "date-fns";
 import { TrendingUp } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
-export default function WinRateChart({
+export function WinRateChart({
   data,
   name
 }: {
@@ -17,8 +15,6 @@ export default function WinRateChart({
   }>;
   name: string;
 }) {
-  const { formattedDateRange } = useFilterStore();
-
   const chartConfig = {
     winRate: {
       label: "Win Rate",
@@ -75,7 +71,7 @@ export default function WinRateChart({
             <div className="flex items-center gap-2 font-medium leading-none">
               Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
             </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">{formattedDateRange}</div>
+            <div className="flex items-center gap-2 leading-none text-muted-foreground">(date range)</div>
           </div>
         </div>
       </CardFooter>

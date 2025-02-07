@@ -1,10 +1,6 @@
-"use client";
-
-import { SidebarLayout } from "@/components/layout/sidebar-layout";
 import { columns, type Commander } from "@/components/tables/commander-columns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
-import { useFilterStore } from "@/stores/filter-store";
 
 export default function CommandersPage() {
   const commanders: Commander[] = [
@@ -33,23 +29,15 @@ export default function CommandersPage() {
     // Add more mock data as needed.
   ];
 
-  const { formattedDateRange } = useFilterStore();
-
   return (
-    <SidebarLayout
-      breadcrumbs={[
-        { label: "Home", href: "/" },
-        { label: "Commanders", current: true }
-      ]}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Commander Leaderboard</CardTitle>
-          <CardDescription>Top performing commanders in cEDH tournaments for {formattedDateRange}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={commanders} />
-        </CardContent>
-      </Card>
-    </SidebarLayout>
+    <Card>
+      <CardHeader>
+        <CardTitle>Commander Leaderboard</CardTitle>
+        <CardDescription>Top performing commanders in cEDH tournaments for (date range)</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DataTable columns={columns} data={commanders} />
+      </CardContent>
+    </Card>
   );
 }
