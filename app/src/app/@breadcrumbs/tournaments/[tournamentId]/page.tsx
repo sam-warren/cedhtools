@@ -6,7 +6,8 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 
-export default async function BreadcrumbSlot({ params }: { params: { tournamentId: string } }) {
+export default async function BreadcrumbSlot({ params }: Readonly<{ params: { tournamentId: string } }>) {
+  const _params = await params;
   //   const tournament = await fetchTournament({ id: params.tournamentId });
   // TODO: Implement tournament fetch
   const tournament = { name: "The Boil 2" };

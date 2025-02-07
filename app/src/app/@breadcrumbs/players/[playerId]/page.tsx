@@ -6,7 +6,8 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 
-export default async function BreadcrumbSlot({ params }: { params: { playerId: string } }) {
+export default async function BreadcrumbSlot({ params }: Readonly<{ params: { playerId: string } }>) {
+  const _params = await params;
   //   const commander = await fetchCommander({ id: params.commanderId });
   // TODO: Implement commander fetch
   const player = { name: "John Doe" };

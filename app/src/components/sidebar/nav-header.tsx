@@ -1,5 +1,6 @@
 import { SidebarMenu, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { CEDHToolsIcon } from "../icons/cedhtools-icon";
+import Link from "next/link";
 
 export function NavHeader() {
   const { state } = useSidebar();
@@ -8,7 +9,7 @@ export function NavHeader() {
     <>
       <SidebarMenu>
         <SidebarMenuItem>
-          <div className="relative flex h-10 items-center overflow-hidden">
+          <Link href="/" className="relative flex h-10 items-center overflow-hidden">
             <div className="absolute left-1 z-10">
               <CEDHToolsIcon className="size-6" />
             </div>
@@ -18,7 +19,7 @@ export function NavHeader() {
               }`}>
               <span className="font-mono text-lg font-bold">cedhtools</span>
             </div>
-          </div>
+          </Link>
         </SidebarMenuItem>
       </SidebarMenu>
     </>

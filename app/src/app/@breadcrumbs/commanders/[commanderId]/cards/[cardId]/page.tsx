@@ -6,11 +6,14 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 
-export default async function BreadcrumbSlot({ params }: { params: { commanderId: string; cardId: string } }) {
+export default async function BreadcrumbSlot({
+  params
+}: Readonly<{ params: { commanderId: string; cardId: string } }>) {
+  const _params = await params;
   //   const commander = await fetchCommander({ id: params.commanderId });
   // TODO: Implement commander and card fetch
-  const commander = { name: "Kinnan, Bonder Prodigy", id: params.commanderId };
-  const card = { name: "Basalt Monolith", id: params.cardId };
+  const commander = { name: "Kinnan, Bonder Prodigy", id: _params.commanderId };
+  const card = { name: "Basalt Monolith", id: _params.cardId };
   return (
     <BreadcrumbList>
       <BreadcrumbItem>

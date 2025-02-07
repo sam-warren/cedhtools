@@ -9,14 +9,15 @@ import {
 import React from "react";
 import type { ReactElement } from "react";
 
-export default function BreadcrumbSlot({ params }: { params: { all: string[] } }) {
+export default async function BreadcrumbSlot({ params }: Readonly<{ params: { all: string[] } }>) {
   const breadcrumbItems: ReactElement[] = [];
   let breadcrumbPage: ReactElement = <></>;
+  const _params = await params;
 
-  for (let i = 0; i < params.all.length; i++) {
-    const route = params.all[i];
-    const href = `/${params.all.slice(0, i + 1).join("/")}`;
-    if (i === params.all.length - 1) {
+  for (let i = 0; i < _params.all.length; i++) {
+    const route = _params.all[i];
+    const href = `/${_params.all.slice(0, i + 1).join("/")}`;
+    if (i === _params.all.length - 1) {
       breadcrumbPage = (
         <BreadcrumbItem>
           <BreadcrumbPage className="capitalize">{route}</BreadcrumbPage>
