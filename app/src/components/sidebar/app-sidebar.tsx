@@ -4,16 +4,21 @@ import { NavHeader } from "@/components/sidebar/nav-header";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavUser } from "@/components/sidebar/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
-import { Settings2, Shield, Trophy, Users } from "lucide-react";
+import { LayoutDashboard, Settings2, Shield, Trophy, Users } from "lucide-react";
 import * as React from "react";
 
 const sidebarConfig = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg"
+    name: "Sam",
+    email: "sam@cedhtools.com",
+    avatar: "https://github.com/shadcn.png"
   },
   navMain: [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: LayoutDashboard
+    },
     {
       title: "Commanders",
       url: "/commanders",
