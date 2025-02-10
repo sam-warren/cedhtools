@@ -6,7 +6,7 @@ export function NavHeader() {
   const { state } = useSidebar();
 
   return (
-    <SidebarMenu className="-mb-3">
+    <SidebarMenu>
       <SidebarMenuItem>
         <div className="relative flex h-10 items-center overflow-hidden">
           <div className="absolute left-1 z-10">

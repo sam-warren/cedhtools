@@ -12,7 +12,6 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, Layers, MoreHorizontal, Trophy, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export type Deck = {
   name: string;
@@ -57,7 +56,6 @@ export const deckColumns: ColumnDef<Deck>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const router = useRouter();
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -68,7 +66,7 @@ export const deckColumns: ColumnDef<Deck>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => router.push(`/decks/1234567890`)}>
+            <DropdownMenuItem onClick={() => console.log(row.original)}>
               <Layers className="h-4 w-4" />
               View Deck
             </DropdownMenuItem>

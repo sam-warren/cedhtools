@@ -1,5 +1,6 @@
 "use client";
 
+import { NavFilters } from "@/components/sidebar/nav-filters";
 import { NavHeader } from "@/components/sidebar/nav-header";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavUser } from "@/components/sidebar/nav-user";
@@ -45,6 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavHeader />
       </SidebarHeader>
       <SidebarContent>
+        <NavFilters />
         <NavMain items={sidebarConfig.navMain} />
       </SidebarContent>
       <SidebarFooter>
