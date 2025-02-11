@@ -55,7 +55,8 @@ export function NavFilters() {
 
   const handleDatePresetChange = (preset: string) => {
     setDatePreset(preset as DatePreset);
-    setDateRange(DATE_PRESETS[preset as keyof typeof DATE_PRESETS]);
+    const newRange = DATE_PRESETS[preset as keyof typeof DATE_PRESETS];
+    setDateRange(newRange);
   };
 
   return (
@@ -127,6 +128,7 @@ export function NavFilters() {
                   selected={dateRange}
                   onSelect={handleDateRangeChange}
                   numberOfMonths={1}
+                  key={dateRange?.to?.toISOString()}
                 />
               </div>
             </PopoverContent>
