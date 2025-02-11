@@ -4,16 +4,18 @@ import { NavFilters } from "@/components/sidebar/nav-filters";
 import { NavHeader } from "@/components/sidebar/nav-header";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavUser } from "@/components/sidebar/nav-user";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  SidebarSeparator
+} from "@/components/ui/sidebar";
 import { LayoutDashboard, Shield, Trophy, Users } from "lucide-react";
 import * as React from "react";
 
 const sidebarConfig = {
-  user: {
-    name: "Sam",
-    email: "sam@cedhtools.com",
-    avatar: "https://github.com/shadcn.png"
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -44,6 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <NavHeader />
+        <SidebarSeparator />
       </SidebarHeader>
       <SidebarContent className="flex h-full flex-col">
         <div>
@@ -54,7 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarConfig.user} isAuthenticated={true} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

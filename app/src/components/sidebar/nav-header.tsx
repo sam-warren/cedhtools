@@ -8,7 +8,7 @@ export function NavHeader() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <div className="relative flex h-10 items-center overflow-hidden">
+        <Link href="/" className="relative flex h-10 w-full items-center overflow-hidden hover:opacity-80">
           <div className="absolute left-1 z-10">
             <CEDHToolsIcon className="size-6" />
           </div>
@@ -18,7 +18,7 @@ export function NavHeader() {
             }`}>
             <span className="font-mono text-lg font-bold">cedhtools</span>
           </div>
-        </div>
+        </Link>
       </SidebarMenuItem>
     </SidebarMenu>
   );

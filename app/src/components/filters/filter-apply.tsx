@@ -30,7 +30,7 @@ export function FilterApply({ isLoading, hasModifiedFilters, applyFilters, open 
   }, [applyFilters, toast]);
 
   return (
-    <SidebarMenuItem className="mt-2">
+    <SidebarMenuItem className="">
       <Tooltip>
         <TooltipTrigger asChild>
           <span>
@@ -40,7 +40,7 @@ export function FilterApply({ isLoading, hasModifiedFilters, applyFilters, open 
               onClick={handleApplyFilters}
               disabled={isLoading || !hasModifiedFilters()}>
               {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
-              {open && <span className="transition-opacity duration-200">{!isLoading && "Apply Filters"}</span>}
+              {open && <span className="ml-2 transition-opacity duration-200">{!isLoading && "Apply Filters"}</span>}
             </Button>
           </span>
         </TooltipTrigger>

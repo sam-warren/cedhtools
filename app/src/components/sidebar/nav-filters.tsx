@@ -35,35 +35,37 @@ export function NavFilters() {
   }, [applyFilters]);
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="gap-1">
       <SidebarGroupLabel>Filters</SidebarGroupLabel>
-      <SidebarMenu>
-        <FilterDateRange
-          dateRange={dateRange}
-          datePreset={datePreset}
-          isDateRangeModified={isDateRangeModified}
-          setDateRange={setDateRange}
-          setDatePreset={setDatePreset}
-          isMobile={isMobile}
-        />
-        <FilterTournamentSize
-          tournamentSize={tournamentSize}
-          isTournamentSizeModified={isTournamentSizeModified}
-          setTournamentSize={setTournamentSize}
-          isMobile={isMobile}
-        />
-        <FilterTopCut
-          topCut={topCut}
-          isTopCutModified={isTopCutModified}
-          setTopCut={setTopCut}
-          isMobile={isMobile}
-        />
-        <FilterApply
-          isLoading={isLoading}
-          hasModifiedFilters={hasModifiedFilters}
-          applyFilters={handleApplyFilters}
-          open={open}
-        />
+      <SidebarMenu className="mt-0">
+        <div className="flex flex-col gap-2">
+          <FilterDateRange
+            dateRange={dateRange}
+            datePreset={datePreset}
+            isDateRangeModified={isDateRangeModified}
+            setDateRange={setDateRange}
+            setDatePreset={setDatePreset}
+            isMobile={isMobile}
+          />
+          <FilterTournamentSize
+            tournamentSize={tournamentSize}
+            isTournamentSizeModified={isTournamentSizeModified}
+            setTournamentSize={setTournamentSize}
+            isMobile={isMobile}
+          />
+          <FilterTopCut
+            topCut={topCut}
+            isTopCutModified={isTopCutModified}
+            setTopCut={setTopCut}
+            isMobile={isMobile}
+          />
+          <FilterApply
+            isLoading={isLoading}
+            hasModifiedFilters={hasModifiedFilters}
+            applyFilters={handleApplyFilters}
+            open={open}
+          />
+        </div>
       </SidebarMenu>
     </SidebarGroup>
   );

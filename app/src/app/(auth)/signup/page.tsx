@@ -13,13 +13,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Chrome } from "lucide-react";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,11 +37,41 @@ export default function SignUpPage() {
       if (password !== confirmPassword) {
         throw new Error("Passwords do not match");
       }
-      // TODO: Implement signup logic here
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create account");
+      }
+
+      // Sign in the user after successful registration
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        throw new Error("Failed to sign in after registration");
+      }
+
       toast({
         title: "Success",
         description: "Your account has been created.",
       });
+      
+      router.push("/");
+      router.refresh();
     } catch (error) {
       toast({
         title: "Error",
@@ -49,6 +82,21 @@ export default function SignUpPage() {
       setIsLoading(false);
     }
   }
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await signIn("google", { callbackUrl: "/" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in with Google",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
@@ -61,8 +109,8 @@ export default function SignUpPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Button variant="outline" disabled={isLoading}>
-            <Chrome className="mr-2 h-4 w-4" />
+          <Button variant="outline" disabled={isLoading} onClick={handleGoogleSignIn}>
+            <Image src="/svg/google.svg" alt="Google" width={16} height={16} className="mr-2" />
             Google
           </Button>
           <div className="relative">

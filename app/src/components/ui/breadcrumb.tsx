@@ -45,7 +45,12 @@ const BreadcrumbLink = React.forwardRef<
     return <Slot ref={ref} className={cn("transition-colors hover:text-foreground", className)} {...props} />;
   }
   return (
-    <Link href={href || "#"} className={cn("transition-colors hover:text-foreground", className)} {...props} ref={ref} />
+    <Link
+      href={href || "#"}
+      className={cn("transition-colors hover:text-foreground", className)}
+      {...props}
+      ref={ref}
+    />
   );
 });
 BreadcrumbLink.displayName = "BreadcrumbLink";
