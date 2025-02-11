@@ -1,7 +1,7 @@
 services:
   data-mongodb:
     image: mongo
-    container_name: data-mongodb
+    container_name: data-mongodb-prod
     ports:
       - ${DATA_INITDB_PORT}:27017
     volumes:
@@ -12,10 +12,16 @@ services:
       - MONGO_INITDB_DATABASE=${DATA_INITDB_DATABASE}
     networks:
       - cedhtools
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   user-mongodb:
     image: mongo
-    container_name: user-mongodb
+    container_name: user-mongodb-prod
     ports:
       - ${USER_INITDB_PORT}:27017
     volumes:
@@ -26,17 +32,20 @@ services:
       - MONGO_INITDB_DATABASE=${USER_INITDB_DATABASE}
     networks:
       - user
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   api:
     build:
       context: ../api
-      dockerfile: ../.docker/api/Dockerfile.dev
+      dockerfile: ../.docker/api/Dockerfile.prod
+    container_name: api-prod
     ports:
       - ${API_PORT}:${API_PORT}
-    volumes:
-      - ../api:/usr/src/app
-      - cargo_cache:/usr/local/cargo/registry
-      - target_cache:/usr/src/app/target
     environment:
       # RUST
       - RUST_LOG=${RUST_LOG}
@@ -66,40 +75,46 @@ services:
     networks:
       - cedhtools
       - user
-    restart: always
+    restart: unless-stopped
     depends_on:
       - data-mongodb
       - user-mongodb
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  app:
-    build:
-      context: ../app
-      dockerfile: ../.docker/app/Dockerfile.dev
-    volumes:
-      - ../app:/app
-      - /app/node_modules
-      - /app/.next
-    ports:
-      - ${APP_PORT}:${APP_PORT}
-    environment:
-      - API_HOST=${API_HOST}
-      - API_PORT=${API_PORT}
-      - APP_HOST=${APP_HOST}
-      - APP_PORT=${APP_PORT}
-    networks:
-      - cedhtools
-    restart: always
-    depends_on:
-      - api
-      - data-mongodb
-      - user-mongodb
+  # app:
+  #   build:
+  #     context: ../app
+  #     dockerfile: ../.docker/app/Dockerfile.prod
+  #   container_name: app-prod
+  #   ports:
+  #     - ${APP_PORT}:${APP_PORT}
+  #   environment:
+  #     - NODE_ENV=production
+  #     - API_HOST=${API_HOST}
+  #     - API_PORT=${API_PORT}
+  #     - APP_HOST=${APP_HOST}
+  #     - APP_PORT=${APP_PORT}
+  #   networks:
+  #     - cedhtools
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - api
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
 
 networks:
   cedhtools:
+    driver: bridge
   user:
+    driver: bridge
 
 volumes:
   data-mongodb_data:
   user-mongodb_data:
-  cargo_cache:
-  target_cache:

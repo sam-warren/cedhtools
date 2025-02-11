@@ -3,4 +3,7 @@ Dockerfile*
 .dockerignore
 .git
 .gitignore
-README.md 
+README.md
+.env*
+tests/
+docs/ 
