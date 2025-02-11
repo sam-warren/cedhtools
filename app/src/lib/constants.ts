@@ -24,11 +24,11 @@ export const DATE_PRESETS: Record<Exclude<DatePreset, "Custom">, DateRange> = {
         to: new Date()
     },
     "Pre-Ban": {
-        from: new Date("2022-06-01"),
+        from: new Date("2022-06-02"),
         to: new Date("2024-09-24")
     },
     "All Time": {
-        from: new Date("2022-06-01"),
+        from: new Date("2022-06-02"),
         to: new Date()
     }
 } as const; 

@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import React from "react";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "cedhtools",
@@ -25,9 +26,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode; breadcrumbs: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      {/* <head>
         <script src="https://unpkg.com/react-scan/dist/auto.global.js" async />
-      </head>
+      </head> */}
       <body className="flex min-h-screen flex-col bg-background font-sans antialiased">
         <ThemeProvider>
           <SidebarProvider>
@@ -41,6 +42,7 @@ export default function RootLayout({
               <main className="flex flex-1 flex-col gap-4 p-4 pt-4">{children}</main>
             </SidebarInset>
           </SidebarProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
