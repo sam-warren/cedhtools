@@ -1,52 +1,105 @@
 services:
+  data-mongodb:
+    image: mongo
+    container_name: data-mongodb
+    ports:
+      - ${DATA_INITDB_PORT}:27017
+    volumes:
+      - data-mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DATA_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DATA_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DATA_INITDB_DATABASE}
+    networks:
+      - cedhtools
+
+  user-mongodb:
+    image: mongo
+    container_name: user-mongodb
+    ports:
+      - ${USER_INITDB_PORT}:27017
+    volumes:
+      - user-mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${USER_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${USER_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${USER_INITDB_DATABASE}
+    networks:
+      - user
+
   api:
     build:
       context: ../api
-      dockerfile: ../docker/api/Dockerfile.dev
-    container_name: cedhtools-api
-    volumes:
-      - ../api:/app
-      - /app/node_modules
-      - /app/.next
+      dockerfile: ../.docker/api/Dockerfile.dev
     ports:
-      - "3100:3100"
+      - ${API_PORT}:${API_PORT}
+    volumes:
+      - ../api:/usr/src/app
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/usr/src/app/target
+    environment:
+      # RUST
+      RUST_LOG: ${RUST_LOG}
+      RUST_BACKTRACE: ${RUST_BACKTRACE}
+      # API
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
+      # APP
+      APP_HOST: ${APP_HOST}
+      APP_PORT: ${APP_PORT}
+      # MONGO
+      MONGO_HOST: ${MONGO_HOST}
+      # CEDHTOOLS DATABASE
+      DATA_INITDB_ROOT_USERNAME: ${DATA_INITDB_ROOT_USERNAME}
+      DATA_INITDB_ROOT_PASSWORD: ${DATA_INITDB_ROOT_PASSWORD}
+      DATA_INITDB_DATABASE: ${DATA_INITDB_DATABASE}
+      DATA_INITDB_PORT: ${DATA_INITDB_PORT}
+      DATA_INITDB_URI: ${DATA_INITDB_URI}
+      DATA_INITDB_TABLES: ${DATA_INITDB_TABLES}
+      # USER DATABASE
+      USER_INITDB_ROOT_USERNAME: ${USER_INITDB_ROOT_USERNAME}
+      USER_INITDB_ROOT_PASSWORD: ${USER_INITDB_ROOT_PASSWORD}
+      USER_INITDB_DATABASE: ${USER_INITDB_DATABASE}
+      USER_INITDB_PORT: ${USER_INITDB_PORT}
+      USER_INITDB_URI: ${USER_INITDB_URI}
+      USER_INITDB_TABLES: ${USER_INITDB_TABLES}
     networks:
       - cedhtools
+      - user
     restart: always
+    depends_on:
+      - data-mongodb
+      - user-mongodb
+
   app:
     build:
       context: ../app
-      dockerfile: ../docker/app/Dockerfile.dev
-    container_name: cedhtools-app
+      dockerfile: ../.docker/app/Dockerfile.dev
     volumes:
       - ../app:/app
       - /app/node_modules
       - /app/.next
     ports:
-      - "3000:3000"
+      - ${APP_PORT}:${APP_PORT}
+    environment:
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
+      APP_HOST: ${APP_HOST}
+      APP_PORT: ${APP_PORT}
     networks:
       - cedhtools
     restart: always
     depends_on:
       - api
-
-  mongodb:
-    image: mongo
-    container_name: cedhtools-mongodb
-    ports:
-      - 27017:27017
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
-      MONGO_INITDB_DATABASE: cedhtools
-    networks:
-      - cedhtools
+      - data-mongodb
+      - user-mongodb
 
 networks:
   cedhtools:
-    driver: bridge
+  user:
 
 volumes:
-  mongodb_data:
+  data-mongodb_data:
+  user-mongodb_data:
+  cargo_cache:
+  target_cache:

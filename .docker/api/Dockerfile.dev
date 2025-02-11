@@ -1,17 +1,31 @@
-# use the official Bun image
-# see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM imbios/bun-node:latest-jod-slim AS base
-WORKDIR /api
+# Build stage
+FROM rust:1.84-slim-bookworm AS builder
 
-# Step 1 - install dependencies
-COPY package.json bun.lock ./
-RUN bun install
+WORKDIR /usr/src/app
 
-# Step 2 - Copy source code
-COPY . .
+# Install required system dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Step 3 - expose the port
+# Install cargo-watch for hot reloading
+RUN cargo install cargo-watch
+
+# Create blank project
+RUN cargo init
+
+# Copy manifests
+COPY Cargo.lock Cargo.toml ./
+
+# Cache dependencies
+RUN cargo fetch
+
+# Copy source code
+COPY src src
+
+# Development with hot reloading
+CMD ["cargo", "watch", "-x", "run"]
+
+# Expose the port
 EXPOSE 3100
-
-# run the api
-CMD ["bun", "run", "dev"]
