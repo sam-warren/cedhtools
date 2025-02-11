@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { TOP_CUT, TOP_CUT_OPTIONS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils/app-utils";
-import { TopCut } from "@/types/filters";
+import { TopCut } from "@/lib/types/filters";
 import { Check, Medal } from "lucide-react";
 
 interface FilterTopCutProps {

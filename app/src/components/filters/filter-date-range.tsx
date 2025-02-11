@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { DATE_PRESET, DATE_PRESETS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils/app-utils";
-import { DatePreset } from "@/types/filters";
+import { DatePreset } from "@/lib/types/filters";
 import { format, isSameDay } from "date-fns";
 import { CalendarFold } from "lucide-react";
 import type { DateRange } from "react-day-picker";

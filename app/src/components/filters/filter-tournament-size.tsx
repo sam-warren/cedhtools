@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { TOURNAMENT_SIZE_OPTIONS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils/app-utils";
-import { TournamentSize } from "@/types/filters";
+import { TournamentSize } from "@/lib/types/filters";
 import { Check, Users } from "lucide-react";
 
 interface FilterTournamentSizeProps {
