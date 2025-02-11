@@ -1,31 +1,27 @@
 import { create } from "zustand"
-import type { FilterValues } from "@/components/filters/types"
-
-interface FilterStore extends FilterValues {
-  setFilters: (filters: Partial<FilterValues>) => void
-  applyFilters: () => void
+import type { DatePreset, TournamentSize, TopCut, FilterState } from "@/types/filters"
+import type { DateRange } from "react-day-picker"
+interface FilterStore extends FilterState {
+  setDateRange: (dateRange: DateRange | undefined) => void
+  setDatePreset: (preset: DatePreset) => void
+  setTournamentSize: (size: TournamentSize) => void
+  setTopCut: (topCut: TopCut[]) => void
 }
 
-const DEFAULT_FILTERS: FilterValues = {
-  dateRange: {
-    from: new Date(2024, 8, 23), // September 23, 2024
-    to: new Date()
-  },
-  tournamentSize: "30+",
-  topCut: ["10", "16"]
+const DEFAULT_DATE_RANGE = {
+  from: new Date(2024, 8, 23), // September 23, 2024
+  to: new Date()
 }
 
-export const useFilterStore = create<FilterStore>((set, get) => ({
-  ...DEFAULT_FILTERS,
+export const useFilterStore = create<FilterStore>((set) => ({
+  dateRange: DEFAULT_DATE_RANGE,
+  datePreset: "3 months",
+  tournamentSize: "All",
+  topCut: ["All"],
 
-  setFilters: (filters) => {
-    set((state) => ({ ...state, ...filters }))
-  },
-
-  applyFilters: async () => {
-    const { dateRange, tournamentSize, topCut } = get()
-    // TODO: Implement your data fetching logic here
-    console.log("Applying filters:", { dateRange, tournamentSize, topCut })
-  }
+  setDateRange: (dateRange) => set({ dateRange }),
+  setDatePreset: (datePreset) => set({ datePreset }),
+  setTournamentSize: (tournamentSize) => set({ tournamentSize }),
+  setTopCut: (topCut) => set({ topCut })
 }))
 

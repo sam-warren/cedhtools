@@ -1,13 +1,9 @@
 "use client";
 
-import { format, isSameDay, subMonths, subYears } from "date-fns";
-import { CalendarFold, Check, Medal, Users } from "lucide-react";
-import * as React from "react";
-import type { DateRange } from "react-day-picker";
-
 import { Calendar } from "@/components/ui/calendar";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -15,52 +11,38 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
+import { DATE_PRESETS, TOP_CUT_OPTIONS, TOURNAMENT_SIZE_OPTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-// Define preset date ranges
-const datePresets: Record<string, DateRange> = {
-  "3 months": {
-    from: subMonths(new Date(), 3),
-    to: new Date()
-  },
-  "6 months": {
-    from: subMonths(new Date(), 6),
-    to: new Date()
-  },
-  "1 year": {
-    from: subYears(new Date(), 1),
-    to: new Date()
-  },
-  "Post-ban": {
-    from: new Date(2024, 8, 23), // September 23, 2023
-    to: new Date()
-  },
-  "Pre-Ban": {
-    from: new Date(2022, 5, 1), // June 1, 2022
-    to: new Date(2024, 8, 23) // September 23, 2023
-  },
-  "All Time": {
-    from: new Date(2022, 5, 1), // June 1, 2022
-    to: new Date()
-  }
-};
+import { useFilterStore } from "@/stores/filter-store";
+import { format, isSameDay } from "date-fns";
+import { CalendarFold, Check, Medal, Users } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+import React from "react";
+import { DatePreset, TopCut } from "@/types/filters";
 
 export function NavFilters() {
-  const [dateRange, setDateRange] = React.useState<DateRange>(datePresets["Post-ban"]);
-  const [datePreset, setDatePreset] = React.useState<string>("Post-ban");
-  const [tournamentSize, setTournamentSize] = React.useState<string>("30+");
-  const [topCut, setTopCut] = React.useState<string[]>(["Top 10", "Top 16"]);
+  const { dateRange, datePreset, tournamentSize, topCut, setDateRange, setDatePreset, setTournamentSize, setTopCut } =
+    useFilterStore();
 
-  const topCutOptions = ["Top 4", "Top 10", "Top 16", "Top 40", "Top 64", "All"];
+  const [tournamentSizeOpen, setTournamentSizeOpen] = React.useState(false);
+  const [presetSelectOpen, setPresetSelectOpen] = React.useState(false);
 
   const handleDateRangeChange = (newRange: DateRange | undefined) => {
-    if (!newRange?.from || !newRange?.to) return;
+    if (!newRange) {
+      setDateRange(undefined);
+      setDatePreset("Custom");
+      return;
+    }
+
+    if (!newRange.from || !newRange.to) {
+      setDateRange(newRange);
+      return;
+    }
 
     setDateRange(newRange);
 
     // Check if the new range matches any preset
-    const matchingPreset = Object.entries(datePresets).find(
+    const matchingPreset = Object.entries(DATE_PRESETS).find(
       ([_, range]) =>
         newRange.from &&
         newRange.to &&
@@ -68,14 +50,12 @@ export function NavFilters() {
         isSameDay(range.to as Date, newRange.to as Date)
     );
 
-    setDatePreset(matchingPreset ? matchingPreset[0] : "Custom");
+    setDatePreset(matchingPreset ? (matchingPreset[0] as DatePreset) : "Custom");
   };
 
   const handleDatePresetChange = (preset: string) => {
-    setDatePreset(preset);
-    if (preset !== "Custom") {
-      setDateRange(datePresets[preset as keyof typeof datePresets]);
-    }
+    setDatePreset(preset as DatePreset);
+    setDateRange(DATE_PRESETS[preset as keyof typeof DATE_PRESETS]);
   };
 
   return (
@@ -89,38 +69,61 @@ export function NavFilters() {
                 tooltip={
                   datePreset !== "Custom"
                     ? datePreset
-                    : dateRange.from && dateRange.to
+                    : dateRange?.from && dateRange?.to
                       ? `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`
-                      : "Select dates"
+                      : "Filter by date"
                 }>
                 <CalendarFold className="mr-2 h-4 w-4" />
                 <span className="truncate">
                   {datePreset !== "Custom"
                     ? datePreset
-                    : dateRange.from && dateRange.to
+                    : dateRange?.from && dateRange?.to
                       ? `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`
-                      : "Select dates"}
+                      : "Filter by date"}
                 </span>
               </SidebarMenuButton>
             </PopoverTrigger>
             <PopoverContent className="flex w-auto flex-col space-y-2 p-2" align="start">
-              <Select value={datePreset} onValueChange={(value) => handleDatePresetChange(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select preset" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  {Object.keys(datePresets).map((preset) => (
-                    <SelectItem key={preset} value={preset}>
-                      {preset}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="Custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  open={presetSelectOpen}
+                  onOpenChange={(open) => {
+                    setPresetSelectOpen(open);
+                    event?.stopPropagation();
+                  }}
+                  value={datePreset !== "Custom" ? datePreset : ""}
+                  onValueChange={(value) => {
+                    handleDatePresetChange(value);
+                    event?.stopPropagation();
+                  }}>
+                  <SelectTrigger
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn("flex-1", datePreset === "Custom" && "text-muted-foreground")}>
+                    <SelectValue placeholder="Select a preset" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
+                    <SelectGroup>
+                      {Object.keys(DATE_PRESETS).map((preset) => (
+                        <SelectItem key={preset} value={preset}>
+                          {preset}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <button
+                  onClick={() => {
+                    setDatePreset("Custom");
+                    setDateRange(undefined);
+                  }}
+                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+                  Clear
+                </button>
+              </div>
               <div className="rounded-md border">
                 <Calendar
                   mode="range"
-                  defaultMonth={dateRange.to}
+                  defaultMonth={dateRange?.to ?? new Date()}
                   selected={dateRange}
                   onSelect={handleDateRangeChange}
                   numberOfMonths={1}
@@ -131,7 +134,7 @@ export function NavFilters() {
         </SidebarMenuItem>
 
         <SidebarMenuItem>
-          <Popover>
+          <Popover open={tournamentSizeOpen} onOpenChange={setTournamentSizeOpen}>
             <PopoverTrigger asChild>
               <SidebarMenuButton tooltip={`${tournamentSize} Players`}>
                 <Users className="mr-2 h-4 w-4" />
@@ -141,12 +144,13 @@ export function NavFilters() {
             <PopoverContent className="w-[200px] p-0">
               <Command>
                 <CommandList>
-                  <CommandGroup>
-                    {["30+", "60+", "120+", "All"].map((size) => (
+                  <CommandGroup heading="Tournament Size">
+                    {TOURNAMENT_SIZE_OPTIONS.map((size) => (
                       <CommandItem
                         key={size}
                         onSelect={() => {
                           setTournamentSize(size);
+                          setTournamentSizeOpen(false);
                         }}>
                         <Check className={cn("mr-2 h-4 w-4", tournamentSize === size ? "opacity-100" : "opacity-0")} />
                         {size}
@@ -171,20 +175,18 @@ export function NavFilters() {
               <Command>
                 <CommandList>
                   <CommandEmpty>No options found.</CommandEmpty>
-                  <CommandGroup>
-                    {topCutOptions.map((item) => (
+                  <CommandGroup heading="Top Cut">
+                    {TOP_CUT_OPTIONS.map((item) => (
                       <CommandItem
                         key={item}
                         onSelect={() => {
-                          setTopCut((prev) => {
-                            if (item === "All") {
-                              return ["All"];
-                            }
-                            const newTopCut = prev.includes(item)
-                              ? prev.filter((i) => i !== item)
-                              : [...prev.filter((i) => i !== "All"), item];
-                            return newTopCut.length === 0 ? ["All"] : newTopCut;
-                          });
+                          const newTopCut =
+                            item === "All"
+                              ? ["All"]
+                              : topCut.includes(item)
+                                ? topCut.filter((i) => i !== item)
+                                : [...topCut.filter((i) => i !== "All"), item];
+                          setTopCut(newTopCut.length === 0 ? ["All"] : (newTopCut as TopCut[]));
                         }}>
                         <div
                           className={cn(
