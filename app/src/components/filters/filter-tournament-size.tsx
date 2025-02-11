@@ -3,10 +3,10 @@
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { TOURNAMENT_SIZE_OPTIONS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import { Check, Users } from "lucide-react";
+import { TOURNAMENT_SIZE_OPTIONS } from "@/lib/constants/filters";
+import { cn } from "@/lib/utils/app-utils";
 import { TournamentSize } from "@/types/filters";
+import { Check, Users } from "lucide-react";
 
 interface FilterTournamentSizeProps {
   tournamentSize: TournamentSize;
@@ -29,7 +29,7 @@ export function FilterTournamentSize({
             <Users className="mr-2 h-4 w-4" />
             <span className="truncate">{tournamentSize} Players</span>
             {isTournamentSizeModified() && (
-              <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
+              <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500 transition-opacity duration-200 animate-in fade-in-0" />
             )}
           </SidebarMenuButton>
         </PopoverTrigger>

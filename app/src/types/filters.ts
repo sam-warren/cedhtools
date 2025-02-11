@@ -1,10 +1,9 @@
 import { DateRange } from "react-day-picker";
+import { DATE_PRESET, TOURNAMENT_SIZE, TOP_CUT } from "@/lib/constants/filters";
 
-export type DatePreset = "3 months" | "6 months" | "1 year" | "Post-ban" | "Pre-Ban" | "All Time" | "Custom";
-
-export type TournamentSize = "30+" | "60+" | "120+" | "All";
-
-export type TopCut = "Top 4" | "Top 10" | "Top 16" | "Top 40" | "All";
+export type DatePreset = typeof DATE_PRESET[keyof typeof DATE_PRESET];
+export type TournamentSize = typeof TOURNAMENT_SIZE[keyof typeof TOURNAMENT_SIZE];
+export type TopCut = typeof TOP_CUT[keyof typeof TOP_CUT];
 
 export interface FilterState {
     dateRange: DateRange;

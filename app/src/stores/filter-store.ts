@@ -2,7 +2,7 @@ import { create } from "zustand"
 import type { DatePreset, TournamentSize, TopCut, FilterState } from "@/types/filters"
 import type { DateRange } from "react-day-picker"
 import { isSameDay } from "date-fns"
-import { DATE_PRESETS } from "@/lib/constants"
+import { DATE_PRESETS, DATE_PRESET, TOURNAMENT_SIZE, TOP_CUT } from "@/lib/constants/filters"
 
 interface FilterStore extends FilterState {
   appliedState: {
@@ -34,15 +34,15 @@ const isArrayEqual = (a: any[], b: any[]) => {
 }
 
 export const useFilterStore = create<FilterStore>((set, get) => ({
-  dateRange: DATE_PRESETS["3 months"],
-  datePreset: "3 months",
-  tournamentSize: "30+",
-  topCut: ["Top 4", "Top 10", "Top 16"],
+  dateRange: DATE_PRESETS[DATE_PRESET.THREE_MONTHS],
+  datePreset: DATE_PRESET.THREE_MONTHS,
+  tournamentSize: TOURNAMENT_SIZE.THIRTY_PLUS,
+  topCut: [TOP_CUT.TOP_4, TOP_CUT.TOP_10, TOP_CUT.TOP_16],
   appliedState: {
-    dateRange: DATE_PRESETS["3 months"],
-    datePreset: "3 months",
-    tournamentSize: "30+",
-    topCut: ["Top 4", "Top 10", "Top 16"]
+    dateRange: DATE_PRESETS[DATE_PRESET.THREE_MONTHS],
+    datePreset: DATE_PRESET.THREE_MONTHS,
+    tournamentSize: TOURNAMENT_SIZE.THIRTY_PLUS,
+    topCut: [TOP_CUT.TOP_4, TOP_CUT.TOP_10, TOP_CUT.TOP_16]
   },
 
   isDateRangeModified: () => {

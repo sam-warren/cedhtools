@@ -3,10 +3,10 @@
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { TOP_CUT_OPTIONS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import { Check, Medal } from "lucide-react";
+import { TOP_CUT, TOP_CUT_OPTIONS } from "@/lib/constants/filters";
+import { cn } from "@/lib/utils/app-utils";
 import { TopCut } from "@/types/filters";
+import { Check, Medal } from "lucide-react";
 
 interface FilterTopCutProps {
   topCut: TopCut[];
@@ -15,16 +15,9 @@ interface FilterTopCutProps {
   isMobile: boolean;
 }
 
-// Helper function to sort top cut options in ascending order
 const sortTopCut = (topCut: TopCut[]): TopCut[] => {
-  if (topCut.includes("All")) return ["All" as TopCut];
-  
-  return topCut.sort((a, b) => {
-    // Extract numbers from strings (e.g., "Top 4" -> 4)
-    const numA = parseInt(a.match(/\d+/)?.[0] ?? "0");
-    const numB = parseInt(b.match(/\d+/)?.[0] ?? "0");
-    return numA - numB;
-  });
+  if (topCut.includes(TOP_CUT.ALL)) return [TOP_CUT.ALL];
+  return [...topCut].sort();
 };
 
 export function FilterTopCut({ topCut, isTopCutModified, setTopCut, isMobile }: FilterTopCutProps) {
@@ -36,7 +29,7 @@ export function FilterTopCut({ topCut, isTopCutModified, setTopCut, isMobile }: 
             <Medal className="mr-2 h-4 w-4" />
             <span className="truncate">{topCut.length === 0 ? "Select top cut" : topCut.join(", ")}</span>
             {isTopCutModified() && (
-              <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
+              <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500 transition-opacity duration-200 animate-in fade-in-0" />
             )}
           </SidebarMenuButton>
         </PopoverTrigger>
@@ -50,12 +43,12 @@ export function FilterTopCut({ topCut, isTopCutModified, setTopCut, isMobile }: 
                     key={item}
                     onSelect={() => {
                       const newTopCut =
-                        item === "All"
-                          ? ["All" as TopCut]
+                        item === TOP_CUT.ALL
+                          ? [TOP_CUT.ALL]
                           : topCut.includes(item)
                             ? sortTopCut(topCut.filter((i) => i !== item))
-                            : sortTopCut([...topCut.filter((i) => i !== "All"), item as TopCut]);
-                      setTopCut(newTopCut.length === 0 ? ["All" as TopCut] : newTopCut);
+                            : sortTopCut([...topCut.filter((i) => i !== TOP_CUT.ALL), item as TopCut]);
+                      setTopCut(newTopCut.length === 0 ? [TOP_CUT.ALL] : newTopCut);
                     }}>
                     <div
                       className={cn(

@@ -6,7 +6,7 @@ import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/app-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +21,12 @@ const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+
+function getSidebarStateFromCookie(): boolean | null {
+  const cookies = document.cookie.split("; ");
+  const cookie = cookies.find((c) => c.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
+  return cookie ? cookie.split("=")[1] === "true" : null;
+}
 
 type SidebarContext = {
   state: "expanded" | "collapsed";
@@ -53,11 +59,19 @@ const SidebarProvider = React.forwardRef<
 >(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
+  const [isInitialized, setIsInitialized] = React.useState(false);
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen);
-  const open = openProp ?? _open;
+  // Start with undefined to avoid flash of content
+  const [_open, _setOpen] = React.useState<boolean | undefined>(undefined);
+
+  // Update state from cookie after mount
+  React.useLayoutEffect(() => {
+    const savedState = getSidebarStateFromCookie();
+    _setOpen(savedState !== null ? savedState : defaultOpen);
+    setIsInitialized(true);
+  }, [defaultOpen]);
+
+  const open = openProp ?? _open ?? defaultOpen;
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value;
@@ -67,7 +81,6 @@ const SidebarProvider = React.forwardRef<
         _setOpen(openState);
       }
 
-      // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     },
     [setOpenProp, open]
@@ -119,7 +132,11 @@ const SidebarProvider = React.forwardRef<
               ...style
             } as React.CSSProperties
           }
-          className={cn("group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)}
+          className={cn(
+            "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+            !isInitialized && "invisible",
+            className
+          )}
           ref={ref}
           {...props}>
           {children}
@@ -176,6 +193,7 @@ const Sidebar = React.forwardRef<
   return (
     <div
       ref={ref}
+      suppressHydrationWarning
       className="group peer hidden text-sidebar-foreground md:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}

@@ -1,15 +1,15 @@
 "use client";
 
 import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { DATE_PRESETS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { DATE_PRESET, DATE_PRESETS } from "@/lib/constants/filters";
+import { cn } from "@/lib/utils/app-utils";
+import { DatePreset } from "@/types/filters";
 import { format, isSameDay } from "date-fns";
 import { CalendarFold } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import { DatePreset } from "@/types/filters";
 
 interface FilterDateRangeProps {
   dateRange: DateRange | undefined;
@@ -66,7 +66,7 @@ export function FilterDateRange({
         <PopoverTrigger asChild>
           <SidebarMenuButton
             tooltip={
-              datePreset !== "Custom"
+              datePreset !== DATE_PRESET.CUSTOM
                 ? datePreset
                 : dateRange?.from && dateRange?.to
                   ? `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`
@@ -75,14 +75,14 @@ export function FilterDateRange({
             className="relative">
             <CalendarFold className="mr-2 h-4 w-4" />
             <span className="truncate">
-              {datePreset !== "Custom"
+              {datePreset !== DATE_PRESET.CUSTOM
                 ? datePreset
                 : dateRange?.from && dateRange?.to
                   ? `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`
                   : "Filter by date"}
             </span>
             {isDateRangeModified() && (
-              <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
+              <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500 transition-opacity duration-200 animate-in fade-in-0" />
             )}
           </SidebarMenuButton>
         </PopoverTrigger>
@@ -101,11 +101,11 @@ export function FilterDateRange({
           </div>
           <div className="flex gap-2">
             <Select
-              value={datePreset !== "Custom" ? datePreset : ""}
+              value={datePreset !== DATE_PRESET.CUSTOM ? datePreset : ""}
               onValueChange={(value) => {
                 handleDatePresetChange(value);
               }}>
-              <SelectTrigger className={cn("flex-1", datePreset === "Custom" && "text-muted-foreground")}>
+              <SelectTrigger className={cn("flex-1", datePreset === DATE_PRESET.CUSTOM && "text-muted-foreground")}>
                 <SelectValue placeholder="Select a preset" />
               </SelectTrigger>
               <SelectContent position="popper" sideOffset={4}>
@@ -120,7 +120,7 @@ export function FilterDateRange({
             </Select>
             <button
               onClick={() => {
-                setDatePreset("Custom");
+                setDatePreset(DATE_PRESET.CUSTOM);
                 setDateRange(undefined);
               }}
               className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
