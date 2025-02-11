@@ -16,8 +16,8 @@ const DEFAULT_DATE_RANGE = {
 export const useFilterStore = create<FilterStore>((set) => ({
   dateRange: DEFAULT_DATE_RANGE,
   datePreset: "3 months",
-  tournamentSize: "All",
-  topCut: ["All"],
+  tournamentSize: "30+",
+  topCut: ["Top 4", "Top 10", "Top 16"],
 
   setDateRange: (dateRange) => set({ dateRange }),
   setDatePreset: (datePreset) => set({ datePreset }),

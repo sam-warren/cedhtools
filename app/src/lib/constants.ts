@@ -4,7 +4,7 @@ import { DatePreset, TournamentSize, TopCut } from "@/types/filters";
 
 export const TOURNAMENT_SIZE_OPTIONS: TournamentSize[] = ["30+", "60+", "120+", "All"];
 
-export const TOP_CUT_OPTIONS: TopCut[] = ["Top 4", "Top 8", "Top 16", "Top 32", "All"];
+export const TOP_CUT_OPTIONS: TopCut[] = ["Top 4", "Top 10", "Top 16", "Top 40", "All"];
 
 export const DATE_PRESETS: Record<Exclude<DatePreset, "Custom">, DateRange> = {
     "3 months": {

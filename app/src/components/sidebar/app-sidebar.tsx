@@ -45,9 +45,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <NavHeader />
       </SidebarHeader>
-      <SidebarContent>
-        <NavFilters />
-        <NavMain items={sidebarConfig.navMain} />
+      <SidebarContent className="flex h-full flex-col">
+        <div>
+          <NavMain key="nav-main" items={sidebarConfig.navMain} />
+        </div>
+        <div className="mt-auto">
+          <NavFilters key="nav-filters" />
+        </div>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={sidebarConfig.user} isAuthenticated={true} />
