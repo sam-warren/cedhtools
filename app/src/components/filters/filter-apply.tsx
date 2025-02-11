@@ -5,6 +5,7 @@ import { SidebarMenuItem } from "@/components/ui/sidebar";
 import { Filter, Loader2 } from "lucide-react";
 import { useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FilterApplyProps {
   isLoading: boolean;
@@ -30,18 +31,27 @@ export function FilterApply({ isLoading, hasModifiedFilters, applyFilters, open 
 
   return (
     <SidebarMenuItem className="mt-2">
-      <Button
-        variant="outline"
-        className="h-8 w-full overflow-hidden transition-all duration-200"
-        onClick={handleApplyFilters}
-        disabled={isLoading || !hasModifiedFilters()}>
-        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
-        {open && (
-          <span className="ml-2 transition-opacity duration-200">
-            {isLoading ? "Applying..." : "Apply Filters"}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              variant="outline"
+              className="h-8 w-full overflow-hidden transition-all duration-200"
+              onClick={handleApplyFilters}
+              disabled={isLoading || !hasModifiedFilters()}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Filter className="h-4 w-4" />}
+              {open && (
+                <span className="ml-2 transition-opacity duration-200">
+                  {isLoading ? "Applying..." : "Apply Filters"}
+                </span>
+              )}
+            </Button>
           </span>
-        )}
-      </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right" align="center" hidden={open}>
+          {hasModifiedFilters() ? "Apply Filters" : "No changes to apply"}
+        </TooltipContent>
+      </Tooltip>
     </SidebarMenuItem>
   );
-} 
+}
