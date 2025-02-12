@@ -10,6 +10,7 @@ services:
       - POSTGRES_USER=${DATA_DB_USER}
       - POSTGRES_PASSWORD=${DATA_DB_PASSWORD}
       - POSTGRES_DB=${DATA_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
     networks:
       - cedhtools
     restart: unless-stopped
@@ -36,6 +37,7 @@ services:
       - POSTGRES_USER=${USER_DB_USER}
       - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
       - POSTGRES_DB=${USER_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
     networks:
       - user
     restart: unless-stopped
@@ -77,6 +79,11 @@ services:
     depends_on:
       data-timescaledb:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -103,6 +110,12 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # Email configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
     networks:
       - cedhtools
       - user
@@ -112,6 +125,11 @@ services:
         condition: service_healthy
       api:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${APP_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:

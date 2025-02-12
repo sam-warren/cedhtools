@@ -61,23 +61,28 @@ export default function SignUpPage() {
         throw new Error(data.message || "Failed to create account");
       }
 
-      // Sign in the user after successful registration
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        throw new Error("Failed to sign in after registration");
-      }
-
       toast({
         title: "Success",
-        description: "Your account has been created.",
+        description: data.message,
       });
       
-      router.push("/");
+      // Handle redirect to verification page
+      if (data.redirect) {
+        router.push(data.redirect);
+      } else {
+        // Sign in the user after successful registration if no redirect
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
+
+        if (result?.error) {
+          throw new Error("Failed to sign in after registration");
+        }
+
+        router.push("/");
+      }
       router.refresh();
     } catch (error) {
       toast({

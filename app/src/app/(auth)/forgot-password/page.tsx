@@ -2,84 +2,92 @@
 
 import { AuthHeader } from "@/components/auth/auth-header";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useState } from "react";
+import { z } from "zod";
+
+const emailSchema = z.string().email("Please enter a valid email address");
 
 export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-
     try {
-      // TODO: Implement password reset logic here
+      // Validate email
+      emailSchema.parse(email);
+
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to request password reset");
+      }
+
       toast({
         title: "Check your email",
-        description: "We've sent you a password reset link.",
+        description: "If an account exists with this email, you will receive a password reset link."
       });
+
+      setEmail("");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Invalid email",
+          description: "Please enter a valid email address.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to request password reset. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center">
       <AuthHeader />
       <Card className="w-[350px]">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Reset password</CardTitle>
-          <CardDescription>
-            Enter your email address and we&apos;ll send you a reset link
-          </CardDescription>
+        <CardHeader>
+          <CardTitle className="text-2xl">Reset Password</CardTitle>
+          <CardDescription>Enter your email address and we&apos;ll send you a link to reset your password.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit}>
-            <div className="grid gap-2">
-              <div className="grid gap-1">
-                <Label className="sr-only" htmlFor="email">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  placeholder="name@example.com"
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  name="email"
-                  required
-                />
-              </div>
-              <Button disabled={isLoading}>
-                {isLoading && (
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                )}
-                Send reset link
-              </Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
             </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Sending...
+                </>
+              ) : (
+                "Send Reset Link"
+              )}
+            </Button>
           </form>
         </CardContent>
         <CardFooter>
@@ -89,7 +97,7 @@ export default function ForgotPasswordPage() {
               href="/login"
               className="hover:text-primary underline underline-offset-4"
             >
-              Sign in
+              Back to login
             </Link>
           </div>
         </CardFooter>

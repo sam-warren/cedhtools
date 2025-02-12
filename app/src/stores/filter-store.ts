@@ -28,7 +28,7 @@ const isDateRangeEqual = (a?: DateRange, b?: DateRange) => {
   return isSameDay(a.from, b.from) && isSameDay(a.to, b.to);
 }
 
-const isArrayEqual = (a: any[], b: any[]) => {
+const isArrayEqual = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false;
   return a.every((item, index) => item === b[index]);
 }

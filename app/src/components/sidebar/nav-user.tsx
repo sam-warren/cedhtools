@@ -15,6 +15,26 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/c
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function NavUserSkeleton() {
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          size="lg"
+          className="pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="mt-0.5 h-3 w-32" />
+          </div>
+          <Skeleton className="ml-auto h-4 w-4" />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -27,10 +47,12 @@ export function NavUser() {
     router.refresh();
   };
 
+  // Show skeleton while loading
   if (status === "loading") {
-    return null;
+    return <NavUserSkeleton />;
   }
 
+  // Only show guest UI if we're sure there's no session
   if (!session?.user) {
     return (
       <SidebarMenu>

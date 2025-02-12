@@ -13,7 +13,6 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import { Info, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export type Commander = {
   id: string;
@@ -74,7 +73,6 @@ export const columns: ColumnDef<Commander>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const router = useRouter();
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -85,7 +83,7 @@ export const columns: ColumnDef<Commander>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => router.push(`/commanders/1`)}>
+            <DropdownMenuItem onClick={() => console.log(`/commanders/${row.original.id}`)}>
               <Info className="h-4 w-4" />
               View Details
             </DropdownMenuItem>

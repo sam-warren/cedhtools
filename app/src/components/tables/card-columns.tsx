@@ -16,7 +16,6 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, Info, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export type DeckCard = {
   name: string;
@@ -79,7 +78,6 @@ export const cardColumns: ColumnDef<DeckCard>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const router = useRouter();
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

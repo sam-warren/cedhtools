@@ -17,6 +17,7 @@ export const authConfig: AuthOptions = {
     signIn: "/login",
     signOut: "/login",
     error: "/login",
+    verifyRequest: "/verify",
   },
   session: {
     strategy: "jwt",
@@ -31,6 +32,7 @@ export const authConfig: AuthOptions = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
+          emailVerified: new Date(),
         };
       },
     }),
@@ -54,6 +56,10 @@ export const authConfig: AuthOptions = {
 
         if (!user?.password) {
           throw new Error("Invalid credentials");
+        }
+
+        if (!user.emailVerified) {
+          throw new Error("Please verify your email before signing in");
         }
 
         const passwordsMatch = await bcrypt.compare(password, user.password);
@@ -86,10 +92,52 @@ export const authConfig: AuthOptions = {
       }
       return token;
     },
-    async signIn({ account, profile }) {
+    async signIn({ account, profile, user }) {
       if (account?.provider === "google") {
-        return !!profile?.email;
+        if (!profile?.email) return false;
+
+        // Check if a user with this email already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: profile.email.toLowerCase() },
+          include: { accounts: true }
+        });
+
+        if (existingUser) {
+          // If user exists but doesn't have a Google account linked
+          if (!existingUser.accounts.some(acc => acc.provider === "google")) {
+            // Link the Google account
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type || "oauth",
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+              },
+            });
+          }
+          // Update user's email verification status if not already verified
+          if (!existingUser.emailVerified) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { emailVerified: new Date() },
+            });
+          }
+          return true;
+        }
+        return true;
       }
+
+      if (account?.provider === "credentials") {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email?.toLowerCase() },
+        });
+        return !!dbUser?.emailVerified;
+      }
+
       return true;
     },
   },

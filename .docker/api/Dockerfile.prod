@@ -27,10 +27,11 @@ FROM debian:bookworm-slim AS runtime
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies and curl for healthcheck
 RUN apt-get update && apt-get install -y \
     libssl3 \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -54,6 +55,10 @@ EXPOSE 3100
 ENV RUST_LOG=info
 ENV API_PORT=3100
 ENV API_HOST=0.0.0.0
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3100/health || exit 1
 
 # Run the application
 CMD ["./api"]
