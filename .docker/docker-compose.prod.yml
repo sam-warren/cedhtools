@@ -1,38 +1,50 @@
 services:
-  data-mongodb:
-    image: mongo
-    container_name: data-mongodb-prod
+  data-timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: data-timescaledb-prod
     ports:
-      - ${DATA_INITDB_PORT}:27017
+      - ${DATA_DB_PORT}:5432
     volumes:
-      - data-mongodb_data:/data/db
+      - data-timescaledb_data:/var/lib/postgresql/data
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${DATA_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${DATA_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${DATA_INITDB_DATABASE}
+      - POSTGRES_USER=${DATA_DB_USER}
+      - POSTGRES_PASSWORD=${DATA_DB_PASSWORD}
+      - POSTGRES_DB=${DATA_DB_NAME}
     networks:
       - cedhtools
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATA_DB_USER} -d ${DATA_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  user-mongodb:
-    image: mongo
-    container_name: user-mongodb-prod
+  user-postgres:
+    image: postgres:16
+    container_name: user-postgres-prod
     ports:
-      - ${USER_INITDB_PORT}:27017
+      - ${USER_DB_PORT}:5432
     volumes:
-      - user-mongodb_data:/data/db
+      - user-postgres_data:/var/lib/postgresql/data
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${USER_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${USER_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${USER_INITDB_DATABASE}
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+      - POSTGRES_DB=${USER_DB_NAME}
     networks:
       - user
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
     logging:
       driver: "json-file"
       options:
@@ -56,58 +68,55 @@ services:
       # APP
       - APP_HOST=${APP_HOST}
       - APP_PORT=${APP_PORT}
-      # MONGO
-      - MONGO_HOST=${MONGO_HOST}
-      # CEDHTOOLS DATABASE
-      - DATA_INITDB_ROOT_USERNAME=${DATA_INITDB_ROOT_USERNAME}
-      - DATA_INITDB_ROOT_PASSWORD=${DATA_INITDB_ROOT_PASSWORD}
-      - DATA_INITDB_DATABASE=${DATA_INITDB_DATABASE}
-      - DATA_INITDB_PORT=${DATA_INITDB_PORT}
-      - DATA_INITDB_URI=${DATA_INITDB_URI}
-      - DATA_INITDB_TABLES=${DATA_INITDB_TABLES}
-      # USER DATABASE
-      - USER_INITDB_ROOT_USERNAME=${USER_INITDB_ROOT_USERNAME}
-      - USER_INITDB_ROOT_PASSWORD=${USER_INITDB_ROOT_PASSWORD}
-      - USER_INITDB_DATABASE=${USER_INITDB_DATABASE}
-      - USER_INITDB_PORT=${USER_INITDB_PORT}
-      - USER_INITDB_URI=${USER_INITDB_URI}
-      - USER_INITDB_TABLES=${USER_INITDB_TABLES}
+      # DATA DATABASE
+      - DATA_DB_URL=postgresql://${DATA_DB_USER}:${DATA_DB_PASSWORD}@data-timescaledb:5432/${DATA_DB_NAME}
     networks:
       - cedhtools
       - user
     restart: unless-stopped
     depends_on:
-      - data-mongodb
-      - user-mongodb
+      data-timescaledb:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # app:
-  #   build:
-  #     context: ../app
-  #     dockerfile: ../.docker/app/Dockerfile.prod
-  #   container_name: app-prod
-  #   ports:
-  #     - ${APP_PORT}:${APP_PORT}
-  #   environment:
-  #     - NODE_ENV=production
-  #     - API_HOST=${API_HOST}
-  #     - API_PORT=${API_PORT}
-  #     - APP_HOST=${APP_HOST}
-  #     - APP_PORT=${APP_PORT}
-  #   networks:
-  #     - cedhtools
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - api
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
+  app:
+    build:
+      context: ../app
+      dockerfile: ../.docker/app/Dockerfile.prod
+    container_name: app-prod
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    environment:
+      - NODE_ENV=production
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+      - APP_HOST=${APP_HOST}
+      - APP_PORT=${APP_PORT}
+      # Database configuration
+      - DATABASE_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-postgres:5432/${USER_DB_NAME}
+      # NextAuth configuration
+      - NEXTAUTH_URL=https://${APP_HOST}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    networks:
+      - cedhtools
+      - user
+    restart: unless-stopped
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   cedhtools:
@@ -116,5 +125,5 @@ networks:
     driver: bridge
 
 volumes:
-  data-mongodb_data:
-  user-mongodb_data:
+  data-timescaledb_data:
+  user-postgres_data:

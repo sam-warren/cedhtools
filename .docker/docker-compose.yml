@@ -1,31 +1,45 @@
 services:
-  data-mongodb:
-    image: mongo
-    container_name: data-mongodb
+  data-timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: data-timescaledb
     ports:
-      - ${DATA_INITDB_PORT}:27017
+      - ${DATA_DB_PORT}:5432
     volumes:
-      - data-mongodb_data:/data/db
+      - data-timescaledb_data:/var/lib/postgresql/data
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${DATA_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${DATA_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${DATA_INITDB_DATABASE}
+      - POSTGRES_USER=${DATA_DB_USER}
+      - POSTGRES_PASSWORD=${DATA_DB_PASSWORD}
+      - POSTGRES_DB=${DATA_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
     networks:
       - cedhtools
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATA_DB_USER} -d ${DATA_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
 
-  user-mongodb:
-    image: mongo
-    container_name: user-mongodb
+  user-postgres:
+    image: postgres:16
+    container_name: user-postgres
     ports:
-      - ${USER_INITDB_PORT}:27017
+      - ${USER_DB_PORT}:5432
     volumes:
-      - user-mongodb_data:/data/db
+      - user-postgres_data:/var/lib/postgresql/data
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${USER_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${USER_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${USER_INITDB_DATABASE}
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+      - POSTGRES_DB=${USER_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
     networks:
       - user
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
 
   api:
     build:
@@ -47,29 +61,20 @@ services:
       # APP
       - APP_HOST=${APP_HOST}
       - APP_PORT=${APP_PORT}
-      # MONGO
-      - MONGO_HOST=${MONGO_HOST}
-      # CEDHTOOLS DATABASE
-      - DATA_INITDB_ROOT_USERNAME=${DATA_INITDB_ROOT_USERNAME}
-      - DATA_INITDB_ROOT_PASSWORD=${DATA_INITDB_ROOT_PASSWORD}
-      - DATA_INITDB_DATABASE=${DATA_INITDB_DATABASE}
-      - DATA_INITDB_PORT=${DATA_INITDB_PORT}
-      - DATA_INITDB_URI=${DATA_INITDB_URI}
-      - DATA_INITDB_TABLES=${DATA_INITDB_TABLES}
-      # USER DATABASE
-      - USER_INITDB_ROOT_USERNAME=${USER_INITDB_ROOT_USERNAME}
-      - USER_INITDB_ROOT_PASSWORD=${USER_INITDB_ROOT_PASSWORD}
-      - USER_INITDB_DATABASE=${USER_INITDB_DATABASE}
-      - USER_INITDB_PORT=${USER_INITDB_PORT}
-      - USER_INITDB_URI=${USER_INITDB_URI}
-      - USER_INITDB_TABLES=${USER_INITDB_TABLES}
+      # DATA DATABASE
+      - DATA_DB_URL=postgresql://${DATA_DB_USER}:${DATA_DB_PASSWORD}@data-timescaledb:5432/${DATA_DB_NAME}
     networks:
       - cedhtools
       - user
     restart: always
     depends_on:
-      - data-mongodb
-      - user-mongodb
+      data-timescaledb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   app:
     build:
@@ -86,20 +91,55 @@ services:
       - API_PORT=${API_PORT}
       - APP_HOST=${APP_HOST}
       - APP_PORT=${APP_PORT}
+      # Database configuration
+      - DATABASE_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-postgres:5432/${USER_DB_NAME}
+      # NextAuth configuration
+      - NEXTAUTH_URL=http://${APP_HOST}:${APP_PORT}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     networks:
       - cedhtools
+      - user
     restart: always
     depends_on:
-      - api
-      - data-mongodb
-      - user-mongodb
+      user-postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${APP_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prisma-studio:
+    build:
+      context: ../app
+      dockerfile: ../.docker/app/Dockerfile.dev
+    command: sh -c "bunx prisma generate && bunx prisma studio --port 5555 --hostname 0.0.0.0"
+    ports:
+      - "5555:5555"
+    volumes:
+      - ../app:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-postgres:5432/${USER_DB_NAME}
+      - NODE_ENV=development
+    networks:
+      - user
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      app:
+        condition: service_started
 
 networks:
   cedhtools:
   user:
 
 volumes:
-  data-mongodb_data:
-  user-mongodb_data:
+  data-timescaledb_data:
+  user-postgres_data:
   cargo_cache:
   target_cache:

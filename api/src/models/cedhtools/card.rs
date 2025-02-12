@@ -1,22 +1,16 @@
-use bson::oid::ObjectId;
+use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use crate::models::common::Timestamps;
+use sqlx::FromRow;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Card {
-    #[serde(rename = "card_id")]
-    pub id: ObjectId,
-    #[serde(rename = "card_name")]
+    pub id: Uuid,
     pub name: String,
-    #[serde(rename = "card_desc")]
     pub description: String,
-    #[serde(rename = "card_keys")]
     pub keys: Vec<String>,
-    #[serde(rename = "card_rules")]
     pub rules: Vec<String>,
-    #[serde(rename = "card_link")]
     pub link: String,
-    #[serde(rename = "card_image")]
     pub image: String,
     #[serde(flatten)]
     pub timestamps: Timestamps,

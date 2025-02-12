@@ -38,3 +38,7 @@ yarn-error.log*
 
 target/
 
+# MongoDB
+.docker/mongodb-keyfile
+**/mongodb-keyfile
+

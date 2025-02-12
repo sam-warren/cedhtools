@@ -7,11 +7,12 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install
 
-# Step 2 - Copy source code
+# Step 2 - Copy source code and generate Prisma client
 COPY . .
+RUN bunx prisma generate
 
 # Step 3 - expose the port
 EXPOSE 3000
 
-# run the app
-CMD ["bun", "run", "dev"]
+# run the app with migrations
+CMD ["sh", "-c", "bunx prisma migrate deploy && bunx prisma generate && bun run dev"]

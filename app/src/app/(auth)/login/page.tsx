@@ -57,12 +57,23 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/" });
+      const result = await signIn("google", { 
+        callbackUrl: "/",
+        redirect: false,
+      });
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
+      if (result?.url) {
+        router.push(result.url);
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to sign in with Google",
-        variant: "destructive"
+        description: "Failed to sign in with Google. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -70,7 +81,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+    <div className="flex h-screen w-screen flex-col items-center justify-center">
       <AuthHeader />
       <Card className="w-[350px]">
         <CardHeader className="space-y-1">

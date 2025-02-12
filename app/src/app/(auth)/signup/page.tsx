@@ -29,6 +29,7 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
@@ -38,20 +39,26 @@ export default function SignUpPage() {
         throw new Error("Passwords do not match");
       }
 
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name,
           email,
           password,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create account");
+        throw new Error(data.message || "Failed to create account");
       }
 
       // Sign in the user after successful registration
@@ -99,7 +106,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+    <div className="flex h-screen w-screen flex-col items-center justify-center">
       <AuthHeader />
       <Card className="w-[350px]">
         <CardHeader className="space-y-1">
@@ -125,6 +132,21 @@ export default function SignUpPage() {
           </div>
           <form onSubmit={onSubmit}>
             <div className="grid gap-2">
+              <div className="grid gap-1">
+                <Label className="sr-only" htmlFor="name">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Your name"
+                  type="text"
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  name="name"
+                />
+              </div>
               <div className="grid gap-1">
                 <Label className="sr-only" htmlFor="email">
                   Email

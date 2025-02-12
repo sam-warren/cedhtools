@@ -6,6 +6,11 @@ import bcrypt from "bcryptjs";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/prisma";
 
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
 export const authConfig: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   pages: {
@@ -20,6 +25,14 @@ export const authConfig: AuthOptions = {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+        };
+      },
     }),
     Credentials({
       name: "credentials",
@@ -28,21 +41,25 @@ export const authConfig: AuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
-          .safeParse(credentials);
+        const parsedCredentials = loginSchema.safeParse(credentials);
 
-        if (!parsedCredentials.success) return null;
+        if (!parsedCredentials.success) {
+          throw new Error("Invalid credentials");
+        }
 
         const { email, password } = parsedCredentials.data;
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
         });
 
-        if (!user || !user.password) return null;
+        if (!user?.password) {
+          throw new Error("Invalid credentials");
+        }
 
         const passwordsMatch = await bcrypt.compare(password, user.password);
-        if (!passwordsMatch) return null;
+        if (!passwordsMatch) {
+          throw new Error("Invalid credentials");
+        }
 
         return {
           id: user.id,
@@ -60,11 +77,20 @@ export const authConfig: AuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
       }
+      if (account) {
+        token.accessToken = account.access_token;
+      }
       return token;
+    },
+    async signIn({ account, profile }) {
+      if (account?.provider === "google") {
+        return !!profile?.email;
+      }
+      return true;
     },
   },
 }; 

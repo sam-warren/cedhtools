@@ -1,19 +1,15 @@
-use bson::oid::ObjectId;
+use uuid::Uuid;
 use serde::{Deserialize, Serialize};
-use crate::models::common::Timestamps;
+use sqlx::FromRow;
+use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Stats {
-    #[serde(rename = "stats_id")]
-    pub id: ObjectId,
-    #[serde(rename = "stats_name")]
+    pub id: Uuid,
     pub name: String,
-    #[serde(rename = "stats_desc")]
     pub description: String,
-    #[serde(rename = "stats_keys")]
-    pub keys: Vec<String>,
-    #[serde(rename = "stats_rules")]
-    pub rules: Vec<String>,
-    #[serde(flatten)]
-    pub timestamps: Timestamps,
+    pub value: Value,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub created_by: Uuid,
+    pub updated_by: Uuid,
 } 
