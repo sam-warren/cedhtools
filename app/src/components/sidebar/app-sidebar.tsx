@@ -43,10 +43,9 @@ const sidebarConfig = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" data-no-aria-hidden {...props}>
       <SidebarHeader>
         <NavHeader />
-        <SidebarSeparator />
       </SidebarHeader>
       <SidebarContent className="flex h-full flex-col">
         <div>

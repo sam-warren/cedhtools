@@ -7,6 +7,7 @@ import { TOP_CUT, TOP_CUT_OPTIONS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils/app-utils";
 import { TopCut } from "@/lib/types/filters";
 import { Check, Medal } from "lucide-react";
+import React from "react";
 
 interface FilterTopCutProps {
   topCut: TopCut[];
@@ -33,7 +34,11 @@ export function FilterTopCut({ topCut, isTopCutModified, setTopCut, isMobile }: 
             )}
           </SidebarMenuButton>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0" side={isMobile ? "bottom" : "right"} sideOffset={4}>
+        <PopoverContent
+          className="w-[200px] p-0"
+          side={isMobile ? "bottom" : "right"}
+          sideOffset={isMobile ? 8 : 4}
+          data-no-aria-hidden>
           <Command>
             <CommandList>
               <CommandEmpty>No options found.</CommandEmpty>

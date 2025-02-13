@@ -1,13 +1,10 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { ResponsiveBreadcrumbs } from "@/components/ui/responsive-breadcrumb";
+import type { BreadcrumbSegment } from "@/components/ui/responsive-breadcrumb";
 
 export default function BreadcrumbSlot() {
-  return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbPage>Home</BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
+  const segments: BreadcrumbSegment[] = [
+    { label: "Home" }
+  ];
+
+  return <ResponsiveBreadcrumbs segments={segments} />;
 } 

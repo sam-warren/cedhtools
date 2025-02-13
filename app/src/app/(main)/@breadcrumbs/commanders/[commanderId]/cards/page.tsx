@@ -1,10 +1,5 @@
-import {
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
+import { ResponsiveBreadcrumbs } from "@/components/ui/responsive-breadcrumb";
+import type { BreadcrumbSegment } from "@/components/ui/responsive-breadcrumb";
 
 export default async function BreadcrumbSlot({
   params
@@ -14,23 +9,12 @@ export default async function BreadcrumbSlot({
   // TODO: Implement commander fetch
   const commander = { name: "Kinnan, Bonder Prodigy", id: _params.commanderId };
 
-  return (
-    <BreadcrumbList>
-      <BreadcrumbItem>
-        <BreadcrumbLink href="/">Home</BreadcrumbLink>
-      </BreadcrumbItem>
-      <BreadcrumbSeparator />
-      <BreadcrumbItem>
-        <BreadcrumbLink href="/commanders">Commanders</BreadcrumbLink>
-      </BreadcrumbItem>
-      <BreadcrumbSeparator />
-      <BreadcrumbItem>
-        <BreadcrumbLink href={"/commanders/" + commander.id}>{commander.name}</BreadcrumbLink>
-      </BreadcrumbItem>
-      <BreadcrumbSeparator />
-      <BreadcrumbItem>
-        <BreadcrumbPage>Cards</BreadcrumbPage>
-      </BreadcrumbItem>
-    </BreadcrumbList>
-  );
+  const segments: BreadcrumbSegment[] = [
+    { label: "Home", href: "/" },
+    { label: "Commanders", href: "/commanders" },
+    { label: commander.name, href: `/commanders/${commander.id}` },
+    { label: "Cards" }
+  ];
+
+  return <ResponsiveBreadcrumbs segments={segments} />;
 } 

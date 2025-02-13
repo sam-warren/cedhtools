@@ -13,9 +13,53 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { signOut, useSession } from "next-auth/react";
+import { Session } from "next-auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from "react";
+import { clearAuthData } from "@/lib/auth/auth";
+
+function useSessionWithCache() {
+  const { data: session, status } = useSession({
+    required: false,
+  });
+  const [cachedSession, setCachedSession] = useState<Session | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  useEffect(() => {
+    // On mount, try to load cached session
+    try {
+      const cached = localStorage.getItem("lastKnownSession");
+      if (cached) {
+        setCachedSession(JSON.parse(cached));
+      }
+    } catch (e) {
+      console.error("Failed to load cached session:", e);
+    }
+    setHasInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    // Update cache when session changes
+    if (session?.user) {
+      localStorage.setItem("lastKnownSession", JSON.stringify(session));
+      setCachedSession(session);
+    }
+  }, [session]);
+
+  const clearCache = () => {
+    localStorage.removeItem("lastKnownSession");
+    setCachedSession(null);
+  };
+
+  return {
+    session: status === "loading" ? cachedSession : session,
+    status,
+    hasInitialized,
+    clearCache
+  };
+}
 
 function NavUserSkeleton() {
   return (
@@ -38,21 +82,23 @@ function NavUserSkeleton() {
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  const { data: session, status } = useSession();
+  const { session, status, hasInitialized, clearCache } = useSessionWithCache();
   const router = useRouter();
 
   const handleSignOut = async () => {
+    clearCache();
+    clearAuthData();
     await signOut({ redirect: false });
     router.push("/login");
     router.refresh();
   };
 
-  // Show skeleton while loading
-  if (status === "loading") {
+  // Show skeleton only during initial load
+  if (!hasInitialized || (status === "loading" && !session)) {
     return <NavUserSkeleton />;
   }
 
-  // Only show guest UI if we're sure there's no session
+  // Show guest UI if no session
   if (!session?.user) {
     return (
       <SidebarMenu>
@@ -139,12 +185,6 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <Link href="/account">
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  Account
-                </DropdownMenuItem>
-              </Link>
               <Link href="/settings">
                 <DropdownMenuItem>
                   <Settings2 className="mr-2 h-4 w-4" />

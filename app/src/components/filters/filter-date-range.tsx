@@ -10,6 +10,7 @@ import { DatePreset } from "@/lib/types/filters";
 import { format, isSameDay } from "date-fns";
 import { CalendarFold } from "lucide-react";
 import type { DateRange } from "react-day-picker";
+import React from "react";
 
 interface FilterDateRangeProps {
   dateRange: DateRange | undefined;
@@ -87,7 +88,7 @@ export function FilterDateRange({
           </SidebarMenuButton>
         </PopoverTrigger>
         <PopoverContent
-          className="flex w-auto flex-col space-y-2 p-2"
+          className="flex w-auto flex-col space-y-2 p-2 mb-6"
           align="start"
           side={isMobile ? "bottom" : "right"}
           sideOffset={4}>
@@ -105,10 +106,17 @@ export function FilterDateRange({
               onValueChange={(value) => {
                 handleDatePresetChange(value);
               }}>
-              <SelectTrigger className={cn("flex-1", datePreset === DATE_PRESET.CUSTOM && "text-muted-foreground")}>
+              <SelectTrigger
+                className={cn("relative flex-1", datePreset === DATE_PRESET.CUSTOM && "text-muted-foreground")}>
                 <SelectValue placeholder="Select a preset" />
               </SelectTrigger>
-              <SelectContent position="popper" sideOffset={4}>
+              <SelectContent
+                position={isMobile ? "item-aligned" : "popper"}
+                side={isMobile ? "bottom" : undefined}
+                align={isMobile ? "center" : "start"}
+                sideOffset={4}
+                className="z-[100]"
+                avoidCollisions={false}>
                 <SelectGroup>
                   {Object.keys(DATE_PRESETS).map((preset) => (
                     <SelectItem key={preset} value={preset}>
@@ -142,4 +150,4 @@ export function FilterDateRange({
       </Popover>
     </SidebarMenuItem>
   );
-} 
+}

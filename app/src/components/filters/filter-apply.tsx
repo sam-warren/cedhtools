@@ -25,7 +25,9 @@ export function FilterApply({ isLoading, hasModifiedFilters, applyFilters, open 
 
     toast({
       title: "Filters applied",
-      description: "Data has been filtered based on your selections."
+      description: "Data has been filtered based on your selections.",
+      variant: "info",
+      duration: 3000
     });
   }, [applyFilters, toast]);
 
