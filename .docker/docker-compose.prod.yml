@@ -1,0 +1,147 @@
+services:
+  data-timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: data-timescaledb-prod
+    ports:
+      - ${DATA_DB_PORT}:5432
+    volumes:
+      - data-timescaledb_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DATA_DB_USER}
+      - POSTGRES_PASSWORD=${DATA_DB_PASSWORD}
+      - POSTGRES_DB=${DATA_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    networks:
+      - cedhtools
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATA_DB_USER} -d ${DATA_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  user-postgres:
+    image: postgres:16
+    container_name: user-postgres-prod
+    ports:
+      - ${USER_DB_PORT}:5432
+    volumes:
+      - user-postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+      - POSTGRES_DB=${USER_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    networks:
+      - user
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: ../api
+      dockerfile: ../.docker/api/Dockerfile.prod
+    container_name: api-prod
+    ports:
+      - ${API_PORT}:${API_PORT}
+    environment:
+      # RUST
+      - RUST_LOG=${RUST_LOG}
+      - RUST_BACKTRACE=${RUST_BACKTRACE}
+      # API
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+      # APP
+      - APP_HOST=${APP_HOST}
+      - APP_PORT=${APP_PORT}
+      # DATA DATABASE
+      - DATA_DB_URL=postgresql://${DATA_DB_USER}:${DATA_DB_PASSWORD}@data-timescaledb:5432/${DATA_DB_NAME}
+    networks:
+      - cedhtools
+      - user
+    restart: unless-stopped
+    depends_on:
+      data-timescaledb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build:
+      context: ../app
+      dockerfile: ../.docker/app/Dockerfile.prod
+    container_name: app-prod
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    environment:
+      - NODE_ENV=production
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+      - APP_HOST=${APP_HOST}
+      - APP_PORT=${APP_PORT}
+      # Database configuration
+      - DATABASE_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-postgres:5432/${USER_DB_NAME}
+      # NextAuth configuration
+      - NEXTAUTH_URL=https://${APP_HOST}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # Email configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+    networks:
+      - cedhtools
+      - user
+    restart: unless-stopped
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${APP_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  cedhtools:
+    driver: bridge
+  user:
+    driver: bridge
+
+volumes:
+  data-timescaledb_data:
+  user-postgres_data:

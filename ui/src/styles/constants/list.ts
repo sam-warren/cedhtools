@@ -1,8 +1,0 @@
-export const listConstants = {
-  SECTION_PADDING_Y: 2,
-  ACCENT_BAR_WIDTH: 4,
-  ACCENT_BAR_HEIGHT: 24,
-  TABLE_CELL_PADDING_X: '1rem',
-  TABLE_CELL_PADDING_Y: 1.5,
-  ROW_HOVER_OPACITY: 0.02,
-};

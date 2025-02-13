@@ -1,0 +1,151 @@
+services:
+  data-timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: data-timescaledb
+    ports:
+      - ${DATA_DB_PORT}:5432
+    volumes:
+      - data-timescaledb_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DATA_DB_USER}
+      - POSTGRES_PASSWORD=${DATA_DB_PASSWORD}
+      - POSTGRES_DB=${DATA_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    networks:
+      - cedhtools
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATA_DB_USER} -d ${DATA_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
+
+  user-postgres:
+    image: postgres:16
+    container_name: user-postgres
+    ports:
+      - ${USER_DB_PORT}:5432
+    volumes:
+      - user-postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${USER_DB_USER}
+      - POSTGRES_PASSWORD=${USER_DB_PASSWORD}
+      - POSTGRES_DB=${USER_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    networks:
+      - user
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: postgres -c listen_addresses='*'
+
+  api:
+    build:
+      context: ../api
+      dockerfile: ../.docker/api/Dockerfile.dev
+    ports:
+      - ${API_PORT}:${API_PORT}
+    volumes:
+      - ../api:/usr/src/app
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/usr/src/app/target
+    environment:
+      # RUST
+      - RUST_LOG=${RUST_LOG}
+      - RUST_BACKTRACE=${RUST_BACKTRACE}
+      # API
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+      # APP
+      - APP_HOST=${APP_HOST}
+      - APP_PORT=${APP_PORT}
+      # DATA DATABASE
+      - DATA_DB_URL=postgresql://${DATA_DB_USER}:${DATA_DB_PASSWORD}@data-timescaledb:5432/${DATA_DB_NAME}
+    networks:
+      - cedhtools
+      - user
+    restart: always
+    depends_on:
+      data-timescaledb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app:
+    build:
+      context: ../app
+      dockerfile: ../.docker/app/Dockerfile.dev
+    volumes:
+      - ../app:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    environment:
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+      - APP_HOST=${APP_HOST}
+      - APP_PORT=${APP_PORT}
+      # Database configuration
+      - DATABASE_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-postgres:5432/${USER_DB_NAME}
+      # NextAuth configuration
+      - NEXTAUTH_URL=http://${APP_HOST}:${APP_PORT}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # Email configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+    networks:
+      - cedhtools
+      - user
+    restart: always
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${APP_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prisma-studio:
+    build:
+      context: ../app
+      dockerfile: ../.docker/app/Dockerfile.dev
+    command: sh -c "bunx prisma generate && bunx prisma studio --port 5555 --hostname 0.0.0.0"
+    ports:
+      - "5555:5555"
+    volumes:
+      - ../app:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-postgres:5432/${USER_DB_NAME}
+      - NODE_ENV=development
+    networks:
+      - user
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+networks:
+  cedhtools:
+  user:
+
+volumes:
+  data-timescaledb_data:
+  user-postgres_data:
+  cargo_cache:
+  target_cache:
