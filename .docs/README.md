@@ -1,900 +1,306 @@
-# cedhtools
+# cedhtools Application Architecture
 
-cedhtools is a comprehensive analytics platform for competitive EDH (cEDH) that provides data-driven insights on deck performance, card usage, and meta trends. The platform empowers players to make informed decisions in their deckbuilding process by analyzing tournament data and performance statistics. It specifically focuses on the competitive EDH format, which is a multiplayer variant of Magic: The Gathering where typically four players compete using 100-card singleton decks led by legendary creatures known as commanders.
+cedhtools is an analytics tool that provides insights on cEDH stats and trends. It is designed to empower players to make data-driven decisions in their deckbuilding process and analyze performance trends of decks and cards in the meta.
 
-## Table of Contents
-- [Overview](#overview)
-- [Component Hierarchy](#component-hierarchy)
-- [Core Concepts](#core-concepts)
-  - [Deck](#deck)
-  - [Card](#card)
-  - [Tournament](#tournament)
-  - [Player](#player)
-- [Architecture](#architecture)
-  - [Frontend](#frontend)
-  - [API](#api)
-  - [Databases](#databases)
-  - [Data Ingestion](#data-ingestion)
-- [Frontend Routes](#frontend-routes)
+## Domain Model
 
-## Overview
+### Entities
 
-The application integrates and normalizes data from multiple authoritative sources:
-- Tournament data from Topdeck.gg (tournament structure, results, and player information)
-- Decklist data from Moxfield (deck compositions and commander information)
-- Card data from Scryfall (comprehensive card details and metadata)
+#### Deck
+```typescript
+interface Deck {
+  id: string;              // Moxfield publicDeckId
+  name: string;            // Given name of the deck
+  description: string;     // Description of the deck
+  commanders: Card[];      // Commander card(s), 1-2 cards
+  cards: Card[];          // Rest of the deck
+  colorIdentity: Color[]; // Derived from commander(s)
+}
 
-This data undergoes extensive processing, normalization, and analysis to provide comprehensive statistics and insights about the cEDH meta. The platform handles complex relationships between different entities and accounts for various edge cases in data collection and tournament structure.
-
-## Component Hierarchy
-
-The application's data model follows a hierarchical structure where components are related as follows:
-
-```
-Tournament
-├── Rounds (Swiss + Top Cut)
-│   └── Tables
-│       ├── Players (1-5 per table)
-│       │   └── Decks
-│       │       ├── Commander Card(s) (1-2)
-│       │       └── Other Cards (98-99)
-│       └── Winner (or Draw)
-└── Standings
-    └── Players
-        └── Decks (with performance metrics)
+// Constraints:
+// - Exactly 100 cards total (commanders + cards)
+// - All cards must have color identity subset of deck's color identity
+// - Commander(s) determine color identity
 ```
 
-**Detailed Relationships:**
-- **Cards → Decks**: 
-  - Cards are the fundamental building blocks of the format
-  - Each deck contains exactly 100 cards total:
-    - 1-2 commander cards in the command zone
-    - 98-99 other cards in the main deck
-  - Commander cards define the deck's color identity
-  - Color identity restricts which cards can be included in the deck
-  - Example: A Tymna + Kraum deck ({W}{U}{B}{R}) cannot play green cards
-  - Basic lands and certain cards (e.g., "Relentless Rats") can appear multiple times
-  - The same card can appear in multiple different decks
-  
-- **Decks → Players**: 
-  - Players must register a deck for each tournament entry
-  - The same player can:
-    - Register different decks in different tournaments
-    - Register the same deck multiple times across tournaments
-    - Only register one deck per tournament
-  - Decks are identified by Moxfield URLs, but some players may register with other platforms
-  - A deck's performance is tracked across all instances of its use
-  
-- **Players → Tables**: 
-  - Players are assigned to tables during tournament rounds
-  - Standard configuration is 4 players per table
-  - Edge cases include:
-    - 3-player tables (odd number of players)
-    - 5-player tables (tournament organizer decision)
-    - 2-player tables (rare, usually in final brackets)
-    - Single-player tables (byes)
-  - Each table must have:
-    - A defined set of players
-    - A winner (or designated as a draw)
-    - Associated decklists for each player
-  
-- **Tables → Rounds**: 
-  - Tables are organized within rounds
-  - Round types:
-    - Swiss rounds (determined by tournament size)
-    - Top cut rounds (e.g., Top 16, Top 8, etc.)
-  - Each round:
-    - Has a unique identifier/number
-    - Contains multiple tables
-    - Must complete before the next round begins
-  
-- **Rounds → Tournament**: 
-  - Tournaments follow a structured format:
-    1. Swiss rounds (variable number based on attendance)
-    2. Top cut elimination rounds (optional)
-    3. Final standings
-  - Each tournament has:
-    - A unique identifier
-    - A start date/time
-    - A defined number of swiss rounds
-    - A specified top cut size (if applicable)
-  
-- **Players → Standings**: 
-  - Tournament standings track comprehensive player performance:
-    - Overall match record
-      - Wins
-      - Losses
-      - Draws
-      - Byes
-    - Performance by tournament stage
-      - Swiss rounds (winsSwiss/lossesSwiss)
-      - Bracket rounds (winsBracket/lossesBracket)
-    - Final placement
-    - Tiebreaker metrics
+Implementation Notes:
+- A deck is a collection of 100 Magic: The Gathering cards played in a tournament
+- Each deck has either one or two commanders
+- Rest of the deck is made up of unique cards with some exceptions (basic lands, Relentless Rats, etc.)
+- Color identity is dictated by the commander(s). For example, Tymna + Kraum is {W}{U}{B}{R}, meaning any card that is colorless or has one or more of white, blue, black, or red is legal
+- Decks are uniquely identified by their Moxfield publicId
+- Same exact deck (same publicId) can be played in multiple tournaments
+- We often identify decks by commander name(s) colloquially. For example, "Kinnan deck" refers to any deck with Kinnan as commander, even though there may be hundreds of unique decklists
 
-**Data Analysis Capabilities:**
-This hierarchical structure enables sophisticated analysis:
-- Card-level analysis:
-  - Win rate when included in decks
-  - Frequency of inclusion by commander
-  - Performance in different strategies
-  - Meta share over time
+#### Card
+```typescript
+interface Card {
+  id: string;              // Moxfield uniqueCardId
+  uri: string;             // Scryfall URI
+  type: CardType;          // Main card type
+  typeLine: string;        // Full type line
+  name: string | string[]; // For multi-face cards
+  colorIdentity: Color[];
+  manaCost: string | string[]; // For multi-face cards
+  imageUri: string;        // Scryfall CDN URI
+  legality: "legal" | "not_legal" | "banned";
+  oracleText: string;
+}
 
-- Deck-level analysis:
-  - Overall win rates
-  - Performance by player skill level
-  - Matchup statistics
-  - Meta adaptation over time
+type CardType = "Battle" | "Planeswalker" | "Creature" | "Instant" | 
+                "Sorcery" | "Enchantment" | "Artifact" | "Land";
+type Color = "W" | "U" | "B" | "R" | "G";
+```
 
-- Player-level analysis:
-  - Tournament performance history
-  - Preferred strategies/commanders
-  - Win rates with different decks
-  - Consistency metrics
+Implementation Notes:
+- Cards are uniquely defined by Moxfield uniqueCardId
+- Same card can have multiple printings (different Scryfall IDs)
+- Data layout can vary between printings (e.g., Jinnie Fay, Jetmir's Second has different data structure for reversible vs normal printing)
+- We don't track specific card properties like power/toughness/loyalty
+- Some Moxfield data isn't perfectly synced with Scryfall (e.g., "digital only" versions of Strixhaven: Mystical Archive cards have dead Scryfall IDs)
 
-- Meta-level analysis:
-  - Color identity success rates
-  - Commander popularity trends
-  - Strategy prevalence
-  - Format evolution over time
+#### Tournament
+```typescript
+interface Tournament {
+  id: string;           // Topdeck.gg tournament ID
+  name: string;
+  swissNum: number;     // Number of swiss rounds
+  startDate: Date;
+  rounds: Round[];
+  topCut: number;       // Number advancing past swiss
+  standings: Standing[];
+}
+```
 
-- Tournament structure analysis:
-  - Optimal round numbers
-  - Table size impact
-  - Position-based advantages
-  - Bracket structure effectiveness
+#### Round
+```typescript
+interface Round {
+  round: number | string; // Number for swiss, string for top cut
+  tables: Table[];
+}
+```
 
-**Edge Cases and Special Considerations:**
-1. Player Identity:
-   - Anonymous players without Topdeck.gg IDs
-   - Players using different names across tournaments
-   - Account merging/splitting
+#### Table
+```typescript
+interface Table {
+  table: number;
+  players: {
+    id: string;
+    name: string;
+    decklist: string; // Moxfield URL
+  }[];
+  winner: string;     // Player name or "Draw"
+  winner_id: string;  // Player ID or "Draw"
+}
+```
 
-2. Decklist Verification:
-   - Non-Moxfield decklist URLs
-   - Invalid/broken decklist links
-   - Missing decklist information
-   - Decklist changes during tournaments
+#### Standing
+```typescript
+interface Standing {
+  name: string;
+  id: string;          // Topdeck.gg player ID
+  decklist: string;    // Moxfield URL
+  wins: number;
+  losses: number;
+  draws: number;
+  byes: number;
+  winsSwiss: number;
+  lossesSwiss: number;
+  winsBracket: number;
+  lossesBracket: number;
+}
+```
 
-3. Tournament Structure:
-   - Variable player counts per table
-   - Incomplete rounds
-   - Modified bracket structures
-   - Tournament cancellations
+#### Player
+```typescript
+interface Player {
+  id?: string;         // Optional Topdeck.gg ID
+  name: string;
+}
+```
 
-4. Card Data:
-   - Multiple printings of the same card
-   - Double-faced cards
-   - Split cards
-   - Cards with errata
-   - Digital-only versions
-   - Inconsistent card IDs between systems
-
-5. Data Consistency:
-   - Timestamp synchronization
-   - Result reporting accuracy
-   - Player name standardization
-   - Deck identification across platforms
-
-## Core Concepts
-
-### Deck
-
-A deck in cedhtools represents a 100-card Commander deck played in tournaments. Key characteristics:
-
-- Exactly 100 cards including commander(s)
-- One or two commanders that define color identity
-- Unique cards except for basic lands and special cases
-- Identified by Moxfield's publicId
-
-**Properties:**
-| Property | Description |
-|----------|-------------|
-| id | Moxfield publicDeckId for unique identification |
-| name | Given name of the deck |
-| description | Deck description |
-| commanders | Array of commander Card objects |
-| cards | Array of non-commander Card objects |
-| colorIdentity | Array of colors from commander(s) |
-
-> See `/sample_data/moxfield_deck.json` for a complete example.
-
-### Card
-
-A Magic: The Gathering card that can be played in commander decks. 
-
-**Relevant Card Types:**
-- Creature
-- Planeswalker
-- Instant
-- Sorcery
-- Enchantment
-- Artifact
-- Land
-
-**Properties:**
-| Property | Description |
-|----------|-------------|
-| id | Moxfield uniqueCardId |
-| uri | Scryfall page URI |
-| type | Card supertype |
-| typeLine | Full type line |
-| name | Card name(s) |
-| colorIdentity | Array of colors in identity |
-| manaCost | Mana cost(s) |
-| imageUri | Scryfall image URI |
-| legality | Commander format legality |
-| oracleText | Card's oracle text |
-
-> See `/sample_data/scryfall_cards.json` for examples.
-
-### Tournament
-
-A cEDH event from Topdeck.gg where decks compete.
-
-**Properties:**
-| Property | Description |
-|----------|-------------|
-| id | Topdeck.gg tournament ID |
-| name | Tournament name |
-| swissNum | Number of swiss rounds |
-| startDate | Tournament start date/time |
-| rounds | Array of Round objects |
-| topCut | Number of players advancing |
-| standings | Array of Standing objects |
-
-**Round Properties:**
-| Property | Description |
-|----------|-------------|
-| round | Round number or stage (e.g. "Top 16") |
-| tables | Array of Table objects |
-
-**Table Properties:**
-| Property | Description |
-|----------|-------------|
-| table | Table number |
-| players | Array of player information |
-| winner | Winner name or "Draw" |
-| winner_id | Winner ID or "Draw" |
-
-> See `/sample_data/topdeck_tournament.json` for a complete example.
-
-### Player
-
-A person who participates in tournaments.
-
-**Properties:**
-| Property | Description |
-|----------|-------------|
-| id | Topdeck.gg player ID (if available) |
-| name | Player name |
-
-**Standing Properties:**
-| Property | Description |
-|----------|-------------|
-| name | Player name |
-| id | Player ID |
-| decklist | Moxfield decklist URL |
-| wins/losses/draws | Game results |
-| winsSwiss/lossesSwiss | Swiss round results |
-| winsBracket/lossesBracket | Bracket results |
-| byes | Number of byes received |
-
-## Architecture
+## System Architecture
 
 ### Frontend
-
-**Tech Stack:**
-- Next.js
-- TypeScript
-- Tailwind CSS
-- Shadcn UI
-- Recharts
-- Lucide Icons
+- Framework: Next.js
+- Language: TypeScript
+- Styling: Tailwind CSS + Shadcn UI
+- Charts: Recharts
+- Icons: Lucide Icons
 
 ### API
-
-Currently evaluating:
-- Rust
-- FastAPI
-- Other options that prioritize performance while maintaining reliability
+- Language: Rust (TBD, considering FastAPI)
+- Requirements:
+  - Fast response times
+  - Reliable
+  - Maintainable
 
 ### Databases
-
-The application uses two databases:
-1. **User DB** (PostgreSQL)
+1. User DB (PostgreSQL)
    - User information
    - Authentication data
 
-2. **Data DB** (TimescaleDB)
-   - cEDH tournament data
-   - Card and deck statistics
-   - Historical trends
+2. Data DB (TimescaleDB)
+   - cEDH data
+   - Tournament results
+   - Temporal analytics
 
-### Data Ingestion
-
-Multi-step ETL pipeline:
-1. Topdeck.gg tournament data
-2. Moxfield decklist data
-3. Scryfall card data
+### Data Ingestion Pipeline
+1. Topdeck.gg Ingestion (TBD)
+2. Moxfield Ingestion (TBD)
+3. Scryfall Ingestion (TBD)
 
 ## Frontend Routes
 
-### Dashboard (`/`)
+### Home Page (/)
+**v1** Features:
+- Commander leaderboard by win rate
+- Color identity meta breakdown (pie chart)
+- Color identity win rates (pie chart)
+- Recent tournament results table
+- Win rate by seat position (bar chart)
+- User-customizable dashboard (future)
 
-The home page serves as a comprehensive overview of the current cEDH meta state.
+### Commanders Page (/commanders)
+- Paginated table of commanders
+- Statistics: win rate, popularity, draw rate
 
-**Key Metrics Cards:**
-```typescript
-interface MetricCard {
-  title: string;
-  value: number;
-  change: number;  // Percentage change from previous period
-  trend: 'up' | 'down' | 'neutral';
-  period: 'day' | 'week' | 'month';
-}
+### Commander Page (/commanders/[commanderId])
+Displays:
+- Win/draw rates
+- Tournament performance
+- Time-series analytics
+- Player statistics
+- Matchup data
 
-interface FilterOptions {
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  tournamentSize: {
-    min: number;
-    max: number;
-  };
-  topCut: number[];  // e.g., [8, 16, 32]
-  minGames: number;
-}
-```
-- Total tournaments this month
-- Active players this month
-- Most popular commander
-- Most successful commander (by win rate)
+### Commander Cards Page (/commanders/[commanderId]/cards)
+Shows:
+- Card tables by type
+- Search/filter functionality
+- Card performance metrics
+- Staple/synergy analysis
 
-**Meta Overview:**
-```typescript
-interface ColorIdentityStats {
-  colors: string[];
-  deckCount: number;
-  winRate: number;
-  popularity: number;
-  recentTrend: number;
-  byTournamentSize: Array<{
-    size: string;  // e.g., "Small (<32)", "Medium (32-64)", "Large (>64)"
-    winRate: number;
-    popularity: number;
-  }>;
-  byTopCut: Array<{
-    cut: number;
-    winRate: number;
-    popularity: number;
-  }>;
-}
-```
-- Pie Chart: Color identity distribution
-- Bar Chart: Color identity win rates
-- Line Chart: Color identity trends over time (last 3 months)
+### Players Page (/players)
+- Player statistics table
+- Tournament history
 
-**Commander Performance:**
-```typescript
-interface CommanderStats {
-  name: string;
-  colors: string[];
-  gamesPlayed: number;
-  winRate: number;
-  popularity: number;
-  recentResults: Array<{
-    tournamentId: string;
-    placement: number;
-    playerName: string;
-    date: string;
-    tournamentSize: number;
-    topCut: number;
-  }>;
-  performance: {
-    overall: {
-      winRate: number;
-      popularity: number;
-    };
-    byTournamentSize: Array<{
-      size: string;
-      winRate: number;
-      popularity: number;
-    }>;
-    byTopCut: Array<{
-      cut: number;
-      winRate: number;
-      popularity: number;
-    }>;
-  };
-}
-```
-- Table: Top 10 commanders by win rate (min. 20 games)
-- Bar Chart: Most played commanders
-- Scatter Plot: Win rate vs. Popularity
+### Player Page (/players/[playerId])
+Shows:
+- Player profile
+- Deck history
+- Tournament results
+- Performance trends
 
-**Recent Tournament Results:**
-```typescript
-interface TournamentSummary {
-  id: string;
-  name: string;
-  date: string;
-  playerCount: number;
-  winner: {
-    name: string;
-    deck: {
-      commanders: string[];
-      colors: string[];
-      url: string;
-    };
-  };
-  topCut: Array<{
-    placement: number;
-    playerName: string;
-    commanders: string[];
-  }>;
-}
-```
-- Table: Last 5 tournaments with winners
-- Stats: Average tournament size
-- Chart: Tournament attendance trend
+### Tournaments Page (/tournaments)
+- Tournament listing
+- Results and statistics
 
-**Position Analysis:**
-```typescript
-interface PositionStats {
-  position: number;  // 1-4
-  gamesPlayed: number;
-  winRate: number;
-  drawRate: number;
-  byColorIdentity: Record<string, number>;  // Win rates by color
-}
-```
-- Bar Chart: Win rates by seat position
-- Heat Map: Color identity performance by position
+### Tournament Page (/tournaments/[tournamentId])
+Displays:
+- Tournament details
+- Round information
+- Final standings
 
-### Commanders
+## Implementation Details & Notes
 
-#### List (`/commanders`)
-```typescript
-interface CommanderListStats {
-  commanders: Array<{
-    id: string;
-    name: string;
-    colors: string[];
-    partnerWith?: string;
-    stats: {
-      gamesPlayed: number;
-      winRate: number;
-      drawRate: number;
-      popularity: number;
-      trend: number;
-      byTournamentSize: Array<{
-        size: string;
-        gamesPlayed: number;
-        winRate: number;
-      }>;
-      byTopCut: Array<{
-        cut: number;
-        appearances: number;
-        winRate: number;
-      }>;
-    };
-    recentResults: Array<{
-      tournamentId: string;
-      placement: number;
-      date: string;
-    }>;
-  }>;
-  filters: {
-    colors: string[];
-    minGames: number;
-    period: string;
-    partnerOnly: boolean;
-    dateRange: {
-      start: string;
-      end: string;
-    };
-    tournamentSize: {
-      min: number;
-      max: number;
-    };
-    topCut: number[];
-  };
-}
-```
+### Tournament Structure
+- Tournaments can have variable number of rounds
+- Tables ideally have 4 players but can vary from 1-5 players
+- Need to handle this variance in data processing
+- All tournaments are from Topdeck.gg cEDH events
 
-**Components:**
-- Filterable data table with columns:
-  - Commander name(s)
-  - Color identity
-  - Games played
-  - Win rate
-  - Draw rate
-  - Popularity
-  - Trend
-- Color identity filter (shadcn multi-select)
-- Time period selector
-- Partner commander toggle
+### Data Sources & Edge Cases
+1. Decklist Sources:
+   - Primary: Moxfield URLs
+   - Need to handle: Archidekt, other sources
+   - Some players don't provide parseable decklist URLs
 
-#### Details (`/commanders/[commanderId]`)
-```typescript
-interface CommanderDetailStats {
-  commander: {
-    id: string;
-    name: string;
-    colors: string[];
-    partnerWith?: string;
-    imageUri: string;
-  };
-  performance: {
-    overall: {
-      gamesPlayed: number;
-      winRate: number;
-      drawRate: number;
-      tournamentWins: number;
-      topCuts: number[];  // Array of top X finishes
-    };
-    byPeriod: Array<{
-      period: string;
-      gamesPlayed: number;
-      winRate: number;
-      popularity: number;
-    }>;
-    byMatchup: Array<{
-      opponent: string;
-      gamesPlayed: number;
-      winRate: number;
-    }>;
-    byPosition: Array<{
-      position: number;
-      gamesPlayed: number;
-      winRate: number;
-    }>;
-  };
-  players: Array<{
-    name: string;
-    gamesPlayed: number;
-    winRate: number;
-    bestFinish: number;
-    recentResults: Array<{
-      tournamentId: string;
-      placement: number;
-      date: string;
-    }>;
-  }>;
-  decklists: Array<{
-    url: string;
-    player: string;
-    tournament: string;
-    placement: number;
-    date: string;
-  }>;
-}
-```
+2. Player Identity:
+   - Not all players have Topdeck.gg IDs
+   - Anonymous players only have string names
+   - Need to handle player identity across tournaments
 
-**Components:**
-- Hero section with commander card(s)
-- Performance metrics cards
-- Line chart: Win rate over time
-- Line chart: Popularity over time
-- Bar chart: Position performance
-- Heat map: Matchup win rates
-- Table: Top players
-- Table: Recent tournament results
-- Table: Notable decklists
+3. Card Data Syncing:
+   - Moxfield/Scryfall sync issues
+   - Multiple printings of same card
+   - Special card layouts (split cards, transforming, etc.)
 
-#### Cards (`/commanders/[commanderId]/cards`)
-```typescript
-interface CommanderCardStats {
-  cardsByType: Record<string, Array<{
-    id: string;
-    name: string;
-    type: string;
-    inclusion: {
-      count: number;
-      percentage: number;
-    };
-    performance: {
-      winRate: number;
-      drawRate: number;
-    };
-    trend: number;
-    synergy: number;  // 0-1 score
-  }>>;
-  stapleMetrics: {
-    averageSynergyScore: number;
-    stapleCount: number;
-    innovationScore: number;
-  };
-}
-```
+## Frontend Implementation Details
 
-**Components:**
-- Tabs for each card type
-- Sortable tables with columns:
-  - Card name
-  - Inclusion rate
-  - Win rate
-  - Trend
-  - Synergy score
-- Pie chart: Card type distribution
-- Bar chart: Top performing cards
-- Line chart: Card inclusion trends
-- Synergy heat map
+### Home Page (/)
+**v1** Features:
+- Commander leaderboard by win rate
+- Color identity meta breakdown (pie chart)
+- Color identity win rates (pie chart)
+- Recent tournament results table
+- Win rate by seat position (bar chart)
+- User-customizable dashboard (future)
 
-#### Card Details (`/commanders/[commanderId]/cards/[cardId]`)
-```typescript
-interface CommanderCardDetail {
-  card: {
-    id: string;
-    name: string;
-    type: string;
-    imageUri: string;
-    oracleText: string;
-  };
-  usage: {
-    overall: {
-      inclusion: number;
-      winRate: number;
-      synergy: number;
-    };
-    byPeriod: Array<{
-      period: string;
-      inclusion: number;
-      winRate: number;
-    }>;
-    byVariant: Array<{
-      decklist: string;
-      inclusion: number;
-      winRate: number;
-    }>;
-  };
-  alternatives: Array<{
-    card: string;
-    inclusion: number;
-    winRate: number;
-    correlation: number;
-  }>;
-}
-```
+### Commander Pages
+**v1** Features for /commanders/[commanderId]:
+- Comprehensive stats:
+  - Win rate, draw rate
+  - Tournament performance (wins, top 4/8/16)
+  - Sample size (decks, players)
+- Time series:
+  - Win rate over time
+  - Popularity trends
+- Analysis:
+  - Seat position performance
+  - Matchup data
+  - Top pilots
 
-**Components:**
-- Card display with oracle text
-- Performance metrics cards
-- Line chart: Usage over time
-- Line chart: Win rate over time
-- Bar chart: Performance in different variants
-- Table: Alternative card suggestions
-- Synergy network graph
+**v1** Features for /commanders/[commanderId]/cards:
+- Card type tables with pagination
+- Global search affecting all tables
+- Advanced filtering/sorting
+- Staple vs synergy analysis
+- Performance metrics by popularity
 
-### Players
+### Player Pages
+**v1** Features:
+- Complete tournament history
+- Deck performance tracking
+- Time-based analytics
+- First/last seen dates
 
-#### List (`/players`)
-```typescript
-interface PlayerListStats {
-  players: Array<{
-    id: string;
-    name: string;
-    stats: {
-      tournaments: number;
-      wins: number;
-      topCuts: number;
-      winRate: number;
-      favorite: {
-        commander: string;
-        games: number;
-        winRate: number;
-      };
-      byTournamentSize: Array<{
-        size: string;
-        tournaments: number;
-        winRate: number;
-      }>;
-      byTopCut: Array<{
-        cut: number;
-        appearances: number;
-        winRate: number;
-      }>;
-    };
-    recent: {
-      trend: number;
-      lastSeen: string;
-      lastDeck: string;
-    };
-  }>;
-  filters: {
-    dateRange: {
-      start: string;
-      end: string;
-    };
-    tournamentSize: {
-      min: number;
-      max: number;
-    };
-    topCut: number[];
-    minTournaments: number;
-  };
-}
-```
+Note: Anonymous players won't have dedicated pages
 
-**Components:**
-- Searchable data table
-- Performance filters
-- Activity period selector
-- Commander filters
+### Tournament Pages
+**v1** Features:
+- Full round/table information
+- Deck registration details
+- Complete standings
+- Need to handle non-standard table sizes
 
-#### Details (`/players/[playerId]`)
-```typescript
-interface PlayerDetailStats {
-  player: {
-    id: string;
-    name: string;
-    joinDate: string;
-  };
-  performance: {
-    overall: {
-      tournaments: number;
-      wins: number;
-      topCuts: number[];
-      winRate: number;
-    };
-    byCommander: Array<{
-      commander: string;
-      games: number;
-      winRate: number;
-      lastPlayed: string;
-    }>;
-    byPeriod: Array<{
-      period: string;
-      tournaments: number;
-      winRate: number;
-      deck: string;
-    }>;
-  };
-  tournaments: Array<{
-    id: string;
-    date: string;
-    name: string;
-    deck: string;
-    placement: number;
-    record: {
-      wins: number;
-      losses: number;
-      draws: number;
-    };
-  }>;
-}
-```
+## Known Gaps and TODOs
 
-**Components:**
-- Player stats cards
-- Line chart: Performance over time
-- Pie chart: Commander distribution
-- Bar chart: Tournament placements
-- Table: Tournament history
-- Heat map: Win rates by commander
+1. Data Ingestion
+- [ ] Define ETL pipeline architecture
+- [ ] Specify data validation rules
+- [ ] Document rate limiting
+- [ ] Error handling procedures
 
-### Tournaments
+2. API Design
+- [ ] Finalize technology choice
+- [ ] Define endpoints
+- [ ] Authentication/authorization
+- [ ] Rate limiting strategy
+- [ ] Caching implementation
 
-#### List (`/tournaments`)
-```typescript
-interface TournamentListStats {
-  tournaments: Array<{
-    id: string;
-    name: string;
-    date: string;
-    players: number;
-    rounds: number;
-    topCut: number;
-    winner: {
-      name: string;
-      deck: string;
-    };
-    meta: {
-      topCommander: string;
-      colorDistribution: Record<string, number>;
-    };
-  }>;
-  filters: {
-    dateRange: {
-      start: string;
-      end: string;
-    };
-    size: {
-      min: number;
-      max: number;
-    };
-    topCut: number[];
-    format: 'swiss' | 'bracket' | 'both';
-  };
-  aggregates: {
-    bySize: Array<{
-      size: string;
-      count: number;
-      averagePlayerCount: number;
-    }>;
-    byTopCut: Array<{
-      cut: number;
-      count: number;
-      averagePlayerCount: number;
-    }>;
-    byMonth: Array<{
-      month: string;
-      count: number;
-      averagePlayerCount: number;
-    }>;
-  };
-}
-```
+3. Database Schema
+- [ ] Complete schema design
+- [ ] Define indexes
+- [ ] Optimize for TimescaleDB
+- [ ] Document relationships
 
-**Components:**
-- Filterable tournament table
-- Calendar view option
-- Tournament size distribution chart
-- Meta breakdown charts
+4. ETL Process
+- [ ] Data normalization rules
+- [ ] Edge case handling
+- [ ] Conflict resolution
+- [ ] Update procedures
 
-#### Details (`/tournaments/[tournamentId]`)
-```typescript
-interface TournamentDetailStats {
-  tournament: {
-    id: string;
-    name: string;
-    date: string;
-    format: {
-      players: number;
-      swiss: number;
-      topCut: number;
-    };
-    rounds: Array<{
-      number: number;
-      tables: Array<{
-        players: Array<{
-          name: string;
-          deck: string;
-          result: string;
-        }>;
-      }>;
-    }>;
-    standings: Array<{
-      rank: number;
-      player: string;
-      deck: string;
-      record: {
-        wins: number;
-        losses: number;
-        draws: number;
-      };
-      tiebreakers: number[];
-    }>;
-    meta: {
-      commanders: Record<string, number>;
-      colors: Record<string, number>;
-      archetypes: Record<string, number>;
-    };
-  };
-}
-```
-
-**Components:**
-- Tournament info cards
-- Bracket visualization
-- Swiss rounds tables
-- Final standings table
-- Meta breakdown charts:
-  - Commander distribution
-  - Color identity distribution
-  - Archetype distribution
-- Performance analysis:
-  - Position win rates
-  - Color identity success rates
-  - Commander success rates
-
----
-
-**Note:** The application handles edge cases such as:
-- Anonymous players
-- Non-Moxfield decklists
-- Variable player counts per table
-- Multiple printings of cards
-- Data inconsistencies between sources
+## Open Questions
+- Do we need separate /deck and /deck/[deckId] routes? How do these differ from commander pages?
+- How do we handle data aggregation for anonymous players?
+- What's the best way to normalize card data across different printings?
