@@ -29,13 +29,15 @@ import { DataTableViewOptions } from "@/components/ui/column-toggle";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  enableRowSelection?: boolean;
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ columns, data, enableRowSelection = false }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+
   const table = useReactTable({
     data,
     columns,
@@ -45,8 +47,14 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    enableRowSelection,
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10
+      }
+    },
     state: {
       sorting,
       columnFilters,
@@ -56,8 +64,8 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
   });
 
   return (
-    <>
-      <div className="flex items-center py-4">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
         <Input
           placeholder="Filter..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -100,9 +108,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
           </TableBody>
         </Table>
       </div>
-      <div className="mt-4">
-        <DataTablePagination table={table} />
-      </div>
-    </>
+      <DataTablePagination table={table} showRowSelection={enableRowSelection} />
+    </div>
   );
 }

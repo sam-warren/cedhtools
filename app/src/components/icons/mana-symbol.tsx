@@ -1,4 +1,4 @@
-import { getManaSymbol, parseManaString } from "@/lib/mana-symbols/utils";
+import { getManaSymbol, parseManaString } from "@/lib/utils/mana-symbols";
 import Image from "next/image";
 import React, { useMemo } from "react";
 
