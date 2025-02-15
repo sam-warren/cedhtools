@@ -7,9 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
   showRowSelection?: boolean;
+  pageSizeOptions?: number[];
 }
 
-export function DataTablePagination<TData>({ table, showRowSelection = false }: DataTablePaginationProps<TData>) {
+export function DataTablePagination<TData>({
+  table,
+  showRowSelection = false,
+  pageSizeOptions = [10, 20, 30, 40, 50]
+}: DataTablePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2">
       {showRowSelection && (
@@ -30,7 +35,7 @@ export function DataTablePagination<TData>({ table, showRowSelection = false }: 
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 40, 50].map((pageSize) => (
+              {pageSizeOptions.map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>
