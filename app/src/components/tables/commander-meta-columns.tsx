@@ -20,7 +20,7 @@ export type CommanderMeta = {
   colorIdentity: string;
   winRate: number;
   drawRate: number;
-  popularity: number;
+  entries: number;
 };
 
 // Mock data for the commander meta table
@@ -31,7 +31,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}{B}{R}{G}",
     winRate: 23.5,
     drawRate: 15.2,
-    popularity: 342
+    entries: 342
   },
   {
     position: 2,
@@ -39,7 +39,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}{B}{G}",
     winRate: 22.8,
     drawRate: 14.9,
-    popularity: 289
+    entries: 289
   },
   {
     position: 3,
@@ -47,7 +47,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}{B}{R}",
     winRate: 21.9,
     drawRate: 14.5,
-    popularity: 256
+    entries: 256
   },
   {
     position: 4,
@@ -55,7 +55,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{R}{G}",
     winRate: 21.2,
     drawRate: 13.8,
-    popularity: 198
+    entries: 198
   },
   {
     position: 5,
@@ -63,7 +63,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}{R}{G}",
     winRate: 20.8,
     drawRate: 13.5,
-    popularity: 167
+    entries: 167
   },
   {
     position: 6,
@@ -71,7 +71,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}{B}{R}{G}",
     winRate: 20.5,
     drawRate: 13.2,
-    popularity: 154
+    entries: 154
   },
   {
     position: 7,
@@ -79,7 +79,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}",
     winRate: 20.1,
     drawRate: 12.9,
-    popularity: 145
+    entries: 145
   },
   {
     position: 8,
@@ -87,7 +87,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}{G}",
     winRate: 19.8,
     drawRate: 12.6,
-    popularity: 132
+    entries: 132
   },
   {
     position: 9,
@@ -95,7 +95,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}{R}",
     winRate: 19.5,
     drawRate: 12.4,
-    popularity: 128
+    entries: 128
   },
   {
     position: 10,
@@ -103,7 +103,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}",
     winRate: 19.2,
     drawRate: 12.1,
-    popularity: 121
+    entries: 121
   },
   {
     position: 11,
@@ -111,7 +111,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}{B}{G}",
     winRate: 18.9,
     drawRate: 11.9,
-    popularity: 115
+    entries: 115
   },
   {
     position: 12,
@@ -119,7 +119,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{R}",
     winRate: 18.6,
     drawRate: 11.7,
-    popularity: 108
+    entries: 108
   },
   {
     position: 13,
@@ -127,7 +127,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}{B}",
     winRate: 18.3,
     drawRate: 11.5,
-    popularity: 102
+    entries: 102
   },
   {
     position: 14,
@@ -135,7 +135,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{B}{G}",
     winRate: 18.0,
     drawRate: 11.3,
-    popularity: 98
+    entries: 98
   },
   {
     position: 15,
@@ -143,7 +143,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{R}",
     winRate: 17.8,
     drawRate: 11.1,
-    popularity: 92
+    entries: 92
   },
   {
     position: 16,
@@ -151,7 +151,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}{B}",
     winRate: 17.5,
     drawRate: 10.9,
-    popularity: 89
+    entries: 89
   },
   {
     position: 17,
@@ -159,7 +159,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{R}",
     winRate: 17.2,
     drawRate: 10.7,
-    popularity: 85
+    entries: 85
   },
   {
     position: 18,
@@ -167,7 +167,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{G}",
     winRate: 16.9,
     drawRate: 10.5,
-    popularity: 82
+    entries: 82
   },
   {
     position: 19,
@@ -175,7 +175,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{U}{B}{R}",
     winRate: 16.6,
     drawRate: 10.3,
-    popularity: 78
+    entries: 78
   },
   {
     position: 20,
@@ -183,7 +183,7 @@ export const mockData: CommanderMeta[] = [
     colorIdentity: "{W}{U}",
     winRate: 16.3,
     drawRate: 10.1,
-    popularity: 75
+    entries: 75
   }
 ];
 
@@ -236,9 +236,9 @@ export const columns: ColumnDef<CommanderMeta>[] = [
     cell: ({ row }) => <div>{row.getValue<number>("drawRate").toFixed(1)}%</div>
   },
   {
-    accessorKey: "popularity",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Popularity" />,
-    cell: ({ row }) => <div>{row.getValue<number>("popularity")}</div>
+    accessorKey: "entries",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Entries" />,
+    cell: ({ row }) => <div>{row.getValue<number>("entries")}</div>
   },
   {
     id: "actions",
