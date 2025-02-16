@@ -12,6 +12,9 @@ import { CalendarFold } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import React from "react";
 
+const MIN_DATE = new Date("2022-06-02");
+const MAX_DATE = new Date();
+
 interface FilterDateRangeProps {
   dateRange: DateRange | undefined;
   datePreset: DatePreset;
@@ -143,7 +146,9 @@ export function FilterDateRange({
               selected={dateRange}
               onSelect={handleDateRangeChange}
               numberOfMonths={1}
-              key={dateRange?.to?.toISOString()}
+              fromDate={MIN_DATE}
+              toDate={MAX_DATE}
+              fixedWeeks
             />
           </div>
         </PopoverContent>

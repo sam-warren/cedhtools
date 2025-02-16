@@ -34,13 +34,13 @@ const isArrayEqual = (a: string[], b: string[]) => {
 }
 
 export const useFilterStore = create<FilterStore>((set, get) => ({
-  dateRange: DATE_PRESETS[DATE_PRESET.THREE_MONTHS],
-  datePreset: DATE_PRESET.THREE_MONTHS,
+  dateRange: DATE_PRESETS[DATE_PRESET.POST_BAN],
+  datePreset: DATE_PRESET.POST_BAN,
   tournamentSize: TOURNAMENT_SIZE.THIRTY_PLUS,
   topCut: [TOP_CUT.TOP_4, TOP_CUT.TOP_10, TOP_CUT.TOP_16],
   appliedState: {
-    dateRange: DATE_PRESETS[DATE_PRESET.THREE_MONTHS],
-    datePreset: DATE_PRESET.THREE_MONTHS,
+    dateRange: DATE_PRESETS[DATE_PRESET.POST_BAN],
+    datePreset: DATE_PRESET.POST_BAN,
     tournamentSize: TOURNAMENT_SIZE.THIRTY_PLUS,
     topCut: [TOP_CUT.TOP_4, TOP_CUT.TOP_10, TOP_CUT.TOP_16]
   },
