@@ -33,7 +33,7 @@ export const mockData: Tournament[] = [
     swissRounds: 6,
     topCut: 8,
     winner: "John Smith",
-    winningCommander: "Kenrith, the Returned King"
+    winningCommander: "Kinnan, Bonder Prodigy"
   },
   {
     id: "t124",

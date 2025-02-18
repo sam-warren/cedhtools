@@ -39,7 +39,7 @@ export const mockData: Player[] = [
     topCuts: 8,
     winRate: 62.5,
     drawRate: 11.1,
-    mostPlayedCommander: "Kenrith, the Returned King"
+    mostPlayedCommander: "Kinnan, Bonder Prodigy"
   },
   {
     id: "p124",

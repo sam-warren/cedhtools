@@ -27,8 +27,8 @@ export default function MainLayout({
             <Separator orientation="vertical" className="mr-2 h-4" />
             {breadcrumbs}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 pt-4 xl:pt-16">
-            <div className="mx-auto w-full max-w-7xl">
+          <main className="flex flex-1 flex-col p-4 pt-4 xl:pt-8">
+            <div className="mx-auto w-full max-w-7xl space-y-8">
               {children}
             </div>
           </main>

@@ -1,6 +1,6 @@
 export const commanderData = {
   id: "1",
-  name: "Kenrith, the Returned King",
+  name: "Kinnan, Bonder Prodigy",
   colorIdentity: "{W}{U}{B}{R}{G}",
   stats: {
     tournamentWins: {

@@ -27,8 +27,8 @@ export type CommanderMeta = {
 export const mockData: CommanderMeta[] = [
   {
     position: 1,
-    name: "Kenrith, the Returned King",
-    colorIdentity: "{W}{U}{B}{R}{G}",
+    name: "Kinnan, Bonder Prodigy",
+    colorIdentity: "{U}{G}",
     winRate: 23.5,
     drawRate: 15.2,
     entries: 342
@@ -83,7 +83,7 @@ export const mockData: CommanderMeta[] = [
   },
   {
     position: 8,
-    name: "Kinnan, Bonder Prodigy",
+    name: "Nadu, Winged Wisdom",
     colorIdentity: "{U}{G}",
     winRate: 19.8,
     drawRate: 12.6,
