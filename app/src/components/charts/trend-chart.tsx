@@ -10,6 +10,7 @@ import { format, differenceInMonths, parseISO, isWithinInterval } from "date-fns
 import { TOP_CUT, TOURNAMENT_SIZE, DATE_PRESET } from "@/lib/constants/filters";
 import { NoData } from "@/components/ui/no-data";
 import { FilterBadges } from "@/components/ui/filter-badges";
+import { TrendBadge } from "@/components/ui/trend-badge";
 
 interface TrendChartProps<T extends Record<string, string | number>> {
   data: T[];
@@ -94,81 +95,79 @@ export function TrendChart<T extends Record<string, string | number>>({
   };
 
   return (
-    <Card className="bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200 h-[400px] flex flex-col">
-      <CardHeader className="pb-2 flex-none">
+    <Card className="shadow-sm transition-shadow duration-200 hover:shadow-md">
+      <CardHeader className="flex-none pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
           {showFilters && <FilterBadges />}
         </div>
       </CardHeader>
-      <CardContent className="pb-4 flex-1 min-h-0">
-        <ChartContainer config={chartConfig} className="h-full w-full">
-          <AreaChart data={filteredData} margin={{ top: 20, right: 12, bottom: 5, left: 0 }}>
-            <defs>
-              <linearGradient id={`${String(dataKey)}Gradient`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="rgb(99, 102, 241)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="rgb(99, 102, 241)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid 
-              vertical={false} 
-              strokeDasharray="3 3" 
-              stroke="rgb(226, 232, 240)"
-              className="dark:stroke-gray-700" 
-            />
-            <XAxis
-              dataKey={String(xAxisKey)}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-              tickFormatter={getTickFormatter()}
-              stroke="rgb(148, 163, 184)"
-              className="dark:stroke-gray-400"
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={valueFormatter}
-              domain={[(dataMin: number) => Math.floor(dataMin * 0.95), (dataMax: number) => Math.ceil(dataMax * 1.05)]}
-              stroke="rgb(148, 163, 184)"
-              className="dark:stroke-gray-400"
-            />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent
-                  indicator="line"
-                  labelFormatter={(value) => format(parseISO(String(value)), "MMM d, yyyy")}
-                  className="bg-white dark:bg-gray-800 shadow-lg border border-gray-100 dark:border-gray-700 px-3 py-2 rounded-lg"
-                />
-              }
-            />
-            <Area
-              type="monotone"
-              dataKey={String(dataKey)}
-              stroke="rgb(99, 102, 241)"
-              strokeWidth={2}
-              fill={`url(#${String(dataKey)}Gradient)`}
-              className="dark:stroke-indigo-400"
-            />
-          </AreaChart>
-        </ChartContainer>
+      <CardContent className="pb-4">
+        <div className="h-[200px]">
+          <ChartContainer config={chartConfig} className="h-full w-full">
+            <AreaChart data={filteredData} margin={{ top: 20, right: 12, bottom: 5, left: 0 }}>
+              <defs>
+                <linearGradient id={`${String(dataKey)}Gradient`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(99, 102, 241)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="rgb(99, 102, 241)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                vertical={false}
+                strokeDasharray="3 3"
+                stroke="rgb(226, 232, 240)"
+                className="dark:stroke-zinc-700"
+              />
+              <XAxis
+                dataKey={String(xAxisKey)}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={getTickFormatter()}
+                stroke="rgb(148, 163, 184)"
+                className="dark:stroke-zinc-400"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={valueFormatter}
+                domain={[
+                  (dataMin: number) => Math.floor(dataMin * 0.95),
+                  (dataMax: number) => Math.ceil(dataMax * 1.05)
+                ]}
+                stroke="rgb(148, 163, 184)"
+                className="dark:stroke-zinc-400"
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    indicator="line"
+                    labelFormatter={(value) => format(parseISO(String(value)), "MMM d, yyyy")}
+                    className="rounded-lg px-3 py-2 shadow-lg"
+                  />
+                }
+              />
+              <Area
+                type="monotone"
+                dataKey={String(dataKey)}
+                stroke="rgb(99, 102, 241)"
+                strokeWidth={2}
+                fill={`url(#${String(dataKey)}Gradient)`}
+                className="dark:stroke-indigo-400"
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
       </CardContent>
-      <CardFooter className="pt-2 border-t border-gray-100 dark:border-gray-700 flex-none">
-        <div className="flex items-center gap-2 text-sm font-medium ml-auto">
-          {trend > 0 ? (
-            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-              <span>Trending up by {trendFormat(trendPercentage)}</span>
-              <TrendingUp className="h-4 w-4" />
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
-              <span>Trending down by {trendFormat(Math.abs(trendPercentage))}</span>
-              <TrendingDown className="h-4 w-4" />
-            </div>
-          )}
+      <CardFooter className="flex-none border-t py-4">
+        <div className="ml-auto flex items-center">
+          <TrendBadge
+            trend={Number(trendPercentage.toFixed(1))}
+            tooltipText={`Trending ${trend > 0 ? "up" : "down"} by ${Math.abs(trendPercentage).toFixed(1)}%`}
+          />
         </div>
       </CardFooter>
     </Card>

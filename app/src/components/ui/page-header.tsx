@@ -20,11 +20,11 @@ export function PageHeader({
     <div className={cn("space-y-4", className)}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent">
             {title}
           </h1>
           {description && (
-            <p className="text-base text-gray-500 dark:text-gray-400">
+            <p className="text-base text-zinc-500 dark:text-zinc-400">
               {description}
             </p>
           )}
@@ -36,7 +36,7 @@ export function PageHeader({
         )}
       </div>
       {showFilters && (
-        <div className="pt-2">
+        <div className="">
           <FilterBadges />
         </div>
       )}
