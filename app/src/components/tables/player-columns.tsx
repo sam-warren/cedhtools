@@ -65,7 +65,7 @@ export const mockData: Player[] = [
     topCuts: 6,
     winRate: 58.7,
     drawRate: 10.0,
-    mostPlayedCommander: "Thrasios // Tymna"
+    mostPlayedCommander: "Tymna, The Weaver // Thrasios, Triton Hero"
   },
   {
     id: "p126",

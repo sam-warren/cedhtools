@@ -52,7 +52,7 @@ export const commanderData = {
       winRate: 65.5
     },
     worst: {
-      name: "Thrasios // Tymna",
+      name: "Tymna, The Weaver // Thrasios, Triton Hero",
       colorIdentity: "{U}{B}{G}{W}",
       winRate: 35.2
     }

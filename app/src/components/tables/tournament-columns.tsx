@@ -53,7 +53,7 @@ export const mockData: Tournament[] = [
     swissRounds: 6,
     topCut: 8,
     winner: "Mike Johnson",
-    winningCommander: "Thrasios // Tymna"
+    winningCommander: "Tymna, The Weaver // Thrasios, Triton Hero"
   },
   {
     id: "t126",
