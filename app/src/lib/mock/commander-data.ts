@@ -391,6 +391,54 @@ export const commanderData = {
       wins: 13,
       winRate: 31.0,
       top4s: 3
+    },
+    {
+      id: "p4",
+      name: "Sarah Wilson",
+      games: 35,
+      wins: 10,
+      winRate: 28.6,
+      top4s: 3
+    },
+    {
+      id: "p5",
+      name: "David Brown",
+      games: 40,
+      wins: 11,
+      winRate: 27.5,
+      top4s: 2
+    },
+    {
+      id: "p6",
+      name: "Emily Davis",
+      games: 33,
+      wins: 9,
+      winRate: 27.3,
+      top4s: 2
+    },
+    {
+      id: "p7",
+      name: "Alex Turner",
+      games: 36,
+      wins: 9,
+      winRate: 25.0,
+      top4s: 2
+    },
+    {
+      id: "p8",
+      name: "Chris Martin",
+      games: 32,
+      wins: 8,
+      winRate: 25.0,
+      top4s: 1
+    },
+    {
+      id: "p9",
+      name: "Lisa Anderson",
+      games: 30,
+      wins: 7,
+      winRate: 23.3,
+      top4s: 1
     }
   ]
 }; 

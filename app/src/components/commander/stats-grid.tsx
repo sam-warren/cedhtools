@@ -82,7 +82,7 @@ export function StatsGrid({ stats }: StatsGridProps) {
           title="Tournament Wins"
           value={stats.tournamentWins.current}
           icon={Crown}
-          subtext={`${((stats.tournamentWins.current / stats.totalGames) * 100).toFixed(1)}% win rate in tournaments`}
+          subtext={`From ${stats.entries.total} entries`}
           trend={{
             value: stats.tournamentWins.trend,
             tooltipText: `${Math.abs(stats.tournamentWins.trend)}% ${stats.tournamentWins.trend > 0 ? "increase" : "decrease"} in tournament wins compared to last month`
@@ -94,7 +94,7 @@ export function StatsGrid({ stats }: StatsGridProps) {
           title="Top 4s"
           value={stats.top4s.current}
           icon={Trophy}
-          subtext={`${((stats.top4s.current / stats.totalGames) * 100).toFixed(1)}% top 4 rate`}
+          subtext={`${((stats.top4s.current / stats.totalGames) * 100).toFixed(1)}% top 4 conversion`}
           trend={{
             value: stats.top4s.trend,
             tooltipText: `${Math.abs(stats.top4s.trend)}% ${stats.top4s.trend > 0 ? "increase" : "decrease"} in top 4 finishes compared to last month`
@@ -106,7 +106,7 @@ export function StatsGrid({ stats }: StatsGridProps) {
           title="Top 10s"
           value={stats.top10s.current}
           icon={Medal}
-          subtext={`${((stats.top10s.current / stats.totalGames) * 100).toFixed(1)}% top 10 rate`}
+          subtext={`${((stats.top10s.current / stats.totalGames) * 100).toFixed(1)}% top 10 conversion`}
           trend={{
             value: stats.top10s.trend,
             tooltipText: `${Math.abs(stats.top10s.trend)}% ${stats.top10s.trend > 0 ? "increase" : "decrease"} in top 10 finishes compared to last month`
@@ -118,7 +118,7 @@ export function StatsGrid({ stats }: StatsGridProps) {
           title="Top 16s"
           value={stats.top16s.current}
           icon={Ribbon}
-          subtext={`${((stats.top16s.current / stats.totalGames) * 100).toFixed(1)}% top 16 rate`}
+          subtext={`${((stats.top16s.current / stats.totalGames) * 100).toFixed(1)}% top 16 conversion`}
           trend={{
             value: stats.top16s.trend,
             tooltipText: `${Math.abs(stats.top16s.trend)}% ${stats.top16s.trend > 0 ? "increase" : "decrease"} in top 16 finishes compared to last month`

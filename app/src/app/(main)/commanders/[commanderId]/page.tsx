@@ -9,46 +9,50 @@ import { commanderData } from "@/lib/mock/commander-data";
 
 export default function CommanderPage() {
   return (
-    <div className="space-y-6">
-      <PageHeader title={commanderData.name} description="Commander performance statistics and analysis" showFilters />
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <PageHeader 
+        title={commanderData.name} 
+        description="Commander performance statistics and analysis" 
+        showFilters 
+        className="mb-8"
+      />
 
-      <section>
-        <h2 className="mb-4 text-2xl font-semibold">Overview</h2>
+      <div className="space-y-8">
+        {/* Stats Overview */}
         <StatsGrid stats={commanderData.stats} />
-      </section>
 
-      <section>
-        <h2 className="mb-4 text-2xl font-semibold">Trends</h2>
-        <div className="grid gap-6">
-          {/* Win Rate Trend */}
-          <TrendChart
-            data={commanderData.charts.winRate}
-            title="Win Rate Over Time"
-            dataKey="winRate"
-            xAxisKey="date"
-            valueFormatter={(value) => `${value.toFixed(1)}%`}
-          />
-
-          {/* Popularity Trend */}
-          <TrendChart
-            data={commanderData.charts.popularity}
-            title="Popularity Over Time"
-            dataKey="popularity"
-            xAxisKey="date"
-            valueFormatter={(value) => `${value.toFixed(1)}%`}
-          />
+        {/* Win Rate Chart and Top Pilots */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-3">
+            <TrendChart
+              data={commanderData.charts.winRate}
+              title="Win Rate"
+              dataKey="winRate"
+              xAxisKey="date"
+              valueFormatter={(value) => `${value.toFixed(1)}%`}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <TopPilotsTable data={commanderData.topPilots} />
+          </div>
         </div>
-      </section>
 
-      <section>
-        <h2 className="mb-4 text-2xl font-semibold">Matchup Analysis</h2>
-        <Matchups bestMatchup={commanderData.matchups.best} worstMatchup={commanderData.matchups.worst} />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-2xl font-semibold">Player Performance</h2>
-        <TopPilotsTable data={commanderData.topPilots} />
-      </section>
+        {/* Popularity Chart and Matchups */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-2 grid grid-cols-1 gap-6">
+            <Matchups bestMatchup={commanderData.matchups.best} worstMatchup={commanderData.matchups.worst} />
+          </div>
+          <div className="lg:col-span-3">
+            <TrendChart
+              data={commanderData.charts.popularity}
+              title="Popularity Over Time"
+              dataKey="popularity"
+              xAxisKey="date"
+              valueFormatter={(value) => `${value.toFixed(1)}%`}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
