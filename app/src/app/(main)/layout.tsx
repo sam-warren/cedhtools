@@ -27,7 +27,11 @@ export default function MainLayout({
             <Separator orientation="vertical" className="mr-2 h-4" />
             {breadcrumbs}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 pt-4">{children}</main>
+          <main className="flex flex-1 flex-col gap-4 p-4 pt-4 xl:pt-16">
+            <div className="mx-auto w-full max-w-7xl">
+              {children}
+            </div>
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </div>

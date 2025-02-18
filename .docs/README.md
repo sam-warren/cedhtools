@@ -9,7 +9,7 @@ cedhtools is an analytics tool that provides insights on cEDH stats and trends. 
 #### Deck
 ```typescript
 interface Deck {
-  id: string;              // Moxfield publicDeckId
+  id: string;              // Moxfield publicDeckId - links directly to Moxfield
   name: string;            // Given name of the deck
   description: string;     // Description of the deck
   commanders: Card[];      // Commander card(s), 1-2 cards
