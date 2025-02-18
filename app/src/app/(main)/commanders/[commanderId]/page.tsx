@@ -9,18 +9,14 @@ import { commanderData } from "@/lib/mock/commander-data";
 
 export default function CommanderPage() {
   return (
-    <div className="space-y-8">
-      <PageHeader 
-        title={commanderData.name} 
-        description="Commander performance statistics and analysis" 
-        showFilters 
-      />
+    <div className="space-y-4 mb-8">
+      <PageHeader title={commanderData.name} description="Commander performance statistics and analysis" showFilters />
 
       {/* Stats Overview */}
       <StatsGrid stats={commanderData.stats} />
 
       {/* Win Rate Chart and Top Pilots */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <TrendChart
             data={commanderData.charts.winRate}
@@ -36,8 +32,8 @@ export default function CommanderPage() {
       </div>
 
       {/* Popularity Chart and Matchups */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-2 grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-6 lg:col-span-2">
           <Matchups bestMatchup={commanderData.matchups.best} worstMatchup={commanderData.matchups.worst} />
         </div>
         <div className="lg:col-span-3">
