@@ -73,7 +73,8 @@ export const useFilterStore = create<FilterStore>((set, get) => ({
   },
 
   setDatePreset: (datePreset) => {
-    set({ datePreset });
+    const dateRange = datePreset === DATE_PRESET.CUSTOM ? get().dateRange : DATE_PRESETS[datePreset];
+    set({ datePreset, dateRange });
   },
 
   setTournamentSize: (tournamentSize) => {

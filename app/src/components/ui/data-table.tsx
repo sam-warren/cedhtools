@@ -13,18 +13,11 @@ import {
   VisibilityState
 } from "@tanstack/react-table";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import React from "react";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { DataTablePagination } from "@/components/ui/pagination";
 import { DataTableViewOptions } from "@/components/ui/column-toggle";
+import { Input } from "@/components/ui/input";
+import { DataTablePagination } from "@/components/ui/pagination";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React from "react";
 
 /**
  * Props interface for the DataTable component.

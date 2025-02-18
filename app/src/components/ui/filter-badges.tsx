@@ -2,20 +2,35 @@
 
 import { Badge } from "@/components/ui/badge";
 import { useFilterStore } from "@/stores/filter-store";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { CalendarFold, Users, Medal } from "lucide-react";
 import { DATE_PRESET } from "@/lib/constants/filters";
+import { useEffect, useState } from "react";
 
 export function FilterBadges() {
   const { appliedState } = useFilterStore();
   const { dateRange, datePreset, tournamentSize, topCut } = appliedState;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render anything on the server side
+  if (!mounted) {
+    return null;
+  }
+
+  const formatDate = (date: Date) => {
+    return format(parseISO(date.toISOString()), "MMM d, yyyy");
+  };
 
   return (
     <div className="flex flex-wrap gap-2 mt-2">
       {dateRange && datePreset !== DATE_PRESET.ALL_TIME && (
         <Badge variant="secondary" className="gap-2">
           <CalendarFold className="h-3 w-3" />
-          {format(dateRange.from!, "MMM d, yyyy")} - {format(dateRange.to!, "MMM d, yyyy")}
+          {formatDate(dateRange.from!)} - {formatDate(dateRange.to!)}
         </Badge>
       )}
       {tournamentSize !== "All" && (
