@@ -22,7 +22,6 @@ export default function CommanderPage() {
             <TrendChart
               data={commanderData.charts.winRate}
               title="Win Rate Over Time"
-              description="Historical win rate percentage across all tournament matches"
               tooltipLabel="Win Rate"
               dataKey="winRate"
               xAxisKey="date"
@@ -51,7 +50,6 @@ export default function CommanderPage() {
             <TrendChart
               data={commanderData.charts.popularity}
               title="Popularity Over Time"
-              description="Percentage of tournament entries using this commander"
               tooltipLabel="Popularity"
               dataKey="popularity"
               xAxisKey="date"

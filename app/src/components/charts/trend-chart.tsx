@@ -84,7 +84,7 @@ export function TrendChart<T extends Record<string, string | number>>({
   const trendPercentage = (trend / firstValue) * 100;
 
   // Calculate Y-axis ticks based on data
-  const maxValue = Math.max(...filteredData.map(item => Number(item[dataKey])));
+  const maxValue = Math.max(...filteredData.map((item) => Number(item[dataKey])));
   const maxTick = Math.ceil(maxValue / 10) * 10;
   const yAxisTicks = Array.from({ length: maxTick / 10 + 1 }, (_, i) => i * 10);
 
@@ -177,14 +177,15 @@ export function TrendChart<T extends Record<string, string | number>>({
                     indicator="line"
                     formatter={(value, name, item) => (
                       <div className="space-y-1.5">
-                        <div className="font-medium">
-                          {format(parseISO(String(item.payload.date)), "MMMM d, yyyy")}
-                        </div>
+                        <div className="font-medium">{format(parseISO(String(item.payload.date)), "MMMM d, yyyy")}</div>
                         <div className="flex items-baseline gap-2">
-                          <div className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
-                            style={{
-                              "--color-bg": color
-                            } as React.CSSProperties}
+                          <div
+                            className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                            style={
+                              {
+                                "--color-bg": color
+                              } as React.CSSProperties
+                            }
                           />
                           {chartConfig[name as keyof typeof chartConfig]?.label || name}
                           <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
@@ -213,12 +214,14 @@ export function TrendChart<T extends Record<string, string | number>>({
       <CardFooter className="flex-none border-t py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>{firstDate} - {lastDate}</span>
+          <span>
+            {firstDate} - {lastDate}
+          </span>
         </div>
         <div className="ml-auto flex items-center">
           <TrendBadge
             trend={Number(trendPercentage.toFixed(1))}
-            tooltipText={`Trending ${trend > 0 ? "up" : "down"} by ${Math.abs(trendPercentage).toFixed(1)}%`}
+            tooltipText={`Trending ${trend > 0 ? "up" : "down"} by ${Math.abs(trendPercentage).toFixed(1)}% this period (${firstValue}${unit} to ${lastValue}${unit})`}
           />
         </div>
       </CardFooter>
