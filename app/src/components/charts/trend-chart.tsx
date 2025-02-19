@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, TrendingDown, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, Filter, Calendar } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -11,25 +11,32 @@ import { TOP_CUT, TOURNAMENT_SIZE, DATE_PRESET } from "@/lib/constants/filters";
 import { NoData } from "@/components/ui/no-data";
 import { FilterBadges } from "@/components/ui/filter-badges";
 import { TrendBadge } from "@/components/ui/trend-badge";
+import { cn } from "@/lib/utils/app-utils";
 
 interface TrendChartProps<T extends Record<string, string | number>> {
   data: T[];
   title: string;
+  tooltipLabel?: string;
   dataKey: keyof T;
   xAxisKey: keyof T;
-  trendFormat?: (value: number) => string;
   valueFormatter?: (value: number) => string;
   showFilters?: boolean;
+  className?: string;
+  unit?: string;
+  color?: string;
 }
 
 export function TrendChart<T extends Record<string, string | number>>({
   data,
   title,
+  tooltipLabel,
   dataKey,
   xAxisKey,
-  trendFormat = (value: number) => `${Math.abs(value).toFixed(1)}%`,
-  valueFormatter = (value: number) => `${value}%`,
-  showFilters = true
+  valueFormatter = (value: number) => `${value.toFixed(1)}`,
+  showFilters = false,
+  className,
+  unit = "%",
+  color = "hsl(var(--chart-1))"
 }: TrendChartProps<T>) {
   const { appliedState } = useFilterStore();
   const { dateRange, datePreset } = appliedState;
@@ -65,8 +72,8 @@ export function TrendChart<T extends Record<string, string | number>>({
 
   const chartConfig = {
     [dataKey]: {
-      label: title,
-      color: "hsl(var(--chart-1))"
+      label: tooltipLabel || title,
+      color: color
     }
   };
 
@@ -76,15 +83,23 @@ export function TrendChart<T extends Record<string, string | number>>({
   const trend = lastValue - firstValue;
   const trendPercentage = (trend / firstValue) * 100;
 
+  // Calculate Y-axis ticks based on data
+  const maxValue = Math.max(...filteredData.map(item => Number(item[dataKey])));
+  const maxTick = Math.ceil(maxValue / 10) * 10;
+  const yAxisTicks = Array.from({ length: maxTick / 10 + 1 }, (_, i) => i * 10);
+
   // Determine date formatting based on range
   const getTickFormatter = () => {
     if (!dateRange?.from || !dateRange?.to) return (value: string) => format(parseISO(value), "MMM yyyy");
 
     const monthsDiff = differenceInMonths(dateRange.to, dateRange.from);
 
-    if (monthsDiff <= 6) {
-      // Weekly format for 6 months or less
-      return (value: string) => format(parseISO(value), "MMM d");
+    if (monthsDiff <= 3) {
+      // Compact MM/DD format for 3 months or less
+      return (value: string) => format(parseISO(value), "M/d");
+    } else if (monthsDiff <= 6) {
+      // MM/DD format for 4-6 months
+      return (value: string) => format(parseISO(value), "M/d");
     } else if (monthsDiff <= 12) {
       // Monthly format with year for 7-12 months
       return (value: string) => format(parseISO(value), "MMM yyyy");
@@ -94,22 +109,39 @@ export function TrendChart<T extends Record<string, string | number>>({
     }
   };
 
+  // Calculate minTickGap based on date range
+  const getMinTickGap = () => {
+    if (!dateRange?.from || !dateRange?.to) return 20;
+    const monthsDiff = differenceInMonths(dateRange.to, dateRange.from);
+    if (monthsDiff <= 3) return 8;
+    if (monthsDiff <= 6) return 12;
+    return 20;
+  };
+
+  // Get first and last dates for the range
+  const firstDate = format(parseISO(String(filteredData[0][xAxisKey])), "MMMM d, yyyy");
+  const lastDate = format(parseISO(String(filteredData[filteredData.length - 1][xAxisKey])), "MMMM d, yyyy");
+
   return (
-    <Card className="shadow-sm transition-shadow duration-200 hover:shadow-md">
+    <Card className={cn("flex h-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md", className)}>
       <CardHeader className="flex-none pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
-          {showFilters && <FilterBadges />}
         </div>
       </CardHeader>
-      <CardContent className="pb-4">
-        <div className="h-[200px]">
-          <ChartContainer config={chartConfig} className="h-full w-full">
-            <AreaChart data={filteredData} margin={{ top: 20, right: 12, bottom: 5, left: 0 }}>
+      <CardContent className="min-h-0 flex-1 p-0">
+        <div className="h-full px-6 pb-4">
+          <ChartContainer config={chartConfig} className="h-full min-h-[200px] w-full">
+            <AreaChart
+              data={filteredData}
+              margin={{ top: 15, right: 0, bottom: 0, left: -15 }}
+              width={100}
+              height={100}
+              style={{ minHeight: 0 }}>
               <defs>
                 <linearGradient id={`${String(dataKey)}Gradient`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="rgb(99, 102, 241)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="rgb(99, 102, 241)" stopOpacity={0} />
+                  <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={color} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -123,7 +155,7 @@ export function TrendChart<T extends Record<string, string | number>>({
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                minTickGap={32}
+                minTickGap={getMinTickGap()}
                 tickFormatter={getTickFormatter()}
                 stroke="rgb(148, 163, 184)"
                 className="dark:stroke-zinc-400"
@@ -131,12 +163,10 @@ export function TrendChart<T extends Record<string, string | number>>({
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tickMargin={8}
-                tickFormatter={valueFormatter}
-                domain={[
-                  (dataMin: number) => Math.floor(dataMin * 0.95),
-                  (dataMax: number) => Math.ceil(dataMax * 1.05)
-                ]}
+                tickMargin={4}
+                tickFormatter={(value) => `${valueFormatter(value)}${unit}`}
+                ticks={yAxisTicks}
+                domain={[0, maxTick]}
                 stroke="rgb(148, 163, 184)"
                 className="dark:stroke-zinc-400"
               />
@@ -145,7 +175,25 @@ export function TrendChart<T extends Record<string, string | number>>({
                 content={
                   <ChartTooltipContent
                     indicator="line"
-                    labelFormatter={(value) => format(parseISO(String(value)), "MMM d, yyyy")}
+                    formatter={(value, name, item) => (
+                      <div className="space-y-1.5">
+                        <div className="font-medium">
+                          {format(parseISO(String(item.payload.date)), "MMMM d, yyyy")}
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <div className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                            style={{
+                              "--color-bg": color
+                            } as React.CSSProperties}
+                          />
+                          {chartConfig[name as keyof typeof chartConfig]?.label || name}
+                          <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
+                            {valueFormatter(Number(value))}
+                            {unit && <span className="font-normal text-muted-foreground">{unit}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     className="rounded-lg px-3 py-2 shadow-lg"
                   />
                 }
@@ -153,7 +201,7 @@ export function TrendChart<T extends Record<string, string | number>>({
               <Area
                 type="monotone"
                 dataKey={String(dataKey)}
-                stroke="rgb(99, 102, 241)"
+                stroke={color}
                 strokeWidth={2}
                 fill={`url(#${String(dataKey)}Gradient)`}
                 className="dark:stroke-indigo-400"
@@ -163,6 +211,10 @@ export function TrendChart<T extends Record<string, string | number>>({
         </div>
       </CardContent>
       <CardFooter className="flex-none border-t py-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          <span>{firstDate} - {lastDate}</span>
+        </div>
         <div className="ml-auto flex items-center">
           <TrendBadge
             trend={Number(trendPercentage.toFixed(1))}

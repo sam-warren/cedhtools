@@ -17,7 +17,7 @@ interface MatchupsProps {
 
 export function Matchups({ bestMatchup, worstMatchup }: MatchupsProps) {
   return (
-    <div className="grid grid-cols-1 gap-6">
+    <>
       <StatCard
         title="Best Matchup"
         value={bestMatchup.name}
@@ -40,6 +40,6 @@ export function Matchups({ bestMatchup, worstMatchup }: MatchupsProps) {
           </Link>
         )}
       />
-    </div>
+    </>
   );
 } 

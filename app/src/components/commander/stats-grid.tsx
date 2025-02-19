@@ -42,10 +42,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.entries.total}
           icon={ScrollText}
           subtext={`${stats.entries.uniquePlayers} unique players`}
-          trend={{
-            value: stats.entries.lastMonth.trend,
-            tooltipText: `${Math.abs(stats.entries.lastMonth.trend)}% ${stats.entries.lastMonth.trend > 0 ? "increase" : "decrease"} in entries compared to last month`
-          }}
           infoTooltip="Total number of times this commander has been registered in tournaments"
         />
 
@@ -54,10 +50,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.winRate.current}
           icon={Award}
           subtext={`Won ${stats.wins.current} out of ${stats.totalGames} games`}
-          trend={{
-            value: stats.winRate.trend,
-            tooltipText: `${Math.abs(stats.winRate.trend)}% ${stats.winRate.trend > 0 ? "increase" : "decrease"} in win rate compared to last month`
-          }}
           valueFormat={(val) => `${Number(val).toFixed(1)}%`}
           infoTooltip="Percentage of games won across all tournament matches"
         />
@@ -67,10 +59,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.drawRate.current}
           icon={Handshake}
           subtext={`Drew ${stats.draws.current} out of ${stats.totalGames} games`}
-          trend={{
-            value: stats.drawRate.trend,
-            tooltipText: `${Math.abs(stats.drawRate.trend)}% ${stats.drawRate.trend > 0 ? "increase" : "decrease"} in draw rate compared to last month`
-          }}
           valueFormat={(val) => `${Number(val).toFixed(1)}%`}
           infoTooltip="Percentage of games that ended in a draw"
         />
@@ -83,10 +71,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.tournamentWins.current}
           icon={Crown}
           subtext={`From ${stats.entries.total} entries`}
-          trend={{
-            value: stats.tournamentWins.trend,
-            tooltipText: `${Math.abs(stats.tournamentWins.trend)}% ${stats.tournamentWins.trend > 0 ? "increase" : "decrease"} in tournament wins compared to last month`
-          }}
           infoTooltip="Number of tournaments won with this commander"
         />
 
@@ -95,10 +79,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.top4s.current}
           icon={Trophy}
           subtext={`${((stats.top4s.current / stats.totalGames) * 100).toFixed(1)}% top 4 conversion`}
-          trend={{
-            value: stats.top4s.trend,
-            tooltipText: `${Math.abs(stats.top4s.trend)}% ${stats.top4s.trend > 0 ? "increase" : "decrease"} in top 4 finishes compared to last month`
-          }}
           infoTooltip="Number of times this commander has finished in the top 4"
         />
 
@@ -107,10 +87,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.top10s.current}
           icon={Medal}
           subtext={`${((stats.top10s.current / stats.totalGames) * 100).toFixed(1)}% top 10 conversion`}
-          trend={{
-            value: stats.top10s.trend,
-            tooltipText: `${Math.abs(stats.top10s.trend)}% ${stats.top10s.trend > 0 ? "increase" : "decrease"} in top 10 finishes compared to last month`
-          }}
           infoTooltip="Number of times this commander has finished in the top 10"
         />
 
@@ -119,10 +95,6 @@ export function StatsGrid({ stats }: StatsGridProps) {
           value={stats.top16s.current}
           icon={Ribbon}
           subtext={`${((stats.top16s.current / stats.totalGames) * 100).toFixed(1)}% top 16 conversion`}
-          trend={{
-            value: stats.top16s.trend,
-            tooltipText: `${Math.abs(stats.top16s.trend)}% ${stats.top16s.trend > 0 ? "increase" : "decrease"} in top 16 finishes compared to last month`
-          }}
           infoTooltip="Number of times this commander has finished in the top 16"
         />
       </div>

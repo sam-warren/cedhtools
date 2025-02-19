@@ -52,10 +52,10 @@ const columns = [
 
 export function TopPilotsTable({ data }: TopPilotsTableProps) {
   // Take only top 5 pilots
-  const topPilots = data.slice(0, 4);
+  const topPilots = data.slice(0, 5);
   
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 h-full flex flex-col">
+    <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 h-full flex flex-col w-full">
       <CardHeader className="flex-none">
         <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Top Pilots</CardTitle>
         <CardDescription className="text-zinc-500 dark:text-zinc-400">

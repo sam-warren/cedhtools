@@ -9,7 +9,7 @@ import { commanderData } from "@/lib/mock/commander-data";
 
 export default function CommanderPage() {
   return (
-    <div className="space-y-4 mb-8">
+    <div className="mb-8 space-y-4">
       <PageHeader title={commanderData.name} description="Commander performance statistics and analysis" showFilters />
 
       {/* Stats Overview */}
@@ -18,32 +18,48 @@ export default function CommanderPage() {
       {/* Win Rate Chart and Top Pilots */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <TrendChart
-            data={commanderData.charts.winRate}
-            title="Win Rate"
-            dataKey="winRate"
-            xAxisKey="date"
-            valueFormatter={(value) => `${value.toFixed(1)}%`}
-          />
+          <div className="h-full">
+            <TrendChart
+              data={commanderData.charts.winRate}
+              title="Win Rate Over Time"
+              description="Historical win rate percentage across all tournament matches"
+              tooltipLabel="Win Rate"
+              dataKey="winRate"
+              xAxisKey="date"
+              valueFormatter={(value) => `${value.toFixed(1)}`}
+              color="hsl(var(--chart-2))"
+              className="w-full"
+            />
+          </div>
         </div>
         <div className="lg:col-span-2">
-          <TopPilotsTable data={commanderData.topPilots} />
+          <div className="h-full">
+            <TopPilotsTable data={commanderData.topPilots} />
+          </div>
         </div>
       </div>
 
       {/* Popularity Chart and Matchups */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <div className="grid grid-cols-1 gap-6 lg:col-span-2">
-          <Matchups bestMatchup={commanderData.matchups.best} worstMatchup={commanderData.matchups.worst} />
+        <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-1">
+            <Matchups bestMatchup={commanderData.matchups.best} worstMatchup={commanderData.matchups.worst} />
+          </div>
         </div>
         <div className="lg:col-span-3">
-          <TrendChart
-            data={commanderData.charts.popularity}
-            title="Popularity Over Time"
-            dataKey="popularity"
-            xAxisKey="date"
-            valueFormatter={(value) => `${value.toFixed(1)}%`}
-          />
+          <div className="h-full">
+            <TrendChart
+              data={commanderData.charts.popularity}
+              title="Popularity Over Time"
+              description="Percentage of tournament entries using this commander"
+              tooltipLabel="Popularity"
+              dataKey="popularity"
+              xAxisKey="date"
+              valueFormatter={(value) => `${value.toFixed(1)}`}
+              color="hsl(var(--chart-2))"
+              className="w-full"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -51,11 +51,11 @@ export function StatCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex h-[64px] flex-col justify-between">
-          <div className="bg-gradient-to-r from-zinc-900 to-zinc-600 bg-clip-text text-2xl font-bold text-transparent dark:from-zinc-100 dark:to-zinc-300">
+        <div className="flex h-auto min-h-[64px] flex-col justify-between">
+          <div className="bg-gradient-to-r from-zinc-900 to-zinc-600 bg-clip-text text-2xl font-bold text-transparent dark:from-zinc-100 dark:to-zinc-300 break-words">
             {valueFormat(value)}
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-2">
             <span className="text-sm text-zinc-500 dark:text-zinc-400">{subtext}</span>
             {trend && <TrendBadge trend={trend.value} tooltipText={trend.tooltipText} />}
           </div>
