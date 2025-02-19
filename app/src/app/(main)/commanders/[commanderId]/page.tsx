@@ -16,48 +16,42 @@ export default function CommanderPage() {
       <StatsGrid stats={commanderData.stats} />
 
       {/* Win Rate Chart and Top Pilots */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <div className="h-full">
-            <TrendChart
-              data={commanderData.charts.winRate}
-              title="Win Rate Over Time"
-              tooltipLabel="Win Rate"
-              dataKey="winRate"
-              xAxisKey="date"
-              valueFormatter={(value) => `${value.toFixed(1)}`}
-              color="hsl(var(--chart-2))"
-              className="w-full"
-            />
-          </div>
+          <TrendChart
+            data={commanderData.charts.winRate}
+            title="Win Rate Over Time"
+            tooltipLabel="Win Rate"
+            dataKey="winRate"
+            xAxisKey="date"
+            valueFormatter={(value) => `${value.toFixed(1)}`}
+            color="hsl(var(--chart-2))"
+            className="h-full"
+          />
         </div>
         <div className="lg:col-span-2">
-          <div className="h-full">
-            <TopPilotsTable data={commanderData.topPilots} />
-          </div>
+          <TopPilotsTable data={commanderData.topPilots} />
         </div>
       </div>
 
       {/* Popularity Chart and Matchups */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-2">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-1">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-1">
             <Matchups bestMatchup={commanderData.matchups.best} worstMatchup={commanderData.matchups.worst} />
           </div>
         </div>
         <div className="lg:col-span-3">
-          <div className="h-full">
-            <TrendChart
-              data={commanderData.charts.popularity}
-              title="Popularity Over Time"
-              tooltipLabel="Popularity"
-              dataKey="popularity"
-              xAxisKey="date"
-              valueFormatter={(value) => `${value.toFixed(1)}`}
-              color="hsl(var(--chart-2))"
-              className="w-full"
-            />
-          </div>
+          <TrendChart
+            data={commanderData.charts.popularity}
+            title="Popularity Over Time"
+            tooltipLabel="Popularity"
+            dataKey="popularity"
+            xAxisKey="date"
+            valueFormatter={(value) => `${value.toFixed(1)}`}
+            color="hsl(var(--chart-2))"
+            className="h-full"
+          />
         </div>
       </div>
     </div>
