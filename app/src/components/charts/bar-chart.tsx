@@ -32,7 +32,7 @@ export function BarChartComponent<T extends Record<string, string | number>>({
   xAxisKey,
   valueFormatter = (value: number) => `${value.toFixed(1)}`,
   className,
-  color = "hsl(var(--chart-2))",
+  color = "hsl(var(--chart-1))",
   height = 200,
   unit = "%"
 }: BarChartProps<T>) {

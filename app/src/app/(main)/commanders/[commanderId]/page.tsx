@@ -12,7 +12,7 @@ import Link from "next/link";
 
 export default function CommanderPage() {
   return (
-    <div className="mb-8 space-y-4">
+    <div className="space-y-4">
       <PageHeader title={commanderData.name} description="Commander performance statistics and analysis">
         <Link
           href={`/commanders/${commanderData.name}/cards`}
@@ -47,7 +47,7 @@ export default function CommanderPage() {
             dataKey="winRate"
             xAxisKey="date"
             valueFormatter={(value) => `${value.toFixed(1)}`}
-            color="hsl(var(--chart-2))"
+            color="hsl(var(--chart-1))"
             className="h-full"
           />
         </div>
@@ -64,7 +64,7 @@ export default function CommanderPage() {
             dataKey="popularity"
             xAxisKey="date"
             valueFormatter={(value) => `${value.toFixed(1)}`}
-            color="hsl(var(--chart-2))"
+            color="hsl(var(--chart-1))"
           />
         </div>
         <div className="lg:col-span-1">

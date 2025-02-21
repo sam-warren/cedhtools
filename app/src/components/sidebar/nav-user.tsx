@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, LogIn, LogOut, Settings2, User, UserPlus } from "lucide-react";
+import { ChevronsUpDown, LogIn, LogOut, Moon, Settings2, Sun, User, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,11 +18,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { clearAuthData } from "@/lib/auth/auth";
 
 function useSessionWithCache() {
   const { data: session, status } = useSession({
-    required: false,
+    required: false
   });
   const [cachedSession, setCachedSession] = useState<Session | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -77,6 +78,36 @@ function NavUserSkeleton() {
         </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>
+  );
+}
+
+function ThemeMenuItem() {
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
+
+  const toggleTheme = () => {
+    setTheme(isDark ? "light" : "dark");
+  };
+
+  return (
+    <DropdownMenuItem
+      onSelect={(e) => {
+        e.preventDefault();
+        toggleTheme();
+      }}>
+      <div className="relative mr-2 h-4 w-4">
+        <Sun className="absolute h-4 w-4 rotate-0 scale-100 transition-all duration-200 dark:-rotate-90 dark:scale-0" />
+        <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all duration-200 dark:rotate-0 dark:scale-100" />
+      </div>
+      <span className="relative inline-flex overflow-hidden">
+        <span className="translate-y-0 transition-transform duration-200 ease-in-out dark:translate-y-6">
+          Light Theme
+        </span>
+        <span className="absolute translate-y-6 transition-transform duration-200 ease-in-out dark:translate-y-0">
+          Dark Theme
+        </span>
+      </span>
+    </DropdownMenuItem>
   );
 }
 
@@ -136,6 +167,8 @@ export function NavUser() {
                   Create account
                 </DropdownMenuItem>
               </Link>
+              <DropdownMenuSeparator />
+              <ThemeMenuItem />
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>
@@ -191,12 +224,14 @@ export function NavUser() {
                   Settings
                 </DropdownMenuItem>
               </Link>
+              <ThemeMenuItem />
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
