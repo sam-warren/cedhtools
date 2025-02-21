@@ -19,10 +19,6 @@ export function FilterApply({ isLoading, hasModifiedFilters, applyFilters, open 
 
   const handleApplyFilters = useCallback(async () => {
     applyFilters();
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     toast({
       title: "Filters applied",
       description: "Data has been filtered based on your selections.",

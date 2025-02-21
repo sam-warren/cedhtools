@@ -26,7 +26,7 @@ export function FilterBadges() {
   };
 
   return (
-    <div className="flex flex-wrap gap-2 mt-2">
+    <div className="flex flex-wrap items-center gap-2">
       {dateRange && datePreset !== DATE_PRESET.ALL_TIME && (
         <Badge variant="secondary" className="gap-2">
           <CalendarFold className="h-3 w-3" />

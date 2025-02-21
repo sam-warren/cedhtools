@@ -40,7 +40,7 @@ interface DataTableProps<TData, TValue> {
 
 /**
  * A flexible and feature-rich data table component built on top of TanStack Table.
- * 
+ *
  * @example
  * ```tsx
  * // Basic usage with minimal props
@@ -48,7 +48,7 @@ interface DataTableProps<TData, TValue> {
  *   columns={columns}
  *   data={data}
  * />
- * 
+ *
  * // Advanced usage with all features enabled
  * <DataTable
  *   columns={columns}
@@ -64,7 +64,7 @@ interface DataTableProps<TData, TValue> {
  *   filterableColumns={['name', 'status']}
  * />
  * ```
- * 
+ *
  * @features
  * - Sorting: Click column headers to sort data
  * - Filtering: Global search and per-column filtering
@@ -72,7 +72,7 @@ interface DataTableProps<TData, TValue> {
  * - Column Visibility: Toggle column visibility
  * - Row Selection: Enable checkbox selection of rows
  * - Responsive Design: Adapts to different screen sizes
- * 
+ *
  * @template TData - The type of data being displayed in the table
  * @template TValue - The type of values in the table cells
  * @param props - Component props of type DataTableProps<TData, TValue>
@@ -125,9 +125,9 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between flex-col sm:flex-row gap-4 sm:gap-2">
+      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-2">
         {enableFiltering && (
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             {globalFilter && (
               <Input
                 placeholder="Search all..."
@@ -189,11 +189,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {enablePagination && (
-        <DataTablePagination 
-          table={table} 
-          showRowSelection={enableRowSelection} 
-          pageSizeOptions={pageSizeOptions}
-        />
+        <DataTablePagination table={table} showRowSelection={enableRowSelection} pageSizeOptions={pageSizeOptions} />
       )}
     </div>
   );

@@ -1,15 +1,13 @@
-import { FilterBadges } from "@/components/ui/filter-badges";
 import { cn } from "@/lib/utils/app-utils";
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   children?: React.ReactNode;
-  showFilters?: boolean;
   className?: string;
 }
 
-export function PageHeader({ title, description, children, showFilters = false, className }: PageHeaderProps) {
+export function PageHeader({ title, description, children, className }: PageHeaderProps) {
   return (
     <div className={cn("mb-8 space-y-4", className)}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -21,11 +19,6 @@ export function PageHeader({ title, description, children, showFilters = false, 
         </div>
         {children && <div className="flex items-center gap-4">{children}</div>}
       </div>
-      {showFilters && (
-        <div className="">
-          <FilterBadges />
-        </div>
-      )}
     </div>
   );
 }

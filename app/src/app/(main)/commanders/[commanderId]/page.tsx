@@ -7,13 +7,20 @@ import { TopPilotsTable } from "@/components/commander/top-pilots-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { commanderData } from "@/lib/mock/commander-data";
-import { ShieldOff, Swords } from "lucide-react";
+import { Layers, ShieldOff, Swords } from "lucide-react";
 import Link from "next/link";
 
 export default function CommanderPage() {
   return (
     <div className="mb-8 space-y-4">
-      <PageHeader title={commanderData.name} description="Commander performance statistics and analysis" showFilters />
+      <PageHeader title={commanderData.name} description="Commander performance statistics and analysis">
+        <Link
+          href={`/commanders/${commanderData.name}/cards`}
+          className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
+          <Layers />
+          View Cards
+        </Link>
+      </PageHeader>
 
       {/* Stats Overview */}
       <StatsGrid stats={commanderData.stats} />
