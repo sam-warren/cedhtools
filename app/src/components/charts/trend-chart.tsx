@@ -1,21 +1,19 @@
 "use client";
 
-import { TrendingUp, TrendingDown, Filter, Calendar } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Badge } from "@/components/ui/badge";
-import { useFilterStore } from "@/stores/filter-store";
-import { format, differenceInMonths, parseISO, isWithinInterval } from "date-fns";
-import { TOP_CUT, TOURNAMENT_SIZE, DATE_PRESET } from "@/lib/constants/filters";
 import { NoData } from "@/components/ui/no-data";
-import { FilterBadges } from "@/components/ui/filter-badges";
 import { TrendBadge } from "@/components/ui/trend-badge";
 import { cn } from "@/lib/utils/app-utils";
+import { useFilterStore } from "@/stores/filter-store";
+import { differenceInMonths, format, isWithinInterval, parseISO } from "date-fns";
+import { Calendar } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface TrendChartProps<T extends Record<string, string | number>> {
   data: T[];
   title: string;
+  description?: string;
   tooltipLabel?: string;
   dataKey: keyof T;
   xAxisKey: keyof T;
@@ -29,6 +27,7 @@ interface TrendChartProps<T extends Record<string, string | number>> {
 export function TrendChart<T extends Record<string, string | number>>({
   data,
   title,
+  description,
   tooltipLabel,
   dataKey,
   xAxisKey,
@@ -126,12 +125,17 @@ export function TrendChart<T extends Record<string, string | number>>({
     <Card className={cn("flex h-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md", className)}>
       <CardHeader className="flex-none pb-2">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
+          <div>
+            <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
+            {description && (
+              <CardDescription className="text-zinc-500 dark:text-zinc-400">{description}</CardDescription>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 p-0">
         <div className="h-full px-6 pb-4">
-          <ChartContainer config={chartConfig} className="h-full min-h-[200px] w-full">
+          <ChartContainer config={chartConfig} className="h-full min-h-[100px] w-full">
             <AreaChart
               data={filteredData}
               margin={{ top: 15, right: 0, bottom: 0, left: -15 }}

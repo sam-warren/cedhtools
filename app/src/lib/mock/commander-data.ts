@@ -38,23 +38,17 @@ export const commanderData = {
     },
     entries: {
       total: 450,
-      uniquePlayers: 178,
-      lastMonth: {
-        entries: 42,
-        trend: 5.2
-      }
+      uniquePlayers: 178
     }
   },
   matchups: {
     best: {
       name: "Najeela, the Blade-Blossom",
-      colorIdentity: "{W}{U}{B}{R}{G}",
-      winRate: 65.5
+      winRate: 32.8
     },
     worst: {
       name: "Tymna, The Weaver // Thrasios, Triton Hero",
-      colorIdentity: "{U}{B}{G}{W}",
-      winRate: 35.2
+      winRate: 6.4
     }
   },
   charts: {
@@ -162,24 +156,18 @@ export const commanderData = {
       { date: "2024-03-18", popularity: 2.2 },
       { date: "2024-03-11", popularity: 1.1 }
     ],
-    seatPosition: [
-      { position: "1", winRate: 26.5 },
-      { position: "2", winRate: 24.8 },
-      { position: "3", winRate: 23.2 },
-      { position: "4", winRate: 25.1 }
+    winRateBySeat: [
+      { position: "Seat 1", winRate: 26.5 },
+      { position: "Seat 2", winRate: 22.8 },
+      { position: "Seat 3", winRate: 20.2 },
+      { position: "Seat 4", winRate: 17.1 }
     ],
     winRateByCut: [
-      { cut: "Top 4", winRate: 42.5 },
-      { cut: "Top 10", winRate: 38.2 },
-      { cut: "Top 16", winRate: 35.8 },
-      { cut: "Swiss", winRate: 32.1 }
+      { cut: "Top 4", winRate: 22.5 },
+      { cut: "Top 10", winRate: 24.2 },
+      { cut: "Top 16", winRate: 20.8 },
+      { cut: "Swiss", winRate: 26.1 }
     ],
-    seatPositionWinRate: [
-      { position: "Seat 1", winRate: 26.5 },
-      { position: "Seat 2", winRate: 24.8 },
-      { position: "Seat 3", winRate: 23.2 },
-      { position: "Seat 4", winRate: 25.4 }
-    ]
   },
   topPilots: [
     {

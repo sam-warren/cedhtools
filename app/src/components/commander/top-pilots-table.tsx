@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import Link from "next/link";
 
@@ -22,7 +22,7 @@ const columns = [
     accessorKey: "name",
     header: "Player",
     cell: ({ row }: { row: { original: TopPilot; getValue: (key: string) => string } }) => (
-      <Link href={`/players/${row.original.id}`} className="hover:underline text-zinc-900 dark:text-zinc-100">
+      <Link href={`/players/${row.original.id}`} className="text-zinc-900 hover:underline dark:text-zinc-100">
         {row.getValue("name")}
       </Link>
     )
@@ -53,16 +53,20 @@ const columns = [
 export function TopPilotsTable({ data }: TopPilotsTableProps) {
   // Take only top 5 pilots
   const topPilots = data.slice(0, 5);
-  
+
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 h-full flex flex-col w-full">
-      <CardHeader className="flex-none">
-        <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Top Pilots</CardTitle>
-        <CardDescription className="text-zinc-500 dark:text-zinc-400">
-          Players with the most success using this commander
-        </CardDescription>
+    <Card className="flex h-full w-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md">
+      <CardHeader>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Top Pilots</CardTitle>
+            <CardDescription className="text-zinc-500 dark:text-zinc-400">
+              Players with the most success using this commander
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0">
+      <CardContent>
         <DataTable
           columns={columns}
           data={topPilots}
@@ -75,4 +79,4 @@ export function TopPilotsTable({ data }: TopPilotsTableProps) {
       </CardContent>
     </Card>
   );
-} 
+}

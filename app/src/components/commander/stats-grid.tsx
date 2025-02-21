@@ -21,10 +21,6 @@ interface CommanderStats {
   entries: {
     total: number;
     uniquePlayers: number;
-    lastMonth: {
-      entries: number;
-      trend: number;
-    };
   };
 }
 

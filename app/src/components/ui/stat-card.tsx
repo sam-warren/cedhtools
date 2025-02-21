@@ -17,6 +17,7 @@ interface StatCardProps {
   };
   valueFormat?: (value: string | number) => string | ReactNode;
   infoTooltip?: string;
+  textSize?: "text-2xl" | "text-3xl";
 }
 
 export function StatCard({
@@ -26,7 +27,8 @@ export function StatCard({
   subtext,
   trend,
   valueFormat = (val) => val.toString(),
-  infoTooltip
+  infoTooltip,
+  textSize = "text-3xl"
 }: StatCardProps) {
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
@@ -52,10 +54,13 @@ export function StatCard({
       </CardHeader>
       <CardContent>
         <div className="flex h-auto min-h-[64px] flex-col justify-between">
-          <div className="bg-gradient-to-r from-zinc-900 to-zinc-600 bg-clip-text text-2xl font-bold text-transparent dark:from-zinc-100 dark:to-zinc-300 break-words">
+          <div
+            className={`break-words bg-clip-text ${textSize} font-bold ${
+              typeof value === "number" ? "font-mono" : ""
+            }`}>
             {valueFormat(value)}
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="mt-2 flex items-center justify-between">
             <span className="text-sm text-zinc-500 dark:text-zinc-400">{subtext}</span>
             {trend && <TrendBadge trend={trend.value} tooltipText={trend.tooltipText} />}
           </div>
