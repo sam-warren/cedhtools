@@ -56,7 +56,7 @@ export function BarChartComponent<T extends Record<string, string | number>>({
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className={`h-[${height}px] w-full`}>
+        <ChartContainer config={chartConfig} className="w-full" style={{ height: `${height}px` }}>
           <BarChart
             data={data}
             margin={{

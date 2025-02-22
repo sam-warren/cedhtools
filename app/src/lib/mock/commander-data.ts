@@ -41,6 +41,89 @@ export const commanderData = {
       uniquePlayers: 178
     }
   },
+  cards: [
+    {
+      id: "1",
+      name: "Basalt Monolith",
+      manaCost: "{3}",
+      type: "Artifact",
+      inclusion: 99.8,
+      winRate: 26.1,
+      drawRate: 9.4
+    },
+    {
+      id: "2",
+      name: "Force of Will",
+      manaCost: "{3}{U}{U}",
+      type: "Instant",
+      inclusion: 98.4,
+      winRate: 27.2,
+      drawRate: 10.1
+    },
+    {
+      id: "3",
+      name: "Gaea's Cradle",
+      manaCost: "",
+      type: "Land",
+      inclusion: 97.5,
+      winRate: 26.8,
+      drawRate: 9.9
+    },
+    {
+      id: "3.1",
+      name: "Cephalid Coliseum",
+      manaCost: "",
+      type: "Land",
+      inclusion: 97.5,
+      winRate: 26.8,
+      drawRate: 9.9
+    },
+    {
+      id: "4",
+      name: "Enduring Vitality",
+      manaCost: "{1}{G}{G}",
+      type: "Creature - Elk Glimmer",
+      inclusion: 56.5,
+      winRate: 28.4,
+      drawRate: 8.1
+    },
+    {
+      id: "5",
+      name: "Pemmin's Aura",
+      manaCost: "{2}{U}",
+      type: "Enchantment",
+      inclusion: 36.2,
+      winRate: 20.1,
+      drawRate: 12.2
+    },
+    {
+      id: "6",
+      name: "Tezzeret the Seeker",
+      manaCost: "{3}{U}{U}",
+      type: "Legendary Planeswalker - Tezzeret",
+      inclusion: 87.2,
+      winRate: 24.7,
+      drawRate: 12.2
+    },
+    {
+      id: "7",
+      name: "Invasion of Ikoria",
+      manaCost: "{X}{G}{G}",
+      type: "Battle - Siege",
+      inclusion: 87.2,
+      winRate: 24.7,
+      drawRate: 12.2
+    },
+    {
+      id: "8",
+      name: "Transmute Artifact",
+      manaCost: "{U}{U}",
+      type: "Sorcery",
+      inclusion: 88.1,
+      winRate: 24.8,
+      drawRate: 11.9
+    }
+  ],
   matchups: {
     best: {
       name: "Najeela, the Blade-Blossom",
