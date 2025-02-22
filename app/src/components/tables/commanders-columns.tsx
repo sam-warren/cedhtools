@@ -9,10 +9,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils/app-utils";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Info, MoreHorizontal, Trophy } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils/app-utils";
 
 export type CommanderMeta = {
   position: number;
@@ -200,7 +200,7 @@ export const columns: ColumnDef<CommanderMeta>[] = [
           3: "text-amber-600"
         };
         return (
-          <div className="w-12 flex items-center">
+          <div className="flex w-12 items-center">
             <Trophy className={cn("h-4 w-4", trophyColors[position as keyof typeof trophyColors])} />
           </div>
         );

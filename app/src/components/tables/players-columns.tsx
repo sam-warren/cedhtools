@@ -171,4 +171,4 @@ export const columns: ColumnDef<Player>[] = [
       );
     }
   }
-]; 
+];

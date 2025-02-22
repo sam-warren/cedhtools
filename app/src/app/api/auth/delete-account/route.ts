@@ -1,7 +1,7 @@
-import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/auth.config";
 import { prisma } from "@/lib/db/prisma";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 
 export async function DELETE() {
   try {
@@ -14,7 +14,6 @@ export async function DELETE() {
       );
     }
 
-    // Delete the user and all related data (Prisma will handle cascading deletes)
     await prisma.user.delete({
       where: {
         id: session.user.id,

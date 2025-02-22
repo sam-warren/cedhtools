@@ -65,7 +65,9 @@ export default function ForgotPasswordPage() {
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle className="text-2xl">Reset Password</CardTitle>
-          <CardDescription>Enter your email address and we&apos;ll send you a link to reset your password.</CardDescription>
+          <CardDescription>
+            Enter your email address and we&apos;ll send you a link to reset your password.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,10 +95,7 @@ export default function ForgotPasswordPage() {
         <CardFooter>
           <div className="text-sm text-muted-foreground">
             Remember your password?{" "}
-            <Link
-              href="/login"
-              className="hover:text-primary underline underline-offset-4"
-            >
+            <Link href="/login" className="underline underline-offset-4 hover:text-primary">
               Back to login
             </Link>
           </div>

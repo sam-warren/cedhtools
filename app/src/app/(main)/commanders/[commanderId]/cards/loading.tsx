@@ -1,7 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { CARD_TYPES, CARD_TYPE_ICONS } from "@/lib/constants/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CARD_TYPES } from "@/lib/constants/card";
 
 export default function Loading() {
   return (

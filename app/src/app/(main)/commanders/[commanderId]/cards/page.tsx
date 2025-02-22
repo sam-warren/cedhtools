@@ -1,15 +1,15 @@
 "use client";
 
-import { DataTable } from "@/components/ui/data-table";
-import { PageHeader } from "@/components/ui/page-header";
 import { columns } from "@/components/tables/commander-cards-columns";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardSearch } from "@/components/ui/card-search";
-import { Card, CardHeader, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { NoData } from "@/components/ui/no-data";
-import { useState, useMemo, createElement } from "react";
+import { PageHeader } from "@/components/ui/page-header";
 import { CARD_TYPES, CARD_TYPE_ICONS } from "@/lib/constants/card";
 import { commanderData } from "@/lib/mock/commander-data";
-import { Badge } from "@/components/ui/badge";
+import { createElement, useMemo, useState } from "react";
 interface Props {
   params: {
     commanderId: string;
@@ -42,42 +42,41 @@ export default function CommanderCardsPage({ params }: Props) {
       </PageHeader>
       <div className="space-y-6">
         {filteredData.length === 0 ? (
-          <NoData
-            message="No cards found"
-            suggestion="Try adjusting your search query or filters"
-          />
-        ) : CARD_TYPES.map((type) => {
-          const typeData = cardsByType[type];
-          if (typeData.length === 0) return null;
+          <NoData message="No cards found" suggestion="Try adjusting your search query or filters" />
+        ) : (
+          CARD_TYPES.map((type) => {
+            const typeData = cardsByType[type];
+            if (typeData.length === 0) return null;
 
-          return (
-            <Card key={type}>
-              <CardHeader className="pb-2">
-                <div className="flex w-full items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {CARD_TYPE_ICONS[type] && createElement(CARD_TYPE_ICONS[type], { className: "h-5 w-5" })}
-                    <CardTitle className="text-xl">{type === "Sorcery" ? "Sorceries" : `${type}s`}</CardTitle>
+            return (
+              <Card key={type}>
+                <CardHeader className="pb-2">
+                  <div className="flex w-full items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {CARD_TYPE_ICONS[type] && createElement(CARD_TYPE_ICONS[type], { className: "h-5 w-5" })}
+                      <CardTitle className="text-xl">{type === "Sorcery" ? "Sorceries" : `${type}s`}</CardTitle>
+                    </div>
+                    <CardDescription className="text-sm">
+                      <Badge className="inline-flex items-center gap-1">
+                        {typeData.length} card{typeData.length > 1 ? "s" : ""}
+                      </Badge>
+                    </CardDescription>
                   </div>
-                  <CardDescription className="text-sm">
-                    <Badge className="inline-flex items-center gap-1">
-                      {typeData.length} card{typeData.length > 1 ? "s" : ""}
-                    </Badge>
-                  </CardDescription>
-                </div>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent className="pt-0">
-                <DataTable
-                  columns={columns}
-                  data={typeData}
-                  enableRowSelection={false}
-                  enableSearch={false}
-                  enableViewOptions={false}
-                />
-              </CardContent>
-            </Card>
-          );
-        })}
+                <CardContent className="pt-0">
+                  <DataTable
+                    columns={columns}
+                    data={typeData}
+                    enableRowSelection={false}
+                    enableSearch={false}
+                    enableViewOptions={false}
+                  />
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

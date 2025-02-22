@@ -1,10 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { DATE_PRESET } from "@/lib/constants/filters";
 import { useFilterStore } from "@/stores/filter-store";
 import { format, parseISO } from "date-fns";
-import { CalendarFold, Users, Medal } from "lucide-react";
-import { DATE_PRESET } from "@/lib/constants/filters";
+import { CalendarFold, Medal, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function FilterBadges() {
@@ -47,4 +47,4 @@ export function FilterBadges() {
       )}
     </div>
   );
-} 
+}

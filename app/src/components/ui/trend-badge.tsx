@@ -1,8 +1,8 @@
 "use client";
 
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/app-utils";
+import { TrendingDown, TrendingUp } from "lucide-react";
 
 interface TrendBadgeProps {
   trend: number;

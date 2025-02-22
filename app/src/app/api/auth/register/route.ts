@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
-import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { sendVerificationEmail } from "@/lib/email/email.service";
+import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
 const registerSchema = z.object({
   name: z.string().min(2).optional(),

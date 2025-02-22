@@ -2,22 +2,15 @@
 
 import { AuthHeader } from "@/components/auth/auth-header";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { signIn } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Image from "next/image";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -46,13 +39,13 @@ export default function SignUpPage() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           name,
           email,
-          password,
-        }),
+          password
+        })
       });
 
       const data = await response.json();
@@ -63,9 +56,9 @@ export default function SignUpPage() {
 
       toast({
         title: "Success",
-        description: data.message,
+        description: data.message
       });
-      
+
       // Handle redirect to verification page
       if (data.redirect) {
         router.push(data.redirect);
@@ -74,7 +67,7 @@ export default function SignUpPage() {
         const result = await signIn("credentials", {
           email,
           password,
-          redirect: false,
+          redirect: false
         });
 
         if (result?.error) {
@@ -88,7 +81,7 @@ export default function SignUpPage() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -103,7 +96,7 @@ export default function SignUpPage() {
       toast({
         title: "Error",
         description: "Failed to sign in with Google",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -116,9 +109,7 @@ export default function SignUpPage() {
       <Card className="w-[350px]">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl">Create an account</CardTitle>
-          <CardDescription>
-            Choose your preferred sign up method
-          </CardDescription>
+          <CardDescription>Choose your preferred sign up method</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <Button variant="outline" disabled={isLoading} onClick={handleGoogleSignIn}>
@@ -130,9 +121,7 @@ export default function SignUpPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
           <form onSubmit={onSubmit}>
@@ -212,10 +201,7 @@ export default function SignUpPage() {
         <CardFooter>
           <div className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link
-              href="/login"
-              className="hover:text-primary underline underline-offset-4"
-            >
+            <Link href="/login" className="underline underline-offset-4 hover:text-primary">
               Sign in
             </Link>
           </div>

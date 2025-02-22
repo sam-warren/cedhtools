@@ -1,4 +1,4 @@
-import { Swords, Sparkles, PawPrint, SquareUserRound, Cog, Scroll, Zap, WandSparkles, TreePine, UserRound } from "lucide-react";
+import { Cog, PawPrint, Scroll, Sparkles, Swords, TreePine, WandSparkles, Zap } from "lucide-react";
 
 export const CARD_TYPE_ICONS = {
     Battle: Swords,

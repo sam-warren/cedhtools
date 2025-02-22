@@ -1,10 +1,10 @@
+import { prisma } from "@/lib/db/prisma";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcryptjs";
 import { AuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/db/prisma";
 
 const loginSchema = z.object({
   email: z.string().email(),

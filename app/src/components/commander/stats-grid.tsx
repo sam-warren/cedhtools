@@ -1,7 +1,15 @@
 "use client";
 
-import { Trophy, Medal, Target, Users, Percent, Handshake, CalendarDays, ScrollText, Award, Crown, Ribbon } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
+import {
+  Award,
+  Crown,
+  Handshake,
+  Medal,
+  Ribbon,
+  ScrollText,
+  Trophy
+} from "lucide-react";
 
 interface StatTrend {
   current: number;

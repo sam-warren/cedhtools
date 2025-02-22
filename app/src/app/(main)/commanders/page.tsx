@@ -1,6 +1,6 @@
+import { columns, mockData } from "@/components/tables/commanders-columns";
 import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
-import { columns, mockData } from "@/components/tables/commander-meta-columns";
 
 export default function CommandersPage() {
   return (

@@ -1,9 +1,9 @@
 "use client";
 
-import { LucideIcon, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendBadge } from "@/components/ui/trend-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TrendBadge } from "@/components/ui/trend-badge";
+import { Info, LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
 
 interface StatCardProps {

@@ -1,9 +1,7 @@
-import { ResponsiveBreadcrumbs } from "@/components/ui/responsive-breadcrumb";
 import type { BreadcrumbSegment } from "@/components/ui/responsive-breadcrumb";
+import { ResponsiveBreadcrumbs } from "@/components/ui/responsive-breadcrumb";
 
-export default async function BreadcrumbSlot({
-  params
-}: Readonly<{ params: { commanderId: string } }>) {
+export default async function BreadcrumbSlot({ params }: Readonly<{ params: { commanderId: string } }>) {
   const _params = await params;
   //   const commander = await fetchCommander({ id: params.commanderId });
   // TODO: Implement commander fetch
@@ -17,4 +15,4 @@ export default async function BreadcrumbSlot({
   ];
 
   return <ResponsiveBreadcrumbs segments={segments} />;
-} 
+}

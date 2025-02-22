@@ -1,6 +1,6 @@
+import { columns, mockData } from "@/components/tables/players-columns";
 import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
-import { columns, mockData } from "@/components/tables/player-columns";
 
 export default function PlayersPage() {
   return (

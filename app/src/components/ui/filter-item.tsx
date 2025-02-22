@@ -1,5 +1,5 @@
-import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { LucideIcon } from "lucide-react";
 
 interface FilterItemProps {
@@ -21,10 +21,8 @@ export function FilterItem({ icon: Icon, label, tooltip, children, open, onOpenC
             <span className="truncate">{label}</span>
           </SidebarMenuButton>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
-          {children}
-        </PopoverContent>
+        <PopoverContent className="w-[200px] p-0">{children}</PopoverContent>
       </Popover>
     </SidebarMenuItem>
   );
-} 
+}

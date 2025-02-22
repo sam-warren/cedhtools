@@ -29,7 +29,7 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
-        redirect: false,
+        redirect: false
       });
 
       if (result?.error) {
@@ -40,7 +40,7 @@ export default function LoginPage() {
         title: "Success",
         description: "You have been logged in successfully."
       });
-      
+
       router.push("/");
       router.refresh();
     } catch (error) {
@@ -57,15 +57,15 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const result = await signIn("google", { 
+      const result = await signIn("google", {
         callbackUrl: "/",
-        redirect: false,
+        redirect: false
       });
-      
+
       if (result?.error) {
         throw new Error(result.error);
       }
-      
+
       if (result?.url) {
         router.push(result.url);
       }
@@ -73,7 +73,7 @@ export default function LoginPage() {
       toast({
         title: "Error",
         description: "Failed to sign in with Google. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);

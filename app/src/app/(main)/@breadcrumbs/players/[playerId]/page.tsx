@@ -6,11 +6,7 @@ export default async function BreadcrumbSlot({ params }: Readonly<{ params: { pl
   // TODO: Implement player fetch
   const player = { name: "John Doe" };
 
-  const segments = [
-    { label: "Home", href: "/" },
-    { label: "Players", href: "/players" },
-    { label: player.name }
-  ];
+  const segments = [{ label: "Home", href: "/" }, { label: "Players", href: "/players" }, { label: player.name }];
 
   return <ResponsiveBreadcrumbs segments={segments} />;
 }

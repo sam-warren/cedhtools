@@ -112,7 +112,9 @@ export const columns: ColumnDef<Tournament>[] = [
     accessorKey: "winner",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Winner" />,
     cell: ({ row }) => (
-      <Link href={`/players/${row.getValue<string>("winner").toLowerCase().replace(" ", "-")}`} className="hover:underline">
+      <Link
+        href={`/players/${row.getValue<string>("winner").toLowerCase().replace(" ", "-")}`}
+        className="hover:underline">
         {row.getValue<string>("winner")}
       </Link>
     )
@@ -149,4 +151,4 @@ export const columns: ColumnDef<Tournament>[] = [
       );
     }
   }
-]; 
+];
