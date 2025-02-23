@@ -1,3 +1,5 @@
+'use server';
+
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
@@ -73,4 +75,5 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     console.error('Error sending password reset email:', error);
     throw new Error('Failed to send password reset email');
   }
-} 
+}
+

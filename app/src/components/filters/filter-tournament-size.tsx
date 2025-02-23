@@ -4,7 +4,7 @@ import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { TOURNAMENT_SIZE_OPTIONS } from "@/lib/constants/filters";
-import { TournamentSize } from "@/lib/types/filters";
+import { TournamentSize } from "@/types/filters";
 import { cn } from "@/lib/utils/app-utils";
 import { Check, Users } from "lucide-react";
 

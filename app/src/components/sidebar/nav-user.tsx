@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { clearAuthData } from "@/lib/auth/auth";
+import { clearAuthData } from "@/services/auth";
 
 function useSessionWithCache() {
   const { data: session, status } = useSession({

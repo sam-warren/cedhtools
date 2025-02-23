@@ -1,7 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
-import { sendPasswordResetEmail } from "@/lib/email/email.service";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
+import { requestPasswordReset, resetPassword } from "@/services/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -19,36 +16,10 @@ export async function POST(request: Request) {
     const json = await request.json();
     const body = requestResetSchema.parse(json);
 
-    const user = await prisma.user.findUnique({
-      where: { email: body.email.toLowerCase() },
-    });
-
-    if (!user) {
-      // Return success even if user doesn't exist to prevent email enumeration
-      return NextResponse.json(
-        { message: "If an account exists with this email, you will receive a password reset link." },
-        { status: 200 }
-      );
-    }
-
-    // Generate reset token
-    const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
-
-    // Save reset token
-    await prisma.passwordResetToken.create({
-      data: {
-        identifier: body.email.toLowerCase(),
-        token,
-        expires,
-      },
-    });
-
-    // Send reset email
-    await sendPasswordResetEmail(body.email.toLowerCase(), token);
+    const result = await requestPasswordReset(body.email);
 
     return NextResponse.json(
-      { message: "If an account exists with this email, you will receive a password reset link." },
+      { message: result.message },
       { status: 200 }
     );
   } catch (error) {
@@ -60,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json(
-      { message: "Failed to process password reset request" },
+      { message: error instanceof Error ? error.message : "Failed to process password reset request" },
       { status: 500 }
     );
   }
@@ -71,58 +42,30 @@ export async function PUT(request: Request) {
     const json = await request.json();
     const body = resetPasswordSchema.parse(json);
 
-    // Find the reset token
-    const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token: body.token },
-    });
+    const result = await resetPassword(body.token, body.password);
 
-    if (!resetToken) {
+    if (!result.success) {
       return NextResponse.json(
-        { message: "Invalid or expired reset token" },
+        { message: result.message },
         { status: 400 }
       );
     }
-
-    // Check if token is expired
-    if (new Date() > resetToken.expires) {
-      await prisma.passwordResetToken.delete({
-        where: { token: body.token },
-      });
-      return NextResponse.json(
-        { message: "Reset token has expired" },
-        { status: 400 }
-      );
-    }
-
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(body.password, 10);
-
-    // Update user's password
-    await prisma.user.update({
-      where: { email: resetToken.identifier },
-      data: { password: hashedPassword },
-    });
-
-    // Delete the reset token
-    await prisma.passwordResetToken.delete({
-      where: { token: body.token },
-    });
 
     return NextResponse.json(
-      { message: "Password has been reset successfully" },
+      { message: result.message },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error in password reset:", error);
+    console.error("Error resetting password:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: "Invalid password format" },
+        { message: "Invalid request data" },
         { status: 400 }
       );
     }
     return NextResponse.json(
-      { message: "Failed to reset password" },
+      { message: error instanceof Error ? error.message : "Failed to reset password" },
       { status: 500 }
     );
   }
-} 
+}

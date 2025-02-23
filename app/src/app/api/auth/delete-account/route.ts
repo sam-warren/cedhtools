@@ -1,5 +1,5 @@
-import { authConfig } from "@/lib/auth/auth.config";
-import { prisma } from "@/lib/db/prisma";
+import { authConfig } from "@/lib/config/auth.config";
+import { deleteAccount } from "@/services/auth";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
@@ -14,21 +14,17 @@ export async function DELETE() {
       );
     }
 
-    await prisma.user.delete({
-      where: {
-        id: session.user.id,
-      },
-    });
+    const result = await deleteAccount(session.user.id);
 
     return NextResponse.json(
-      { message: "Account deleted successfully" },
+      { message: result.message },
       { status: 200 }
     );
   } catch (error) {
     console.error('Error deleting account:', error);
     return NextResponse.json(
-      { message: "Failed to delete account" },
+      { message: error instanceof Error ? error.message : "Failed to delete account" },
       { status: 500 }
     );
   }
-} 
+}

@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { DATE_PRESET, DATE_PRESETS } from "@/lib/constants/filters";
-import { DatePreset } from "@/lib/types/filters";
+import { DatePreset } from "@/types/filters";
 import { cn } from "@/lib/utils/app-utils";
 import { format, isSameDay } from "date-fns";
 import { CalendarFold } from "lucide-react";
