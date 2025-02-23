@@ -118,7 +118,7 @@ export function NavUser() {
 
   const handleSignOut = async () => {
     clearCache();
-    clearAuthData();
+    await clearAuthData();
     await signOut({ redirect: false });
     router.push("/login");
     router.refresh();
