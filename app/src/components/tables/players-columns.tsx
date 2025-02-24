@@ -8,23 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { Player } from "@/types/api/players";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Info, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-
-export type Player = {
-  id: string;
-  name: string;
-  entries: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  byes: number;
-  topCuts: number;
-  winRate: number;
-  drawRate: number;
-  mostPlayedCommander: string;
-};
 
 // Mock data for the player table
 export const mockData: Player[] = [

@@ -44,7 +44,7 @@ export function BarChartComponent<T extends Record<string, string | number>>({
   } satisfies ChartConfig;
 
   return (
-    <Card className={cn("overflow-hidden transition-all hover:shadow-md", className)}>
+    <Card className={cn("flex h-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md", className)}>
       <CardHeader className="flex-none pb-2">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -55,8 +55,8 @@ export function BarChartComponent<T extends Record<string, string | number>>({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="w-full" style={{ height: `${height}px` }}>
+      <CardContent className="flex-1 min-h-0">
+        <ChartContainer config={chartConfig} className="h-full min-h-[200px]">
           <BarChart
             data={data}
             margin={{

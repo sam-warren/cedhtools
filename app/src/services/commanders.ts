@@ -1,7 +1,29 @@
 'use server';
 
-import { commanderData } from "@/lib/mock/commander-data";
-import type { Commander, CommanderDetails, CommanderMeta } from "@/types/api/commanders";
+import { mockCommanderData } from "@/lib/mock/commanders";
+import type {
+  Commander,
+  CommanderDetails,
+  CommanderMeta,
+  CommanderStats,
+  TopPilot,
+  ChartDataPoint,
+  PopularityDataPoint,
+  WinRateBySeat,
+  WinRateByCut,
+  TopDecklist
+} from "@/types/api/commanders";
+
+export interface CardStats {
+  name: string;
+  winRate: number;
+  metaShare: number;
+}
+
+export interface CardDistribution {
+  name: string;
+  metaShare: number;
+}
 
 const mockCommandersList: CommanderMeta[] = [
   {
@@ -115,27 +137,97 @@ const mockCommandersList: CommanderMeta[] = [
 ];
 
 export async function getCommanders(): Promise<CommanderMeta[]> {
-  // In a real implementation, this would fetch from an API
   return Promise.resolve(mockCommandersList);
 }
 
 export async function getCommanderById(id: string): Promise<CommanderDetails | null> {
-  // In a real implementation, this would fetch from an API
-  // For now, we'll return mock data
   const commander = mockCommandersList.find(c => c.standing.toString() === id);
   if (!commander) return null;
 
-  // Return the mock data with the correct commander name and color identity
   return Promise.resolve({
-    ...commanderData,
+    ...mockCommanderData,
     id,
     name: commander.name,
     colorIdentity: commander.colorIdentity,
     stats: {
-      ...commanderData.stats,
-      winRate: { current: commander.winRate, trend: 2.8 },
-      drawRate: { current: commander.drawRate, trend: -1.5 },
+      tournamentWins: mockCommanderData.stats.tournamentWins,
+      top4s: mockCommanderData.stats.top4s,
+      top10s: mockCommanderData.stats.top10s,
+      top16s: mockCommanderData.stats.top16s,
+      totalGames: mockCommanderData.stats.totalGames,
+      wins: mockCommanderData.stats.wins,
+      draws: mockCommanderData.stats.draws,
+      winRate: commander.winRate,
+      drawRate: commander.drawRate,
       entries: { total: commander.entries, uniquePlayers: Math.floor(commander.entries * 0.4) }
     }
   });
+}
+
+export async function getCommanderStats(commanderId: string): Promise<CommanderStats> {
+  const stats = mockCommanderData.stats;
+  return Promise.resolve({
+    tournamentWins: stats.tournamentWins,
+    top4s: stats.top4s,
+    top10s: stats.top10s,
+    top16s: stats.top16s,
+    totalGames: stats.totalGames,
+    wins: stats.wins,
+    draws: stats.draws,
+    winRate: stats.winRate,
+    drawRate: stats.drawRate,
+    entries: stats.entries
+  });
+}
+
+export async function getCommanderMatchups(commanderId: string): Promise<CommanderDetails['matchups']> {
+  return Promise.resolve(mockCommanderData.matchups);
+}
+
+export async function getCommanderTopPilots(commanderId: string): Promise<TopPilot[]> {
+  return Promise.resolve(mockCommanderData.topPilots);
+}
+
+export async function getCommanderWinRateHistory(commanderId: string): Promise<ChartDataPoint[]> {
+  return Promise.resolve(mockCommanderData.charts.winRate);
+}
+
+export async function getCommanderPopularityHistory(commanderId: string): Promise<PopularityDataPoint[]> {
+  return Promise.resolve(mockCommanderData.charts.popularity);
+}
+
+export async function getCommanderWinRateBySeat(commanderId: string): Promise<WinRateBySeat[]> {
+  return Promise.resolve(mockCommanderData.charts.winRateBySeat);
+}
+
+export async function getCommanderWinRateByCut(commanderId: string): Promise<WinRateByCut[]> {
+  return Promise.resolve(mockCommanderData.charts.winRateByCut);
+}
+
+export async function getCardStats(commanderId: string, cardId: string): Promise<CardStats> {
+  return Promise.resolve({
+    name: "Basalt Monolith",
+    winRate: mockCommanderData.stats.winRate,
+    metaShare: 85
+  });
+}
+
+export async function getCardDistribution(commanderId: string, cardId: string): Promise<CardDistribution[]> {
+  return Promise.resolve([
+    { name: "Main Deck", metaShare: 85 },
+    { name: "Sideboard", metaShare: 10 },
+    { name: "Maybe Board", metaShare: 5 }
+  ]);
+}
+
+export async function getCardWinRateHistory(commanderId: string, cardId: string): Promise<ChartDataPoint[]> {
+  return Promise.resolve(mockCommanderData.charts.winRate);
+}
+
+export async function getCardPopularityHistory(commanderId: string, cardId: string): Promise<PopularityDataPoint[]> {
+  return Promise.resolve(mockCommanderData.charts.popularity);
 } 
+
+export async function getCommanderTopDecklists(commanderId: string): Promise<TopDecklist[]> {
+  return Promise.resolve(mockCommanderData.topDecklists);
+}

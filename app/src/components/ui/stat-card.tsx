@@ -11,10 +11,6 @@ interface StatCardProps {
   value: string | number;
   icon: LucideIcon;
   subtext: string;
-  trend?: {
-    value: number;
-    tooltipText: string;
-  };
   valueFormat?: (value: string | number) => string | ReactNode;
   infoTooltip?: string;
   textSize?: "text-2xl" | "text-3xl";
@@ -25,7 +21,6 @@ export function StatCard({
   value,
   icon: Icon,
   subtext,
-  trend,
   valueFormat = (val) => val.toString(),
   infoTooltip,
   textSize = "text-3xl"
@@ -62,7 +57,6 @@ export function StatCard({
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-sm text-zinc-500 dark:text-zinc-400">{subtext}</span>
-            {trend && <TrendBadge trend={trend.value} tooltipText={trend.tooltipText} />}
           </div>
         </div>
       </CardContent>

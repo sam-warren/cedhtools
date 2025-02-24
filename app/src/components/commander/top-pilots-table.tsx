@@ -2,80 +2,71 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
+import { NoData } from "@/components/ui/no-data";
+import type { TopPilot } from "@/types/api/commanders";
 import Link from "next/link";
 
-export interface TopPilot {
-  id: string;
-  name: string;
-  games: number;
-  wins: number;
-  winRate: number;
-  top4s: number;
-}
-
 interface TopPilotsTableProps {
-  data: TopPilot[];
+  data?: TopPilot[];
 }
 
 const columns = [
   {
     accessorKey: "name",
     header: "Player",
-    cell: ({ row }: { row: { original: TopPilot; getValue: (key: string) => string } }) => (
-      <Link href={`/players/${row.original.id}`} className="text-zinc-900 hover:underline dark:text-zinc-100">
+    cell: ({ row }: { row: { getValue: (key: string) => string; original: TopPilot } }) => (
+      <Link
+        href={`/players/${row.original.id}`}
+        className="text-foreground hover:underline">
         {row.getValue("name")}
       </Link>
     )
   },
   {
     accessorKey: "games",
-    header: "Entries",
-    cell: ({ row }: { row: { getValue: (key: string) => number } }) => (
-      <span className="text-zinc-600 dark:text-zinc-300">{row.getValue("games")}</span>
-    )
+    header: "Games"
+  },
+  {
+    accessorKey: "wins",
+    header: "Wins"
   },
   {
     accessorKey: "winRate",
     header: "Win Rate",
-    cell: ({ row }: { row: { getValue: (key: string) => number } }) => (
-      <span className="text-zinc-600 dark:text-zinc-300">{row.getValue("winRate").toFixed(1)}%</span>
-    )
+    cell: ({ row }: { row: { getValue: (key: string) => number } }) => `${row.getValue("winRate").toFixed(1)}%`
   },
   {
     accessorKey: "top4s",
-    header: "Tournament Wins",
-    cell: ({ row }: { row: { getValue: (key: string) => number } }) => (
-      <span className="text-zinc-600 dark:text-zinc-300">{row.getValue("top4s")}</span>
-    )
+    header: "Top 4s"
   }
 ];
 
-export function TopPilotsTable({ data }: TopPilotsTableProps) {
-  // Take only top 5 pilots
-  const topPilots = data.slice(0, 5);
+export function TopPilotsTable({ data = [] }: TopPilotsTableProps) {
+  if (!data || data.length === 0) {
+    return (
+      <Card className="shadow-sm transition-shadow duration-200 hover:shadow-md">
+        <CardHeader>
+          <CardTitle>Top Pilots</CardTitle>
+          <CardDescription>Most successful players with this commander</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <NoData 
+            message="No pilot data available" 
+            suggestion="Check back later for tournament results" 
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="flex h-full w-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md">
+    <Card className="shadow-sm transition-shadow duration-200 hover:shadow-md">
       <CardHeader>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Top Pilots</CardTitle>
-            <CardDescription className="text-zinc-500 dark:text-zinc-400">
-              Players with the most success using this commander
-            </CardDescription>
-          </div>
-        </div>
+        <CardTitle>Top Pilots</CardTitle>
+        <CardDescription>Most successful players with this commander</CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable
-          columns={columns}
-          data={topPilots}
-          enableSorting={false}
-          enableFiltering={false}
-          enablePagination={false}
-          enableColumnVisibility={false}
-          globalFilter={false}
-        />
+        <DataTable columns={columns} data={data} enableRowSelection={false} enableViewOptions={false} />
       </CardContent>
     </Card>
   );

@@ -1,71 +1,82 @@
 "use client";
 
 import * as React from "react";
-import { TrendingUp } from "lucide-react";
 import { Label, Pie, PieChart } from "recharts";
+import { cn } from "@/lib/utils/app-utils";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-const chartData = [
-  { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
-  { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
-  { browser: "firefox", visitors: 287, fill: "var(--color-firefox)" },
-  { browser: "edge", visitors: 173, fill: "var(--color-edge)" },
-  { browser: "other", visitors: 190, fill: "var(--color-other)" }
-];
 
-const chartConfig = {
-  visitors: {
-    label: "Visitors"
-  },
-  chrome: {
-    label: "Chrome",
-    color: "hsl(var(--chart-1))"
-  },
-  safari: {
-    label: "Safari",
-    color: "hsl(var(--chart-2))"
-  },
-  firefox: {
-    label: "Firefox",
-    color: "hsl(var(--chart-3))"
-  },
-  edge: {
-    label: "Edge",
-    color: "hsl(var(--chart-4))"
-  },
-  other: {
-    label: "Other",
-    color: "hsl(var(--chart-5))"
-  }
-} satisfies ChartConfig;
+interface DonutChartProps<T extends { name: string }> {
+  data: T[];
+  title: string;
+  description?: string;
+  valueKey: keyof T;
+  footerMessage?: string;
+  footerDescription?: string;
+  centerLabel?: string;
+  className?: string;
+}
 
-export function DonutChart() {
-  const totalVisitors = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0);
-  }, []);
+export function DonutChart<T extends { name: string }>({
+  data,
+  title,
+  description,
+  valueKey,
+  footerMessage,
+  footerDescription,
+  centerLabel,
+  className
+}: DonutChartProps<T>) {
+  const chartData = React.useMemo(() => {
+    return data.map((item, index) => ({
+      name: item.name,
+      value: Number(item[valueKey]),
+      fill: `hsl(var(--chart-${(index % 12) + 1}))`
+    }));
+  }, [data, valueKey]);
+
+  const totalValue = React.useMemo(() => {
+    return chartData.reduce((acc, curr) => acc + curr.value, 0);
+  }, [chartData]);
+
+  const chartConfig = React.useMemo(() => {
+    return chartData.reduce((acc, curr, index) => {
+      acc[curr.name] = {
+        label: curr.name,
+        color: `hsl(var(--chart-${(index % 12) + 1}))`
+      };
+      return acc;
+    }, {} as ChartConfig);
+  }, [chartData]);
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>Pie Chart - Donut with Text</CardTitle>
-        <CardDescription>January - June 2024</CardDescription>
+    <Card className={cn("flex h-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md", className)}>
+      <CardHeader className="flex-none pb-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
+            {description && (
+              <CardDescription className="text-zinc-500 dark:text-zinc-400">{description}</CardDescription>
+            )}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+      <CardContent className="min-h-0 flex-1">
+        <ChartContainer config={chartConfig} className="h-full min-h-[200px]">
           <PieChart>
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-            <Pie data={chartData} dataKey="visitors" nameKey="browser" innerRadius={60} strokeWidth={5}>
+            <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
               <Label
                 content={({ viewBox }) => {
                   if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                     return (
                       <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
                         <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                          {totalVisitors.toLocaleString()}
+                          {totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                         </tspan>
                         <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground">
-                          Visitors
+                          {centerLabel || "Total"}
                         </tspan>
                       </text>
                     );
@@ -76,12 +87,12 @@ export function DonutChart() {
           </PieChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 font-medium leading-none">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="leading-none text-muted-foreground">Showing total visitors for the last 6 months</div>
-      </CardFooter>
+      {(footerMessage || footerDescription) && (
+        <CardFooter className="flex-none flex-col items-start gap-2 text-sm">
+          {footerMessage && <div className="flex gap-2 font-medium leading-none">{footerMessage}</div>}
+          {footerDescription && <div className="leading-none text-muted-foreground">{footerDescription}</div>}
+        </CardFooter>
+      )}
     </Card>
   );
 }

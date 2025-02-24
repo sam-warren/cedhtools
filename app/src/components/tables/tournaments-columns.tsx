@@ -8,20 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { Tournament } from "@/types/api/tournaments";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Info, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-
-export type Tournament = {
-  id: string;
-  name: string;
-  date: string;
-  players: number;
-  swissRounds: number;
-  topCut: number;
-  winner: string;
-  winningCommander: string;
-};
 
 // Mock data for the tournament table
 export const mockData: Tournament[] = [

@@ -1,13 +1,13 @@
 export type CommanderStats = {
-  tournamentWins: { current: number; trend: number };
-  top4s: { current: number; trend: number };
-  top10s: { current: number; trend: number };
-  top16s: { current: number; trend: number };
+  tournamentWins: number;
+  top4s: number;
+  top10s: number;
+  top16s: number;
   totalGames: number;
-  wins: { current: number; trend: number };
-  draws: { current: number; trend: number };
-  winRate: { current: number; trend: number };
-  drawRate: { current: number; trend: number };
+  wins: number;
+  draws: number;
+  winRate: number;
+  drawRate: number;
   entries: { total: number; uniquePlayers: number };
 };
 
@@ -28,6 +28,16 @@ export type TopPilot = {
   wins: number;
   winRate: number;
   top4s: number;
+};
+
+export type TopDecklist = {
+  id: string;
+  name: string;
+  player: string;
+  tournament: string;
+  date: string;
+  standing: number;
+  winRate: number;
 };
 
 export type ChartDataPoint = {
@@ -67,6 +77,7 @@ export type CommanderDetails = {
     winRateByCut: WinRateByCut[];
   };
   topPilots: TopPilot[];
+  topDecklists: TopDecklist[];
 };
 
 export type Commander = {
