@@ -1,6 +1,6 @@
-import { SidebarMenu, SidebarMenuItem, SidebarSeparator, useSidebar } from "@/components/ui/sidebar";
-import { CEDHToolsIcon } from "../icons/cedhtools-icon";
+import { SidebarMenu, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { CEDHToolsIcon } from "../icons/cedhtools-icon";
 
 export function NavHeader() {
   const { state } = useSidebar();

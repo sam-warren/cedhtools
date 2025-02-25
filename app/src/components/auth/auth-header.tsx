@@ -7,4 +7,4 @@ export function AuthHeader() {
       <h1 className="font-mono text-2xl font-bold">cedhtools</h1>
     </div>
   );
-} 
+}

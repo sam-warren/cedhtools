@@ -5,12 +5,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { DATE_PRESET, DATE_PRESETS } from "@/lib/constants/filters";
+import { DatePreset } from "@/types/filters";
 import { cn } from "@/lib/utils/app-utils";
-import { DatePreset } from "@/lib/types/filters";
 import { format, isSameDay } from "date-fns";
 import { CalendarFold } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import React from "react";
 
 const MIN_DATE = new Date("2022-06-02");
 const MAX_DATE = new Date();
@@ -91,7 +90,7 @@ export function FilterDateRange({
           </SidebarMenuButton>
         </PopoverTrigger>
         <PopoverContent
-          className="flex w-auto flex-col space-y-2 p-2 mb-6"
+          className="mb-6 flex w-auto flex-col space-y-2 p-2"
           align="start"
           side={isMobile ? "bottom" : "right"}
           sideOffset={4}>

@@ -32,6 +32,8 @@ interface DataTableProps<TData, TValue> {
   enableFiltering?: boolean;
   enablePagination?: boolean;
   enableColumnVisibility?: boolean;
+  enableSearch?: boolean;
+  enableViewOptions?: boolean;
   defaultPageSize?: number;
   pageSizeOptions?: number[];
   globalFilter?: boolean;
@@ -86,6 +88,8 @@ export function DataTable<TData, TValue>({
   enableFiltering = true,
   enablePagination = true,
   enableColumnVisibility = true,
+  enableSearch = true,
+  enableViewOptions = true,
   defaultPageSize = 10,
   pageSizeOptions = [5, 10, 20, 30, 40, 50],
   globalFilter = true,
@@ -126,7 +130,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-2">
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-2">
-        {enableFiltering && (
+        {enableFiltering && enableSearch && (
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             {globalFilter && (
               <Input
@@ -152,7 +156,7 @@ export function DataTable<TData, TValue>({
             })}
           </div>
         )}
-        {enableColumnVisibility && <DataTableViewOptions table={table} />}
+        {enableColumnVisibility && enableViewOptions && <DataTableViewOptions table={table} />}
       </div>
       <div className="rounded-md border">
         <Table>

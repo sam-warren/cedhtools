@@ -1,12 +1,7 @@
-import { DataTable } from "@/components/ui/data-table";
-import { PageHeader } from "@/components/ui/page-header";
-import { columns, mockData } from "@/components/tables/player-columns";
+import PlayersPage from "@/pages/main/players/players";
+import { getPlayers } from "@/services/players";
 
-export default function PlayersPage() {
-  return (
-    <div className="container space-y-6">
-      <PageHeader title="Players" description="View player rankings, tournament history, and performance statistics." />
-      <DataTable columns={columns} data={mockData} enableRowSelection={false} />
-    </div>
-  );
+export default async function Page() {
+  const players = await getPlayers();
+  return <PlayersPage players={players} />;
 }

@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { DatePreset, TournamentSize, TopCut, FilterState } from "@/lib/types/filters"
+import type { DatePreset, TournamentSize, TopCut, FilterState } from "@/types/filters"
 import type { DateRange } from "react-day-picker"
 import { isSameDay } from "date-fns"
 import { DATE_PRESETS, DATE_PRESET, TOURNAMENT_SIZE, TOP_CUT } from "@/lib/constants/filters"

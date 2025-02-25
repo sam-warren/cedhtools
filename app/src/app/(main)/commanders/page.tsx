@@ -1,12 +1,7 @@
-import { DataTable } from "@/components/ui/data-table";
-import { PageHeader } from "@/components/ui/page-header";
-import { columns, mockData } from "@/components/tables/commander-meta-columns";
+import CommandersPage from "@/pages/main/commanders/commanders";
+import { getCommanders } from "@/services/commanders";
 
-export default function CommandersPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Commanders" description="View win rates, popularity, and statistics for cEDH commanders." />
-      <DataTable columns={columns} data={mockData} enableRowSelection={false} />
-    </div>
-  );
+export default async function Page() {
+  const commanders = await getCommanders();
+  return <CommandersPage commanders={commanders} />;
 }

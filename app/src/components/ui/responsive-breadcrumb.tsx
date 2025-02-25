@@ -2,22 +2,21 @@
 
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
-  BreadcrumbEllipsis
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import React from "react";
-import type { ReactElement } from "react";
 import { FilterBadges } from "@/components/ui/filter-badges";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useFilterStore } from "@/stores/filter-store";
-import { CalendarFold, Users, Medal, Filter } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DATE_PRESET } from "@/lib/constants/filters";
+import { useFilterStore } from "@/stores/filter-store";
+import { format, parseISO } from "date-fns";
+import { CalendarFold, Filter, Medal, Users } from "lucide-react";
+import React from "react";
 
 export interface BreadcrumbSegment {
   label: string;

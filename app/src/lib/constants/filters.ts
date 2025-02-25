@@ -1,6 +1,5 @@
-import type { DateRange } from "react-day-picker";
 import { subMonths, subYears } from "date-fns";
-import { DatePreset, TournamentSize, TopCut } from "@/lib/types/filters";
+import type { DateRange } from "react-day-picker";
 
 export const TOURNAMENT_SIZE = {
   THIRTY_PLUS: "30+",

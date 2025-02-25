@@ -4,10 +4,9 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { TOP_CUT, TOP_CUT_OPTIONS } from "@/lib/constants/filters";
+import { TopCut } from "@/types/filters";
 import { cn } from "@/lib/utils/app-utils";
-import { TopCut } from "@/lib/types/filters";
 import { Check, Medal } from "lucide-react";
-import React from "react";
 
 interface FilterTopCutProps {
   topCut: TopCut[];
@@ -72,4 +71,4 @@ export function FilterTopCut({ topCut, isTopCutModified, setTopCut, isMobile }: 
       </Popover>
     </SidebarMenuItem>
   );
-} 
+}

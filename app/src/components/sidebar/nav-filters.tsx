@@ -1,13 +1,12 @@
 "use client";
 
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from "@/components/ui/sidebar";
-import { useFilterStore } from "@/stores/filter-store";
-import { useSidebar } from "@/components/ui/sidebar";
-import { useState, useCallback } from "react";
-import { FilterDateRange } from "@/components/filters/filter-date-range";
-import { FilterTournamentSize } from "@/components/filters/filter-tournament-size";
-import { FilterTopCut } from "@/components/filters/filter-top-cut";
 import { FilterApply } from "@/components/filters/filter-apply";
+import { FilterDateRange } from "@/components/filters/filter-date-range";
+import { FilterTopCut } from "@/components/filters/filter-top-cut";
+import { FilterTournamentSize } from "@/components/filters/filter-tournament-size";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, useSidebar } from "@/components/ui/sidebar";
+import { useFilterStore } from "@/stores/filter-store";
+import { useCallback, useState } from "react";
 
 export function NavFilters() {
   const {
@@ -53,12 +52,7 @@ export function NavFilters() {
             setTournamentSize={setTournamentSize}
             isMobile={isMobile}
           />
-          <FilterTopCut
-            topCut={topCut}
-            isTopCutModified={isTopCutModified}
-            setTopCut={setTopCut}
-            isMobile={isMobile}
-          />
+          <FilterTopCut topCut={topCut} isTopCutModified={isTopCutModified} setTopCut={setTopCut} isMobile={isMobile} />
           <FilterApply
             isLoading={isLoading}
             hasModifiedFilters={hasModifiedFilters}

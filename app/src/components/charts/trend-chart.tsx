@@ -124,96 +124,92 @@ export function TrendChart<T extends Record<string, string | number>>({
   return (
     <Card className={cn("flex h-full flex-col shadow-sm transition-shadow duration-200 hover:shadow-md", className)}>
       <CardHeader className="flex-none pb-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
-            {description && (
-              <CardDescription className="text-zinc-500 dark:text-zinc-400">{description}</CardDescription>
-            )}
-          </div>
+        <div className="flex flex-col gap-2">
+          <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{title}</CardTitle>
+          {description && (
+            <CardDescription className="text-zinc-500 dark:text-zinc-400">{description}</CardDescription>
+          )}
         </div>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 p-0">
-        <div className="h-full px-6 pb-4">
-          <ChartContainer config={chartConfig} className="h-full min-h-[100px] w-full">
-            <AreaChart
-              data={filteredData}
-              margin={{ top: 15, right: 0, bottom: 0, left: -15 }}
-              width={100}
-              height={100}
-              style={{ minHeight: 0 }}>
-              <defs>
-                <linearGradient id={`${String(dataKey)}Gradient`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                vertical={false}
-                strokeDasharray="3 3"
-                stroke="rgb(226, 232, 240)"
-                className="dark:stroke-zinc-700"
-              />
-              <XAxis
-                dataKey={String(xAxisKey)}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={getMinTickGap()}
-                tickFormatter={getTickFormatter()}
-                stroke="rgb(148, 163, 184)"
-                className="dark:stroke-zinc-400"
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={4}
-                tickFormatter={(value) => `${valueFormatter(value)}${unit}`}
-                ticks={yAxisTicks}
-                domain={[0, maxTick]}
-                stroke="rgb(148, 163, 184)"
-                className="dark:stroke-zinc-400"
-              />
-              <ChartTooltip
-                cursor={false}
-                content={
-                  <ChartTooltipContent
-                    indicator="line"
-                    formatter={(value, name, item) => (
-                      <div className="space-y-1.5">
-                        <div className="font-medium">{format(parseISO(String(item.payload.date)), "MMMM d, yyyy")}</div>
-                        <div className="flex items-baseline gap-2">
-                          <div
-                            className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
-                            style={
-                              {
-                                "--color-bg": color
-                              } as React.CSSProperties
-                            }
-                          />
-                          {chartConfig[name as keyof typeof chartConfig]?.label || name}
-                          <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
-                            {valueFormatter(Number(value))}
-                            {unit && <span className="font-normal text-muted-foreground">{unit}</span>}
-                          </div>
+      <CardContent className="flex-1 min-h-0">
+        <ChartContainer config={chartConfig} className="h-full min-h-[200px]">
+          <AreaChart
+            data={filteredData}
+            margin={{ top: 15, right: 0, bottom: 0, left: -15 }}
+            width={100}
+            height={100}
+            style={{ minHeight: 0 }}>
+            <defs>
+              <linearGradient id={`${String(dataKey)}Gradient`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              vertical={false}
+              strokeDasharray="3 3"
+              stroke="rgb(226, 232, 240)"
+              className="dark:stroke-zinc-700"
+            />
+            <XAxis
+              dataKey={String(xAxisKey)}
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              minTickGap={getMinTickGap()}
+              tickFormatter={getTickFormatter()}
+              stroke="rgb(148, 163, 184)"
+              className="dark:stroke-zinc-400"
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={4}
+              tickFormatter={(value) => `${valueFormatter(value)}${unit}`}
+              ticks={yAxisTicks}
+              domain={[0, maxTick]}
+              stroke="rgb(148, 163, 184)"
+              className="dark:stroke-zinc-400"
+            />
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  indicator="line"
+                  formatter={(value, name, item) => (
+                    <div className="space-y-1.5">
+                      <div className="font-medium">{format(parseISO(String(item.payload.date)), "MMMM d, yyyy")}</div>
+                      <div className="flex items-baseline gap-2">
+                        <div
+                          className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                          style={
+                            {
+                              "--color-bg": color
+                            } as React.CSSProperties
+                          }
+                        />
+                        {chartConfig[name as keyof typeof chartConfig]?.label || name}
+                        <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
+                          {valueFormatter(Number(value))}
+                          {unit && <span className="font-normal text-muted-foreground">{unit}</span>}
                         </div>
                       </div>
-                    )}
-                    className="rounded-lg px-3 py-2 shadow-lg"
-                  />
-                }
-              />
-              <Area
-                type="monotone"
-                dataKey={String(dataKey)}
-                stroke={color}
-                strokeWidth={2}
-                fill={`url(#${String(dataKey)}Gradient)`}
-                className="dark:stroke-indigo-400"
-              />
-            </AreaChart>
-          </ChartContainer>
-        </div>
+                    </div>
+                  )}
+                  className="rounded-lg px-3 py-2 shadow-lg"
+                />
+              }
+            />
+            <Area
+              type="monotone"
+              dataKey={String(dataKey)}
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${String(dataKey)}Gradient)`}
+              className="dark:stroke-indigo-400"
+            />
+          </AreaChart>
+        </ChartContainer>
       </CardContent>
       <CardFooter className="flex-none border-t py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -9,8 +9,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
-  SidebarSeparator
+  SidebarRail
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, Shield, Trophy, Users } from "lucide-react";
 import * as React from "react";

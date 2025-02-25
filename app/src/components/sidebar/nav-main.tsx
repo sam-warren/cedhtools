@@ -37,7 +37,9 @@ export function NavMain({
       <SidebarMenu className="overflow-x-hidden">
         {items.map((item) => {
           const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
-          const hasActiveChild = item.items?.some((subItem) => pathname === subItem.url || pathname.startsWith(subItem.url + "/"));
+          const hasActiveChild = item.items?.some(
+            (subItem) => pathname === subItem.url || pathname.startsWith(subItem.url + "/")
+          );
 
           if (!item.items?.length) {
             return (
