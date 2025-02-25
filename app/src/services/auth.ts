@@ -7,8 +7,7 @@ import { DeleteAccountResult, RegisterUserParams, RequestPasswordResetResult, Re
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getServerSession } from "next-auth";
-import { withErrorHandling, withValidation } from "./apiUtils";
-import { PrismaClient } from "@prisma/client";
+import { withErrorHandling, withValidation } from "../lib/utils/api-utils";
 
 // Session and authentication utilities
 export async function getSession() {

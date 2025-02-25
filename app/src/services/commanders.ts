@@ -1,19 +1,16 @@
 'use server';
 
-import { mockCommanderData } from "@/lib/mock/commanders";
 import type {
   Commander,
   CommanderDetails,
-  CommanderMeta,
   CommanderStats,
-  TopPilot,
-  ChartDataPoint,
-  PopularityDataPoint,
-  WinRateBySeat,
-  WinRateByCut,
-  TopDecklist
-} from "@/types/api/commanders";
-import { createMockListFetcher, createRelatedItemsFetcher, withErrorHandling, withCache } from "./apiUtils";
+  CommanderMatchups,
+  TopPlayer,
+  TopDecklist,
+  CardAnalysis
+} from "@/types/entities/commanders";
+import { EntityReference, CommanderReference } from "@/types/entities/common";
+import { createMockListFetcher, withErrorHandling, withCache } from "../lib/utils/api-utils";
 
 export interface CardStats {
   name: string;
@@ -26,306 +23,455 @@ export interface CardDistribution {
   metaShare: number;
 }
 
-const mockCommandersList: CommanderMeta[] = [
+// TypeScript type for chart data points (used in our API but not in entities)
+interface ChartDataPoint {
+  date: string;
+  value: number;
+}
+
+interface WinRateBySeat {
+  position: string;
+  winRate: number;
+}
+
+interface WinRateByCut {
+  cut: string;
+  winRate: number;
+}
+
+// Mock data using the entity types
+const mockCommandersList: Commander[] = [
   {
-    standing: 1,
+    id: "kraum-ludevics-opus-tymna-the-weaver",
     name: "Kraum, Ludevic's Opus / Tymna the Weaver",
-    colorIdentity: "{W}{U}{B}{R}",
-    winRate: 21.9,
-    drawRate: 14.5,
-    entries: 519,
-    metaShare: 7.88
+    colorIdentity: "WUBR",
+    typeLine: "Legendary Creature — Zombie Horror + Legendary Creature — Human Cleric",
+    cmc: 7, // Combined CMC
+    isCommander: true,
+    commanderLegality: "legal",
+    partnerCommander: {
+      id: "tymna-the-weaver",
+      name: "Tymna the Weaver",
+      commanderLegality: "legal"
+    }
   },
   {
-    standing: 2,
-    name: "Thrasios, Triton Hero / Tymna the Weaver",
-    colorIdentity: "{W}{U}{B}{G}",
-    winRate: 22.8,
-    drawRate: 14.9,
-    entries: 393,
-    metaShare: 5.96
-  },
-  {
-    standing: 3,
-    name: "Kinnan, Bonder Prodigy",
-    colorIdentity: "{U}{G}",
-    winRate: 21.5,
-    drawRate: 13.2,
-    entries: 287,
-    metaShare: 4.36
-  },
-  {
-    standing: 4,
-    name: "Rograkhh, Son of Rohgahh / Silas Renn, Seeker Adept",
-    colorIdentity: "{U}{B}{R}",
-    winRate: 20.5,
-    drawRate: 13.2,
-    entries: 329,
-    metaShare: 4.99
-  },
-  {
-    standing: 5,
-    name: "Sisay, Weatherlight Captain",
-    colorIdentity: "{W}{U}{B}{R}{G}",
-    winRate: 20.1,
-    drawRate: 12.9,
-    entries: 288,
-    metaShare: 4.37
-  },
-  {
-    standing: 6,
-    name: "Magda, Brazen Outlaw",
-    colorIdentity: "{R}",
-    winRate: 19.8,
-    drawRate: 12.6,
-    entries: 163,
-    metaShare: 2.47
-  },
-  {
-    standing: 7,
-    name: "Tivit, Seller of Secrets",
-    colorIdentity: "{W}{U}{B}",
-    winRate: 19.5,
-    drawRate: 12.4,
-    entries: 153,
-    metaShare: 2.32
-  },
-  {
-    standing: 8,
-    name: "Yuriko, the Tiger's Shadow",
-    colorIdentity: "{U}{B}",
-    winRate: 19.2,
-    drawRate: 12.1,
-    entries: 138,
-    metaShare: 2.09
-  },
-  {
-    standing: 9,
-    name: "Rograkhh, Son of Rohgahh / Thrasios, Triton Hero",
-    colorIdentity: "{U}{R}{G}",
-    winRate: 18.9,
-    drawRate: 11.9,
-    entries: 132,
-    metaShare: 2.0
-  },
-  {
-    standing: 10,
+    id: "najeela-blade-blossom",
     name: "Najeela, the Blade-Blossom",
-    colorIdentity: "{W}{U}{B}{R}{G}",
-    winRate: 18.6,
-    drawRate: 11.7,
-    entries: 117,
-    metaShare: 1.77
+    colorIdentity: "WUBRG",
+    typeLine: "Legendary Creature — Human Warrior",
+    cmc: 3,
+    isCommander: true,
+    commanderLegality: "legal"
   },
   {
-    standing: 11,
+    id: "kenrith-returned-king",
     name: "Kenrith, the Returned King",
-    colorIdentity: "{W}{U}{B}{R}{G}",
-    winRate: 18.3,
-    drawRate: 11.5,
-    entries: 106,
-    metaShare: 1.61
+    colorIdentity: "WUBRG",
+    typeLine: "Legendary Creature — Human Noble",
+    cmc: 5,
+    isCommander: true,
+    commanderLegality: "legal"
   },
   {
-    standing: 12,
+    id: "derevi-empyrial-tactician",
     name: "Derevi, Empyrial Tactician",
-    colorIdentity: "{W}{U}{G}",
-    winRate: 18.0,
-    drawRate: 11.3,
-    entries: 88,
-    metaShare: 1.33
+    colorIdentity: "WUG",
+    typeLine: "Legendary Creature — Bird Wizard",
+    cmc: 4,
+    isCommander: true,
+    commanderLegality: "legal"
   }
+  // Additional commanders would go here
+];
+
+// Sample chart data for mock purposes
+const mockWinRateHistory: ChartDataPoint[] = [
+  { date: "2023-01", value: 22.1 },
+  { date: "2023-02", value: 21.5 },
+  { date: "2023-03", value: 22.8 },
+  { date: "2023-04", value: 23.4 }
+];
+
+const mockPopularityHistory: ChartDataPoint[] = [
+  { date: "2023-01", value: 7.2 },
+  { date: "2023-02", value: 7.5 },
+  { date: "2023-03", value: 8.1 },
+  { date: "2023-04", value: 7.8 }
+];
+
+const mockWinRateBySeat: WinRateBySeat[] = [
+  { position: "1", winRate: 24.5 },
+  { position: "2", winRate: 22.3 },
+  { position: "3", winRate: 21.1 },
+  { position: "4", winRate: 19.8 }
+];
+
+const mockWinRateByCut: WinRateByCut[] = [
+  { cut: "Pre-T8", winRate: 18.5 },
+  { cut: "T8", winRate: 24.2 },
+  { cut: "T4", winRate: 30.1 },
+  { cut: "Finals", winRate: 45.8 }
 ];
 
 // Create a function to enhance a commander with additional details
-const enhanceCommanderWithDetails = (commander: CommanderMeta): CommanderDetails => ({
-  ...mockCommanderData,
-  id: commander.standing.toString(),
+const enhanceCommanderWithDetails = (commander: Commander): CommanderDetails => ({
+  // Core data
+  id: commander.id,
   name: commander.name,
   colorIdentity: commander.colorIdentity,
+  image: commander.image,
+  typeLine: commander.typeLine,
+  manaCost: commander.manaCost,
+  cmc: commander.cmc,
+  oracleText: commander.oracleText,
+  isCommander: true,
+  commanderLegality: commander.commanderLegality,
+  
+  // Partner information (if applicable)
+  partnerCommander: commander.partnerCommander,
+  
+  // Statistics
   stats: {
-    tournamentWins: mockCommanderData.stats.tournamentWins,
-    top4s: mockCommanderData.stats.top4s,
-    top10s: mockCommanderData.stats.top10s,
-    top16s: mockCommanderData.stats.top16s,
-    totalGames: mockCommanderData.stats.totalGames,
-    wins: mockCommanderData.stats.wins,
-    draws: mockCommanderData.stats.draws,
-    winRate: commander.winRate,
-    drawRate: commander.drawRate,
-    entries: { total: commander.entries, uniquePlayers: Math.floor(commander.entries * 0.4) }
+    totalGames: 1000,
+    wins: 220,
+    draws: 150,
+    entries: {
+      total: 500,
+      uniquePlayers: 450
+    },
+    tournamentWins: 40,
+    top4s: 80,
+    top10s: 150,
+    top16s: 200,
+    winRate: 22.0,
+    drawRate: 15.0,
+    metaShare: 7.5
+  },
+  
+  // Relationships
+  matchups: {
+    best: [
+      {
+        commander: { id: "edric-spymaster-of-trest", name: "Edric, Spymaster of Trest" },
+        winRate: 68.2,
+        games: 47
+      },
+      {
+        commander: { id: "kenrith-returned-king", name: "Kenrith, the Returned King" },
+        winRate: 62.5,
+        games: 32
+      }
+    ],
+    worst: [
+      {
+        commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
+        winRate: 31.4,
+        games: 51
+      },
+      {
+        commander: { id: "thrasios-bruse-tarl", name: "Thrasios / Bruse Tarl" },
+        winRate: 38.9,
+        games: 36
+      }
+    ]
+  },
+  
+  // Related entities
+  topPlayers: [
+    {
+      player: { id: "player1", name: "PlayerOne" },
+      winRate: 72.4,
+      tournamentWins: 3,
+      top16s: 7,
+      games: 58
+    },
+    {
+      player: { id: "player2", name: "PlayerTwo" },
+      winRate: 68.1,
+      tournamentWins: 2,
+      top16s: 5,
+      games: 47
+    }
+  ],
+  topDecklists: [
+    {
+      deck: { id: "deck1", name: "Winning Kraum/Tymna" },
+      player: { name: "WinnerPlayerName" },
+      tournamentStanding: "1/32",
+      winRate: 91.7,
+      tournament: { id: "t1", name: "Quarterly Championship" }
+    }
+  ],
+  
+  // Card analysis
+  cardAnalysis: {
+    staples: [
+      {
+        card: { id: "force-of-will", name: "Force of Will" },
+        inclusion: 98.7
+      },
+      {
+        card: { id: "brainstorm", name: "Brainstorm" },
+        inclusion: 97.5
+      }
+    ]
   }
 });
 
-// Create generators for related data
-const generateCommanderStats = (commanderId: string): CommanderStats => {
-  const stats = mockCommanderData.stats;
-  return {
-    tournamentWins: stats.tournamentWins,
-    top4s: stats.top4s,
-    top10s: stats.top10s,
-    top16s: stats.top16s,
-    totalGames: stats.totalGames,
-    wins: stats.wins,
-    draws: stats.draws,
-    winRate: stats.winRate,
-    drawRate: stats.drawRate,
-    entries: stats.entries
-  };
-};
-
-const generateCardStats = (commanderId: string, cardId: string): CardStats => ({
-  name: "Basalt Monolith",
-  winRate: mockCommanderData.stats.winRate,
-  metaShare: 85
-});
-
-const generateCardDistribution = (commanderId: string, cardId: string): CardDistribution[] => ([
-  { name: "Main Deck", metaShare: 85 },
-  { name: "Sideboard", metaShare: 10 },
-  { name: "Maybe Board", metaShare: 5 }
-]);
-
-// Create the service functions using the utility functions
+// Update the getCommanders function to return entity types
 export const getCommanders = async () => {
-  // Use mockCommandersList as a fallback if mockCommanderData.commanders is undefined
-  const commandersData = mockCommanderData.commanders || mockCommandersList;
-  
-  const listFetcher = await createMockListFetcher<CommanderMeta>(commandersData);
+  const listFetcher = await createMockListFetcher<Commander>(mockCommandersList);
   const cachedFetcher = await withCache(listFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher();
+  return await errorHandledFetcher();
 };
 
+// Update getCommanderById to use the proper entity types
 export const getCommanderById = async (id: string) => {
-  const detailsFetcher = await createMockItemWithDetailsFetcher<CommanderMeta, CommanderDetails>(
-    mockCommanderData.commanders,
-    enhanceCommanderWithDetails,
-    'id'
-  );
+  // Create mock detailsFetcher that returns entity-typed details
+  const detailsFetcher = async (commanderId: string): Promise<CommanderDetails> => {
+    const commander = mockCommandersList.find(cmd => cmd.id === commanderId);
+    if (!commander) {
+      throw new Error(`Commander with id ${commanderId} not found`);
+    }
+    return enhanceCommanderWithDetails(commander);
+  };
+  
   const cachedFetcher = await withCache(detailsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(id);
+  return await errorHandledFetcher(id);
 };
 
 export const getCommanderStats = async (commanderId: string) => {
-  const statsFetcher = await createRelatedItemsFetcher<CommanderStats, 'commanderId'>(
-    'commanderId',
-    generateCommanderStats
-  );
+  const statsFetcher = async (cmdId: string): Promise<CommanderStats> => {
+    const commander = mockCommandersList.find(cmd => cmd.id === cmdId);
+    if (!commander) {
+      throw new Error(`Commander with id ${cmdId} not found`);
+    }
+    
+    // Mock stats since we don't have them in our commander objects
+    return {
+      totalGames: 1000,
+      wins: 220,
+      draws: 150,
+      entries: {
+        total: 500,
+        uniquePlayers: 450
+      },
+      tournamentWins: 40,
+      top4s: 80,
+      top10s: 150,
+      top16s: 200,
+      winRate: 22.0,
+      drawRate: 15.0,
+      metaShare: 7.5
+    };
+  };
+  
   const cachedFetcher = await withCache(statsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
 export const getCommanderMatchups = async (commanderId: string) => {
-  const matchupsFetcher = await createRelatedItemsFetcher<Commander[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.matchups
-  );
+  const matchupsFetcher = async (cmdId: string): Promise<CommanderMatchups> => {
+    // This would come from backend API in real implementation
+    return {
+      best: [
+        {
+          commander: { id: "edric-spymaster-of-trest", name: "Edric, Spymaster of Trest" },
+          winRate: 68.2,
+          games: 47
+        },
+        {
+          commander: { id: "kenrith-returned-king", name: "Kenrith, the Returned King" },
+          winRate: 62.5,
+          games: 32
+        }
+      ],
+      worst: [
+        {
+          commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
+          winRate: 31.4,
+          games: 51
+        },
+        {
+          commander: { id: "thrasios-bruse-tarl", name: "Thrasios / Bruse Tarl" },
+          winRate: 38.9,
+          games: 36
+        }
+      ]
+    };
+  };
+  
   const cachedFetcher = await withCache(matchupsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderTopPilots = async (commanderId: string) => {
-  const pilotsFetcher = await createRelatedItemsFetcher<TopPilot[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.topPilots
-  );
-  const cachedFetcher = await withCache(pilotsFetcher);
+export const getCommanderTopPlayers = async (commanderId: string) => {
+  const playersFetcher = async (cmdId: string): Promise<TopPlayer[]> => {
+    // This would come from backend API in real implementation
+    return [
+      {
+        player: { id: "player1", name: "PlayerOne" },
+        winRate: 72.4,
+        tournamentWins: 3,
+        top16s: 7,
+        games: 58
+      },
+      {
+        player: { id: "player2", name: "PlayerTwo" },
+        winRate: 68.1,
+        tournamentWins: 2,
+        top16s: 5,
+        games: 47
+      }
+    ];
+  };
+  
+  const cachedFetcher = await withCache(playersFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
 export const getCommanderWinRateHistory = async (commanderId: string) => {
-  const historyFetcher = await createRelatedItemsFetcher<ChartDataPoint[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.winRateHistory
-  );
+  const historyFetcher = async (cmdId: string): Promise<ChartDataPoint[]> => {
+    return mockWinRateHistory;
+  };
+  
   const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
 export const getCommanderPopularityHistory = async (commanderId: string) => {
-  const popularityFetcher = await createRelatedItemsFetcher<PopularityDataPoint[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.popularityHistory
-  );
-  const cachedFetcher = await withCache(popularityFetcher);
+  const historyFetcher = async (cmdId: string): Promise<ChartDataPoint[]> => {
+    return mockPopularityHistory;
+  };
+  
+  const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
 export const getCommanderWinRateBySeat = async (commanderId: string) => {
-  const seatFetcher = await createRelatedItemsFetcher<WinRateBySeat[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.winRateBySeat
-  );
-  const cachedFetcher = await withCache(seatFetcher);
+  const seatStatsFetcher = async (cmdId: string): Promise<WinRateBySeat[]> => {
+    return mockWinRateBySeat;
+  };
+  
+  const cachedFetcher = await withCache(seatStatsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
 export const getCommanderWinRateByCut = async (commanderId: string) => {
-  const cutFetcher = await createRelatedItemsFetcher<WinRateByCut[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.winRateByCut
-  );
-  const cachedFetcher = await withCache(cutFetcher);
+  const cutStatsFetcher = async (cmdId: string): Promise<WinRateByCut[]> => {
+    return mockWinRateByCut;
+  };
+  
+  const cachedFetcher = await withCache(cutStatsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher(commanderId);
 };
 
 export const getCardStats = async (commanderId: string, cardId: string) => {
-  const statsFetcher = await createRelatedItemsFetcher<CardStats, 'commanderId'>(
-    'commanderId',
-    (commanderId) => generateCardStats(commanderId, cardId)
-  );
-  const cachedFetcher = await withCache(statsFetcher);
+  const cardStatsFetcher = async (): Promise<CardStats> => {
+    return {
+      name: "Force of Will",
+      winRate: 23.5,
+      metaShare: 95.8
+    };
+  };
+  
+  const cachedFetcher = await withCache(cardStatsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher();
 };
 
 export const getCardDistribution = async (commanderId: string, cardId: string) => {
-  const distributionFetcher = await createRelatedItemsFetcher<CardDistribution[], 'commanderId'>(
-    'commanderId',
-    (commanderId) => generateCardDistribution(commanderId, cardId)
-  );
+  const distributionFetcher = async (): Promise<CardDistribution[]> => {
+    return [
+      { name: "Counterspell", metaShare: 82.3 },
+      { name: "Pact of Negation", metaShare: 78.6 },
+      { name: "Force of Negation", metaShare: 76.2 }
+    ];
+  };
+  
   const cachedFetcher = await withCache(distributionFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher();
 };
 
 export const getCardWinRateHistory = async (commanderId: string, cardId: string) => {
-  const historyFetcher = await createRelatedItemsFetcher<ChartDataPoint[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.cardWinRateHistory
-  );
+  const historyFetcher = async (): Promise<ChartDataPoint[]> => {
+    return mockWinRateHistory;
+  };
+  
   const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher();
 };
 
 export const getCardPopularityHistory = async (commanderId: string, cardId: string) => {
-  const popularityFetcher = await createRelatedItemsFetcher<PopularityDataPoint[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.cardPopularityHistory
-  );
-  const cachedFetcher = await withCache(popularityFetcher);
+  const historyFetcher = async (): Promise<ChartDataPoint[]> => {
+    return mockPopularityHistory;
+  };
+  
+  const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return errorHandledFetcher(commanderId);
+  return await errorHandledFetcher();
 };
 
 export const getCommanderTopDecklists = async (commanderId: string) => {
-  const relatedItemsFetcher = await createRelatedItemsFetcher<TopDecklist[], 'commanderId'>(
-    'commanderId',
-    () => mockCommanderData.topDecklists
-  );
+  const decklistsFetcher = async (cmdId: string): Promise<TopDecklist[]> => {
+    // This would come from backend API in real implementation
+    return [
+      {
+        deck: { id: "deck1", name: "Winning Kraum/Tymna" },
+        player: { name: "WinnerPlayerName" },
+        tournamentStanding: "1/32",
+        winRate: 91.7,
+        tournament: { id: "t1", name: "Quarterly Championship" }
+      },
+      {
+        deck: { id: "deck2", name: "Runner-up Kraum/Tymna" },
+        player: { name: "RunnerUpName" },
+        tournamentStanding: "2/64",
+        winRate: 85.3,
+        tournament: { id: "t2", name: "Monthly Series" }
+      }
+    ];
+  };
   
-  const cachedFetcher = await withCache(relatedItemsFetcher);
+  const cachedFetcher = await withCache(decklistsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return await errorHandledFetcher(commanderId);
+};
+
+export const getCardAnalysis = async (commanderId: string) => {
+  const analysisFetcher = async (cmdId: string): Promise<CardAnalysis> => {
+    // This would come from backend API in real implementation
+    return {
+      staples: [
+        {
+          card: { id: "force-of-will", name: "Force of Will" },
+          inclusion: 98.7
+        },
+        {
+          card: { id: "brainstorm", name: "Brainstorm" },
+          inclusion: 97.5
+        },
+        {
+          card: { id: "mana-crypt", name: "Mana Crypt" },
+          inclusion: 96.2
+        }
+      ]
+    };
+  };
   
-  return errorHandledFetcher(commanderId);
+  const cachedFetcher = await withCache(analysisFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return await errorHandledFetcher(commanderId);
 };
