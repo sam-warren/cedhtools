@@ -9,10 +9,8 @@
  * @param mockData The mock data array to use
  * @returns A function that returns a Promise resolving to the mock data
  */
-export function createMockListFetcher<T>(mockData: T[]) {
-  return async (): Promise<T[]> => {
-    return Promise.resolve(mockData);
-  };
+export async function createMockListFetcher<T>(mockData: T[]) {
+  return () => Promise.resolve(mockData);
 }
 
 /**
@@ -21,8 +19,8 @@ export function createMockListFetcher<T>(mockData: T[]) {
  * @param idField The field name to use as the ID (defaults to 'id')
  * @returns A function that takes an ID and returns a Promise resolving to the item or null
  */
-export function createMockItemFetcher<T>(mockData: T[], idField: keyof T = 'id' as keyof T) {
-  return async (id: string): Promise<T | null> => {
+export async function createMockItemFetcher<T>(mockData: T[], idField: keyof T = 'id' as keyof T) {
+  return (id: string) => {
     const item = mockData.find(item => (item[idField] as unknown as string) === id);
     return Promise.resolve(item || null);
   };
@@ -35,34 +33,32 @@ export function createMockItemFetcher<T>(mockData: T[], idField: keyof T = 'id' 
  * @param idField The field name to use as the ID (defaults to 'id')
  * @returns A function that takes an ID and returns a Promise resolving to the enhanced item or null
  */
-export function createMockItemWithDetailsFetcher<T, R>(
+export async function createMockItemWithDetailsFetcher<T, R>(
   mockData: T[],
   enhancer: (item: T) => R,
   idField: keyof T = 'id' as keyof T
 ) {
-  return async (id: string): Promise<R | null> => {
+  return (id: string) => {
     const item = mockData.find(item => (item[idField] as unknown as string) === id);
-    if (!item) return null;
+    if (!item) return Promise.resolve(null);
     return Promise.resolve(enhancer(item));
   };
 }
 
 /**
  * Safely handles API requests with proper error handling
- * @param handler The async function to execute
- * @returns A function that wraps the handler with error handling
+ * @param fn The async function to execute
+ * @returns A wrapped function with error handling
  */
-export function withErrorHandling<Args extends unknown[], Return>(
-  handler: (...args: Args) => Promise<Return>
-): (...args: Args) => Promise<Return> {
-  return async (...args: Args): Promise<Return> => {
+export async function withErrorHandling<T extends (...args: any[]) => Promise<any>>(fn: T): Promise<T> {
+  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
     try {
-      return await handler(...args);
+      return await fn(...args);
     } catch (error) {
       console.error('Service error:', error);
       throw error;
     }
-  };
+  }) as T;
 }
 
 /**
@@ -71,13 +67,11 @@ export function withErrorHandling<Args extends unknown[], Return>(
  * @param mockDataGenerator A function that generates mock data based on the parent ID
  * @returns A function that takes a parent ID and returns a Promise resolving to the related data
  */
-export function createRelatedItemsFetcher<T, P extends string>(
+export async function createRelatedItemsFetcher<T, P extends string>(
   parentIdParam: P,
   mockDataGenerator: (parentId: string) => T
 ) {
-  return async (parentId: string): Promise<T> => {
-    return Promise.resolve(mockDataGenerator(parentId));
-  };
+  return (parentId: string) => Promise.resolve(mockDataGenerator(parentId));
 }
 
 /**
@@ -86,13 +80,13 @@ export function createRelatedItemsFetcher<T, P extends string>(
  * @param ttlMs Time to live in milliseconds (default: 5 minutes)
  * @returns A cached version of the function
  */
-export function withCache<Args extends unknown[], Return>(
-  fn: (...args: Args) => Promise<Return>,
+export async function withCache<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
   ttlMs: number = 5 * 60 * 1000
-): (...args: Args) => Promise<Return> {
-  const cache = new Map<string, { data: Return; timestamp: number }>();
+): Promise<T> {
+  const cache = new Map<string, { data: any; timestamp: number }>();
   
-  return async (...args: Args): Promise<Return> => {
+  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
     const key = JSON.stringify(args);
     const cached = cache.get(key);
     
@@ -103,7 +97,7 @@ export function withCache<Args extends unknown[], Return>(
     const result = await fn(...args);
     cache.set(key, { data: result, timestamp: Date.now() });
     return result;
-  };
+  }) as T;
 }
 
 /**
@@ -112,10 +106,10 @@ export function withCache<Args extends unknown[], Return>(
  * @param db The database client
  * @returns A function that executes the handler within a transaction
  */
-export function withTransaction<Args extends unknown[], Return, DB>(
+export async function withTransaction<Args extends any[], Return, DB>(
   handler: (tx: DB, ...args: Args) => Promise<Return>,
   db: { transaction: (fn: (tx: DB) => Promise<Return>) => Promise<Return> }
-): (...args: Args) => Promise<Return> {
+): Promise<(...args: Args) => Promise<Return>> {
   return async (...args: Args): Promise<Return> => {
     return db.transaction(async (tx) => {
       return handler(tx, ...args);
@@ -129,15 +123,15 @@ export function withTransaction<Args extends unknown[], Return, DB>(
  * @param handler The handler function to execute if validation passes
  * @returns A function that validates input and then executes the handler
  */
-export function withValidation<Args extends unknown[], Return>(
-  validator: (...args: Args) => { valid: boolean; errors?: string[] },
-  handler: (...args: Args) => Promise<Return>
-): (...args: Args) => Promise<Return> {
-  return async (...args: Args): Promise<Return> => {
+export async function withValidation<T extends (...args: any[]) => Promise<any>>(
+  validator: (...args: Parameters<T>) => { valid: boolean; errors?: string[] },
+  handler: T
+): Promise<T> {
+  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
     const validation = validator(...args);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors?.join(', ')}`);
     }
     return handler(...args);
-  };
+  }) as T;
 } 

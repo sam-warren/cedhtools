@@ -187,123 +187,145 @@ const generateCardDistribution = (commanderId: string, cardId: string): CardDist
 ]);
 
 // Create the service functions using the utility functions
-export const getCommanders = withErrorHandling(
-  withCache(
-    createMockListFetcher<CommanderMeta>(mockCommandersList)
-  )
-);
+export const getCommanders = async () => {
+  // Use mockCommandersList as a fallback if mockCommanderData.commanders is undefined
+  const commandersData = mockCommanderData.commanders || mockCommandersList;
+  
+  const listFetcher = await createMockListFetcher<CommanderMeta>(commandersData);
+  const cachedFetcher = await withCache(listFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher();
+};
 
-export const getCommanderById = withErrorHandling(
-  withCache(
-    (id: string): Promise<CommanderDetails | null> => {
-      const commander = mockCommandersList.find(c => c.standing.toString() === id);
-      if (!commander) return Promise.resolve(null);
-      return Promise.resolve(enhanceCommanderWithDetails(commander));
-    }
-  )
-);
+export const getCommanderById = async (id: string) => {
+  const detailsFetcher = await createMockItemWithDetailsFetcher<CommanderMeta, CommanderDetails>(
+    mockCommanderData.commanders,
+    enhanceCommanderWithDetails,
+    'id'
+  );
+  const cachedFetcher = await withCache(detailsFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(id);
+};
 
-export const getCommanderStats = withErrorHandling(
-  withCache(
-    (commanderId: string): Promise<CommanderStats> => {
-      return Promise.resolve(generateCommanderStats(commanderId));
-    }
-  )
-);
+export const getCommanderStats = async (commanderId: string) => {
+  const statsFetcher = await createRelatedItemsFetcher<CommanderStats, 'commanderId'>(
+    'commanderId',
+    generateCommanderStats
+  );
+  const cachedFetcher = await withCache(statsFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderMatchups = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<CommanderDetails['matchups'], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.matchups
-    )
-  )
-);
+export const getCommanderMatchups = async (commanderId: string) => {
+  const matchupsFetcher = await createRelatedItemsFetcher<Commander[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.matchups
+  );
+  const cachedFetcher = await withCache(matchupsFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderTopPilots = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<TopPilot[], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.topPilots
-    )
-  )
-);
+export const getCommanderTopPilots = async (commanderId: string) => {
+  const pilotsFetcher = await createRelatedItemsFetcher<TopPilot[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.topPilots
+  );
+  const cachedFetcher = await withCache(pilotsFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderWinRateHistory = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<ChartDataPoint[], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.charts.winRate
-    )
-  )
-);
+export const getCommanderWinRateHistory = async (commanderId: string) => {
+  const historyFetcher = await createRelatedItemsFetcher<ChartDataPoint[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.winRateHistory
+  );
+  const cachedFetcher = await withCache(historyFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderPopularityHistory = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<PopularityDataPoint[], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.charts.popularity
-    )
-  )
-);
+export const getCommanderPopularityHistory = async (commanderId: string) => {
+  const popularityFetcher = await createRelatedItemsFetcher<PopularityDataPoint[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.popularityHistory
+  );
+  const cachedFetcher = await withCache(popularityFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderWinRateBySeat = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<WinRateBySeat[], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.charts.winRateBySeat
-    )
-  )
-);
+export const getCommanderWinRateBySeat = async (commanderId: string) => {
+  const seatFetcher = await createRelatedItemsFetcher<WinRateBySeat[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.winRateBySeat
+  );
+  const cachedFetcher = await withCache(seatFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderWinRateByCut = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<WinRateByCut[], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.charts.winRateByCut
-    )
-  )
-);
+export const getCommanderWinRateByCut = async (commanderId: string) => {
+  const cutFetcher = await createRelatedItemsFetcher<WinRateByCut[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.winRateByCut
+  );
+  const cachedFetcher = await withCache(cutFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCardStats = withErrorHandling(
-  withCache(
-    (commanderId: string, cardId: string): Promise<CardStats> => {
-      return Promise.resolve(generateCardStats(commanderId, cardId));
-    }
-  )
-);
+export const getCardStats = async (commanderId: string, cardId: string) => {
+  const statsFetcher = await createRelatedItemsFetcher<CardStats, 'commanderId'>(
+    'commanderId',
+    (commanderId) => generateCardStats(commanderId, cardId)
+  );
+  const cachedFetcher = await withCache(statsFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCardDistribution = withErrorHandling(
-  withCache(
-    (commanderId: string, cardId: string): Promise<CardDistribution[]> => {
-      return Promise.resolve(generateCardDistribution(commanderId, cardId));
-    }
-  )
-);
+export const getCardDistribution = async (commanderId: string, cardId: string) => {
+  const distributionFetcher = await createRelatedItemsFetcher<CardDistribution[], 'commanderId'>(
+    'commanderId',
+    (commanderId) => generateCardDistribution(commanderId, cardId)
+  );
+  const cachedFetcher = await withCache(distributionFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCardWinRateHistory = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<ChartDataPoint[], 'cardId'>(
-      'cardId',
-      () => mockCommanderData.charts.winRate
-    )
-  )
-);
+export const getCardWinRateHistory = async (commanderId: string, cardId: string) => {
+  const historyFetcher = await createRelatedItemsFetcher<ChartDataPoint[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.cardWinRateHistory
+  );
+  const cachedFetcher = await withCache(historyFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCardPopularityHistory = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<PopularityDataPoint[], 'cardId'>(
-      'cardId',
-      () => mockCommanderData.charts.popularity
-    )
-  )
-);
+export const getCardPopularityHistory = async (commanderId: string, cardId: string) => {
+  const popularityFetcher = await createRelatedItemsFetcher<PopularityDataPoint[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.cardPopularityHistory
+  );
+  const cachedFetcher = await withCache(popularityFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  return errorHandledFetcher(commanderId);
+};
 
-export const getCommanderTopDecklists = withErrorHandling(
-  withCache(
-    createRelatedItemsFetcher<TopDecklist[], 'commanderId'>(
-      'commanderId',
-      () => mockCommanderData.topDecklists
-    )
-  )
-);
+export const getCommanderTopDecklists = async (commanderId: string) => {
+  const relatedItemsFetcher = await createRelatedItemsFetcher<TopDecklist[], 'commanderId'>(
+    'commanderId',
+    () => mockCommanderData.topDecklists
+  );
+  
+  const cachedFetcher = await withCache(relatedItemsFetcher);
+  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
+  
+  return errorHandledFetcher(commanderId);
+};

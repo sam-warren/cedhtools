@@ -11,34 +11,46 @@ import { withErrorHandling, withValidation } from "./apiUtils";
 import { PrismaClient } from "@prisma/client";
 
 // Session and authentication utilities
-export const getSession = withErrorHandling(async () => {
-  return await getServerSession(authConfig);
-});
-
-export const getCurrentUser = withErrorHandling(async () => {
-  const session = await getSession();
-  return session?.user;
-});
-
-export const isAuthenticated = withErrorHandling(async () => {
-  const session = await getSession();
-  return !!session?.user;
-});
-
-export const clearAuthData = withErrorHandling(async () => {
-  'use client';
-  const authKeys = [
-    'lastKnownSession',
-  ];
-
-  authKeys.forEach(key => {
-    try {
-      localStorage.removeItem(key);
-    } catch (e) {
-      console.error(`Failed to remove ${key} from localStorage:`, e);
-    }
+export async function getSession() {
+  const handler = await withErrorHandling(async () => {
+    return await getServerSession(authConfig);
   });
-});
+  return handler();
+}
+
+export async function getCurrentUser() {
+  const handler = await withErrorHandling(async () => {
+    const session = await getSession();
+    return session?.user;
+  });
+  return handler();
+}
+
+export async function isAuthenticated() {
+  const handler = await withErrorHandling(async () => {
+    const session = await getSession();
+    return !!session?.user;
+  });
+  return handler();
+}
+
+export async function clearAuthData() {
+  const handler = await withErrorHandling(async () => {
+    'use client';
+    const authKeys = [
+      'lastKnownSession',
+    ];
+
+    authKeys.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.error(`Failed to remove ${key} from localStorage:`, e);
+      }
+    });
+  });
+  return handler();
+}
 
 // Validation functions
 const validateEmail = (email: string): { valid: boolean; errors?: string[] } => {
@@ -109,113 +121,122 @@ async function createVerificationToken(email: string): Promise<string> {
 }
 
 // Service functions
-export const verifyEmail = withErrorHandling(
-  withValidation(
-    (token: string) => ({ valid: !!token, errors: token ? undefined : ['Token is required'] }),
-    async (token: string): Promise<VerifyEmailResult> => {
-      const verificationToken = await prisma.verificationToken.findUnique({
-        where: { token },
-      });
+export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
+  const validateToken = (token: string) => ({ 
+    valid: !!token, 
+    errors: token ? undefined : ['Token is required'] 
+  });
 
-      if (!verificationToken) {
-        return {
-          success: false,
-          message: 'Invalid or expired token',
-          redirect: `/login?error=Invalid or expired token`,
-        };
-      }
+  const verifyTokenHandler = async (token: string): Promise<VerifyEmailResult> => {
+    const verificationToken = await prisma.verificationToken.findUnique({
+      where: { token },
+    });
 
-      if (verificationToken.expires < new Date()) {
-        await prisma.verificationToken.delete({
-          where: { token },
-        });
+    if (!verificationToken) {
+      return {
+        success: false,
+        message: 'Invalid or expired token',
+        redirect: `/login?error=Invalid or expired token`,
+      };
+    }
 
-        return {
-          success: false,
-          message: 'Token has expired',
-          redirect: `/login?error=Token has expired`,
-        };
-      }
-
-      const user = await prisma.user.findFirst({
-        where: { email: verificationToken.identifier },
-      });
-
-      if (!user) {
-        return {
-          success: false,
-          message: 'User not found',
-          redirect: `/login?error=User not found`,
-        };
-      }
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: new Date() },
-      });
-
+    if (verificationToken.expires < new Date()) {
       await prisma.verificationToken.delete({
         where: { token },
       });
 
       return {
-        success: true,
-        message: 'Email verified successfully',
-        redirect: `/login?success=Email verified successfully`,
+        success: false,
+        message: 'Token has expired',
+        redirect: `/login?error=Token has expired`,
       };
     }
-  )
-);
 
-export const registerUser = withErrorHandling(
-  withValidation(
-    validateRegistration,
-    async ({ email, password, name }: RegisterUserParams) => {
-      try {
-        // Start a transaction
-        return await prisma.$transaction(async (tx) => {
-          const existingUser = await tx.user.findUnique({
-            where: { email },
-          });
+    const user = await prisma.user.findFirst({
+      where: { email: verificationToken.identifier },
+    });
 
-          if (existingUser) {
-            return {
-              success: false,
-              message: 'User with this email already exists',
-              redirect: `/register?error=User with this email already exists`,
-            };
-          }
-
-          const hashedPassword = await bcrypt.hash(password, 10);
-
-          const user = await tx.user.create({
-            data: {
-              name,
-              email,
-              password: hashedPassword,
-            },
-          });
-
-          const verificationToken = await createVerificationToken(email);
-          await sendVerificationEmail(email, verificationToken);
-
-          return {
-            success: true,
-            message: 'Registration successful. Please check your email to verify your account.',
-            redirect: `/login?success=Registration successful. Please check your email to verify your account.`,
-          };
-        });
-      } catch (error) {
-        console.error('Registration error:', error);
-        return {
-          success: false,
-          message: 'Registration failed. Please try again later.',
-          redirect: `/register?error=Registration failed. Please try again later.`,
-        };
-      }
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found',
+        redirect: `/login?error=User not found`,
+      };
     }
-  )
-);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: new Date() },
+    });
+
+    await prisma.verificationToken.delete({
+      where: { token },
+    });
+
+    return {
+      success: true,
+      message: 'Email verified successfully',
+      redirect: `/login?success=Email verified successfully`,
+    };
+  };
+
+  const validatedHandler = await withValidation(validateToken, verifyTokenHandler);
+  const errorHandledValidator = await withErrorHandling(validatedHandler);
+  
+  return errorHandledValidator(token);
+}
+
+export async function registerUser(params: RegisterUserParams) {
+  const registerHandler = async ({ email, password, name }: RegisterUserParams) => {
+    try {
+      // Start a transaction
+      return await prisma.$transaction(async (tx) => {
+        const existingUser = await tx.user.findUnique({
+          where: { email },
+        });
+
+        if (existingUser) {
+          return {
+            success: false,
+            message: 'User with this email already exists',
+            redirect: `/register?error=User with this email already exists`,
+          };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await tx.user.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+          },
+        });
+
+        const verificationToken = await createVerificationToken(email);
+        await sendVerificationEmail(email, verificationToken);
+
+        return {
+          success: true,
+          message: 'Registration successful. Please check your email to verify your account.',
+          redirect: `/login?success=Registration successful. Please check your email to verify your account.`,
+        };
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      return {
+        success: false,
+        message: 'Registration failed. Please try again later.',
+        redirect: `/register?error=Registration failed. Please try again later.`,
+      };
+    }
+  };
+
+  const validatedHandler = await withValidation(validateRegistration, registerHandler);
+  const errorHandledValidator = await withErrorHandling(validatedHandler);
+  
+  return errorHandledValidator(params);
+}
 
 export async function deleteAccount(userId: string): Promise<DeleteAccountResult> {
   try {

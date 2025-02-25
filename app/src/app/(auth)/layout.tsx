@@ -20,7 +20,7 @@ export default function AuthLayout({
           Back to cedhtools
         </Link>
       </div>
-      <main className="flex min-h-screen">{children}</main>
+      <main className="flex min-h-screen items-center justify-center">{children}</main>
     </div>
   );
 }
