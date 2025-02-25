@@ -13,6 +13,7 @@ import type {
   WinRateByCut,
   TopDecklist
 } from "@/types/api/commanders";
+import { createMockListFetcher, createRelatedItemsFetcher, withErrorHandling, withCache } from "./apiUtils";
 
 export interface CardStats {
   name: string;
@@ -48,10 +49,10 @@ const mockCommandersList: CommanderMeta[] = [
     standing: 3,
     name: "Kinnan, Bonder Prodigy",
     colorIdentity: "{U}{G}",
-    winRate: 24.96,
-    drawRate: 10.0,
-    entries: 382,
-    metaShare: 5.8
+    winRate: 21.5,
+    drawRate: 13.2,
+    entries: 287,
+    metaShare: 4.36
   },
   {
     standing: 4,
@@ -136,37 +137,30 @@ const mockCommandersList: CommanderMeta[] = [
   }
 ];
 
-export async function getCommanders(): Promise<CommanderMeta[]> {
-  return Promise.resolve(mockCommandersList);
-}
+// Create a function to enhance a commander with additional details
+const enhanceCommanderWithDetails = (commander: CommanderMeta): CommanderDetails => ({
+  ...mockCommanderData,
+  id: commander.standing.toString(),
+  name: commander.name,
+  colorIdentity: commander.colorIdentity,
+  stats: {
+    tournamentWins: mockCommanderData.stats.tournamentWins,
+    top4s: mockCommanderData.stats.top4s,
+    top10s: mockCommanderData.stats.top10s,
+    top16s: mockCommanderData.stats.top16s,
+    totalGames: mockCommanderData.stats.totalGames,
+    wins: mockCommanderData.stats.wins,
+    draws: mockCommanderData.stats.draws,
+    winRate: commander.winRate,
+    drawRate: commander.drawRate,
+    entries: { total: commander.entries, uniquePlayers: Math.floor(commander.entries * 0.4) }
+  }
+});
 
-export async function getCommanderById(id: string): Promise<CommanderDetails | null> {
-  const commander = mockCommandersList.find(c => c.standing.toString() === id);
-  if (!commander) return null;
-
-  return Promise.resolve({
-    ...mockCommanderData,
-    id,
-    name: commander.name,
-    colorIdentity: commander.colorIdentity,
-    stats: {
-      tournamentWins: mockCommanderData.stats.tournamentWins,
-      top4s: mockCommanderData.stats.top4s,
-      top10s: mockCommanderData.stats.top10s,
-      top16s: mockCommanderData.stats.top16s,
-      totalGames: mockCommanderData.stats.totalGames,
-      wins: mockCommanderData.stats.wins,
-      draws: mockCommanderData.stats.draws,
-      winRate: commander.winRate,
-      drawRate: commander.drawRate,
-      entries: { total: commander.entries, uniquePlayers: Math.floor(commander.entries * 0.4) }
-    }
-  });
-}
-
-export async function getCommanderStats(commanderId: string): Promise<CommanderStats> {
+// Create generators for related data
+const generateCommanderStats = (commanderId: string): CommanderStats => {
   const stats = mockCommanderData.stats;
-  return Promise.resolve({
+  return {
     tournamentWins: stats.tournamentWins,
     top4s: stats.top4s,
     top10s: stats.top10s,
@@ -177,57 +171,139 @@ export async function getCommanderStats(commanderId: string): Promise<CommanderS
     winRate: stats.winRate,
     drawRate: stats.drawRate,
     entries: stats.entries
-  });
-}
+  };
+};
 
-export async function getCommanderMatchups(commanderId: string): Promise<CommanderDetails['matchups']> {
-  return Promise.resolve(mockCommanderData.matchups);
-}
+const generateCardStats = (commanderId: string, cardId: string): CardStats => ({
+  name: "Basalt Monolith",
+  winRate: mockCommanderData.stats.winRate,
+  metaShare: 85
+});
 
-export async function getCommanderTopPilots(commanderId: string): Promise<TopPilot[]> {
-  return Promise.resolve(mockCommanderData.topPilots);
-}
+const generateCardDistribution = (commanderId: string, cardId: string): CardDistribution[] => ([
+  { name: "Main Deck", metaShare: 85 },
+  { name: "Sideboard", metaShare: 10 },
+  { name: "Maybe Board", metaShare: 5 }
+]);
 
-export async function getCommanderWinRateHistory(commanderId: string): Promise<ChartDataPoint[]> {
-  return Promise.resolve(mockCommanderData.charts.winRate);
-}
+// Create the service functions using the utility functions
+export const getCommanders = withErrorHandling(
+  withCache(
+    createMockListFetcher<CommanderMeta>(mockCommandersList)
+  )
+);
 
-export async function getCommanderPopularityHistory(commanderId: string): Promise<PopularityDataPoint[]> {
-  return Promise.resolve(mockCommanderData.charts.popularity);
-}
+export const getCommanderById = withErrorHandling(
+  withCache(
+    (id: string): Promise<CommanderDetails | null> => {
+      const commander = mockCommandersList.find(c => c.standing.toString() === id);
+      if (!commander) return Promise.resolve(null);
+      return Promise.resolve(enhanceCommanderWithDetails(commander));
+    }
+  )
+);
 
-export async function getCommanderWinRateBySeat(commanderId: string): Promise<WinRateBySeat[]> {
-  return Promise.resolve(mockCommanderData.charts.winRateBySeat);
-}
+export const getCommanderStats = withErrorHandling(
+  withCache(
+    (commanderId: string): Promise<CommanderStats> => {
+      return Promise.resolve(generateCommanderStats(commanderId));
+    }
+  )
+);
 
-export async function getCommanderWinRateByCut(commanderId: string): Promise<WinRateByCut[]> {
-  return Promise.resolve(mockCommanderData.charts.winRateByCut);
-}
+export const getCommanderMatchups = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<CommanderDetails['matchups'], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.matchups
+    )
+  )
+);
 
-export async function getCardStats(commanderId: string, cardId: string): Promise<CardStats> {
-  return Promise.resolve({
-    name: "Basalt Monolith",
-    winRate: mockCommanderData.stats.winRate,
-    metaShare: 85
-  });
-}
+export const getCommanderTopPilots = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<TopPilot[], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.topPilots
+    )
+  )
+);
 
-export async function getCardDistribution(commanderId: string, cardId: string): Promise<CardDistribution[]> {
-  return Promise.resolve([
-    { name: "Main Deck", metaShare: 85 },
-    { name: "Sideboard", metaShare: 10 },
-    { name: "Maybe Board", metaShare: 5 }
-  ]);
-}
+export const getCommanderWinRateHistory = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<ChartDataPoint[], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.charts.winRate
+    )
+  )
+);
 
-export async function getCardWinRateHistory(commanderId: string, cardId: string): Promise<ChartDataPoint[]> {
-  return Promise.resolve(mockCommanderData.charts.winRate);
-}
+export const getCommanderPopularityHistory = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<PopularityDataPoint[], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.charts.popularity
+    )
+  )
+);
 
-export async function getCardPopularityHistory(commanderId: string, cardId: string): Promise<PopularityDataPoint[]> {
-  return Promise.resolve(mockCommanderData.charts.popularity);
-} 
+export const getCommanderWinRateBySeat = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<WinRateBySeat[], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.charts.winRateBySeat
+    )
+  )
+);
 
-export async function getCommanderTopDecklists(commanderId: string): Promise<TopDecklist[]> {
-  return Promise.resolve(mockCommanderData.topDecklists);
-}
+export const getCommanderWinRateByCut = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<WinRateByCut[], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.charts.winRateByCut
+    )
+  )
+);
+
+export const getCardStats = withErrorHandling(
+  withCache(
+    (commanderId: string, cardId: string): Promise<CardStats> => {
+      return Promise.resolve(generateCardStats(commanderId, cardId));
+    }
+  )
+);
+
+export const getCardDistribution = withErrorHandling(
+  withCache(
+    (commanderId: string, cardId: string): Promise<CardDistribution[]> => {
+      return Promise.resolve(generateCardDistribution(commanderId, cardId));
+    }
+  )
+);
+
+export const getCardWinRateHistory = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<ChartDataPoint[], 'cardId'>(
+      'cardId',
+      () => mockCommanderData.charts.winRate
+    )
+  )
+);
+
+export const getCardPopularityHistory = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<PopularityDataPoint[], 'cardId'>(
+      'cardId',
+      () => mockCommanderData.charts.popularity
+    )
+  )
+);
+
+export const getCommanderTopDecklists = withErrorHandling(
+  withCache(
+    createRelatedItemsFetcher<TopDecklist[], 'commanderId'>(
+      'commanderId',
+      () => mockCommanderData.topDecklists
+    )
+  )
+);

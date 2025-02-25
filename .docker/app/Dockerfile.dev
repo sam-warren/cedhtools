@@ -3,6 +3,9 @@
 FROM imbios/bun-node:latest-jod-slim AS base
 WORKDIR /app
 
+# Install OpenSSL
+RUN apt-get update -y && apt-get install -y openssl
+
 # Step 1 - install dependencies
 COPY package.json bun.lock ./
 RUN bun install

@@ -16,7 +16,7 @@ export default function CommandersPage({ commanders }: Props) {
     <div className="space-y-6">
       <PageHeader title="Commanders" description="View win rates, popularity, and statistics for cEDH commanders." />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <DonutChart
           data={commanders}
           title="Meta Share Distribution"
