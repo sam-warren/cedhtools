@@ -11,7 +11,6 @@ interface Card {
   cmc: number;               // Converted mana cost / mana value
   image?: string;            // Card image URL
   oracleText?: string;       // Oracle text
-  isCommander: boolean;      // Flag indicating if card can be a commander
   commanderLegality: 'banned' | 'legal' | 'not_legal'; // Commander format legality
   legalityUpdatedAt?: string; // When legality was last updated
 }
@@ -27,7 +26,7 @@ interface EntityReference {
 
 // Card reference for consistent use across entities
 interface CardReference extends EntityReference {
-  // Card-specific reference properties can be added here
+  imageUrl?: string;         // URL to card image when needed
 }
 
 // Commander reference with optional partner information
@@ -98,7 +97,7 @@ interface CommanderCardAnalysis {
 interface TimeSeriesDataPoint {
   timestamp: string;         // ISO 8601 timestamp (YYYY-MM-DD)
   value: number;             // The measured value
-  metadata?: Record<string, any>; // Optional additional context
+  metadata?: Record<string, unknown>; // Optional additional context - type-safe
 }
 
 // Query interface optimized for TimescaleDB
@@ -196,7 +195,6 @@ interface EntityResponse<T> {
 - Card statistics will be tracked exclusively in the context of commanders
 - Card performance metrics will help identify which cards work best with specific commanders
 - The inclusion rate helps identify staples vs. niche cards for each commander
-- The `isCommander` flag identifies cards that can be used as commanders
 - Commanders are a special type of card with additional properties and relationships
 - Time-series data is stored separately using TimescaleDB for efficient time-based queries
 - Commander legality is tracked to filter out banned cards from analysis and display

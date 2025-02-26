@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils/app-utils";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Info, MoreHorizontal, Trophy } from "lucide-react";
 import Link from "next/link";
-import type { CommanderMeta } from "@/types/api/commanders";
+import type { CommanderStats } from "@/types/entities/commanders";
 
-export const columns: ColumnDef<CommanderMeta>[] = [
+export const columns: ColumnDef<CommanderStats>[] = [
   {
     accessorKey: "standing",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Standing" />,
@@ -48,7 +48,7 @@ export const columns: ColumnDef<CommanderMeta>[] = [
     accessorKey: "name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Commander" />,
     cell: ({ row }) => (
-      <Link href={`/commanders/${row.original.standing}`} className="hover:underline">
+      <Link href={`/commanders/${row.original.}`} className="hover:underline">
         {row.getValue("name")}
       </Link>
     )

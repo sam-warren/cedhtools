@@ -12,9 +12,18 @@ export interface Card {
   cmc: number;               // Converted mana cost / mana value
   image?: string;            // Card image URL
   oracleText?: string;       // Oracle text
-  isCommander: boolean;      // Flag indicating if card can be a commander
   commanderLegality: 'banned' | 'legal' | 'not_legal'; // Commander format legality
   legalityUpdatedAt?: string; // When legality was last updated
+}
+
+/**
+ * Card in the context of a commander with inclusion/performance metrics
+ */
+export interface CommanderCard {
+  card: Card;                // Full card entity with all properties
+  inclusion: number;         // Percentage of commander decks including this card
+  winRate?: number;          // Win rate when this card is included
+  drawRate?: number;         // Draw rate when this card is included
 }
 
 /**
@@ -50,13 +59,15 @@ export interface CommanderCardAnalysis {
   // Use consistent commander reference
   commander: CommanderReference;
   
-  // Card categories with consistent references
-  staples: Array<{
+  // All cards played with this commander
+  cards: Array<{
     card: CardReference;     // Consistent card reference
     inclusion: number;       // Percentage of decks including this card
     winRate?: number;        // Win rate when this card is included
+    drawRate?: number;       // Draw rate when this card is included
   }>;
   
+  // Other specialized card lists
   highPerformers: Array<{
     card: CardReference;     // Consistent card reference
     inclusion: number;       // Percentage of decks including this card

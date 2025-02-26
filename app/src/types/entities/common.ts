@@ -14,7 +14,7 @@ export interface EntityReference {
  * Card reference for consistent use across entities
  */
 export interface CardReference extends EntityReference {
-  // Card-specific reference properties can be added here
+  imageUrl?: string;         // URL to card image when needed
 }
 
 /**
@@ -31,7 +31,7 @@ export interface CommanderReference extends EntityReference {
 export interface TimeSeriesDataPoint {
   timestamp: string;         // ISO 8601 timestamp (YYYY-MM-DD)
   value: number;             // The measured value
-  metadata?: Record<string, any>; // Optional additional context
+  metadata?: Record<string, unknown>; // Optional additional context
 }
 
 /**
@@ -91,7 +91,7 @@ export interface PaginatedResponse<T> extends EntityResponse<T[]> {
     lastUpdated: string;
     dataVersion: string;
     nextUpdateExpected?: string;
-    
+
     // Pagination metadata
     pagination: {
       totalCount: number;     // Total number of items across all pages
@@ -113,13 +113,13 @@ export interface CommonFilterParams {
   // Date range filters
   dateFrom?: string;   // ISO date string (e.g., "2022-06-01")
   dateTo?: string;     // ISO date string (defaults to current date)
-  
+
   // Tournament size filters
   tournamentSize?: '30+' | '60+' | '120+' | 'all'; // Minimum tournament size
-  
+
   // Tournament cut filters
   tournamentCut?: 'top4' | 'top10' | 'top16' | 'all'; // Results from specified cut
-  
+
   // Generic search
   search?: string;     // Search term for name/text fields
 }
@@ -135,36 +135,37 @@ export interface SortParams {
 /**
  * Utility functions for working with commander IDs
  */
-export namespace CommanderUtils {
+// Utility functions for commander operations (module-based approach)
+export const CommanderUtils = {
   /**
    * Generate a consistent combined ID for commander pairs
    */
-  export function generateCombinedId(commander1Id: string, commander2Id?: string): string {
+  generateCombinedId(commander1Id: string, commander2Id?: string): string {
     if (!commander2Id) return commander1Id;
-    
+
     // Sort IDs to ensure consistent ordering regardless of input order
     const [first, second] = [commander1Id, commander2Id].sort();
     return `${first}_${second}`;
-  }
-  
+  },
+
   /**
    * Parse a combined ID back into individual commander IDs
    */
-  export function parseCommanderId(combinedId: string): { 
-    primaryId: string; 
-    partnerId?: string 
+  parseCommanderId(combinedId: string): {
+    primaryId: string;
+    partnerId?: string
   } {
     if (combinedId.includes('_')) {
       const [primary, partner] = combinedId.split('_');
       return { primaryId: primary, partnerId: partner };
     }
     return { primaryId: combinedId };
-  }
-  
+  },
+
   /**
    * Check if a combined ID represents a partner pair
    */
-  export function isPartnerPair(combinedId: string): boolean {
+  isPartnerPair(combinedId: string): boolean {
     return combinedId.includes('_');
   }
-} 
+}; 

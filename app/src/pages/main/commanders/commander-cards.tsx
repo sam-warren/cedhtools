@@ -4,13 +4,14 @@ import { useMemo, useState, createElement } from "react";
 import { NoData } from "@/components/ui/no-data";
 import { CARD_TYPES, CARD_TYPE_ICONS } from "@/lib/constants/card";
 import { DonutChart } from "@/components/charts/donut-chart";
-import type { CommanderDetails } from "@/types/api/commanders";
-import { columns } from "@/components/tables/commander-cards-columns";
+import type { CommanderDetails } from "@/types/entities/commanders";
+import { columns, CommanderCardDisplay } from "@/components/tables/commander-cards-columns";
 import { PageHeader } from "@/components/ui/page-header";
 import { CardSearch } from "@/components/ui/card-search";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
+import { CommanderCard } from "@/types/entities/cards";
 
 interface Props {
   commanderDetails: CommanderDetails;
@@ -19,17 +20,25 @@ interface Props {
 export default function CommanderCardsPage({ commanderDetails }: Props) {
   const [search, setSearch] = useState("");
 
+  // Assume API returns complete card data with performance metrics
+  const commanderCards = useMemo<CommanderCard[]>(() => {
+    // Cast the API response to include full card details
+    return commanderDetails.cardAnalysis.cards as CommanderCard[];
+  }, [commanderDetails.cardAnalysis.cards]);
+
   // This filtering logic needs to be client-side for real-time search
   const filteredData = useMemo(() => {
-    if (!search) return commanderDetails.cards;
+    if (!search) return commanderCards;
     const searchLower = search.toLowerCase();
-    return commanderDetails.cards.filter((card) => card.name.toLowerCase().includes(searchLower));
-  }, [search, commanderDetails.cards]);
+    return commanderCards.filter((cardEntry) => cardEntry.card.name.toLowerCase().includes(searchLower));
+  }, [search, commanderCards]);
 
   const cardsByType = useMemo(() => {
-    const grouped = {} as Record<string, typeof filteredData>;
+    const grouped = {} as Record<string, CommanderCard[]>;
     CARD_TYPES.forEach((type) => {
-      grouped[type] = filteredData.filter((card) => card.type.includes(type));
+      grouped[type] = filteredData.filter((cardEntry) =>
+        cardEntry.card.typeLine.toLowerCase().includes(type.toLowerCase())
+      );
     });
     return grouped;
   }, [filteredData]);
@@ -61,7 +70,6 @@ export default function CommanderCardsPage({ commanderDetails }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Directly use PageHeader and CardSearch instead of CommanderCardSearch */}
       <PageHeader title="Commander Cards" description={`All cards played in ${commanderDetails.name} decks`}>
         <div className="w-full lg:w-[400px]">
           <CardSearch value={search} onChange={setSearch} />
@@ -80,7 +88,6 @@ export default function CommanderCardsPage({ commanderDetails }: Props) {
           />
         </div>
         <div className="lg:col-span-3">
-          {/* Directly use Card components instead of TypeDistributionCard */}
           <Card className="h-full shadow-sm transition-shadow duration-200 hover:shadow-md">
             <CardHeader>
               <CardTitle>Card Type Breakdown</CardTitle>
@@ -152,7 +159,17 @@ export default function CommanderCardsPage({ commanderDetails }: Props) {
                 <CardContent className="pt-0">
                   <DataTable
                     columns={columns}
-                    data={typeData}
+                    data={typeData.map(
+                      (cardEntry): CommanderCardDisplay => ({
+                        id: cardEntry.card.id,
+                        name: cardEntry.card.name,
+                        type: cardEntry.card.typeLine,
+                        manaCost: cardEntry.card.manaCost || "",
+                        inclusion: cardEntry.inclusion,
+                        winRate: cardEntry.winRate || 0,
+                        drawRate: cardEntry.drawRate || 0
+                      })
+                    )}
                     enableRowSelection={false}
                     enableSearch={false}
                     enableViewOptions={false}

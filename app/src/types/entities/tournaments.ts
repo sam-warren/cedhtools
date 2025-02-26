@@ -125,7 +125,7 @@ export interface TournamentDetails {
   
   // Relationships
   standings: TournamentStanding[];
-  rounds: TournamentRound[];
+  roundsData: TournamentRound[];
   
   // Analysis
   commanderBreakdown: TournamentCommanderBreakdown;

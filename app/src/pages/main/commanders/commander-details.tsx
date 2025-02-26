@@ -10,25 +10,24 @@ import { StatCard } from "@/components/ui/stat-card";
 import type {
   CommanderDetails,
   CommanderStats,
-  TopPilot,
-  ChartDataPoint,
-  PopularityDataPoint,
-  WinRateBySeat,
-  WinRateByCut,
-  TopDecklist
-} from "@/types/api/commanders";
-import { Layers, ShieldOff, Swords, ThumbsDown, ThumbsUp } from "lucide-react";
+  TopDecklist,
+  TopPlayer,
+  CommanderWinRateBySeat,
+  CommanderWinRateByCut
+} from "@/types/entities/commanders";
+import { TimeSeriesDataPoint } from "@/types/entities/common";
+import { Layers, ThumbsDown, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 
 interface Props {
   commander: CommanderDetails;
   stats: CommanderStats;
   matchups: CommanderDetails["matchups"];
-  topPilots: TopPilot[];
-  winRateHistory: ChartDataPoint[];
-  popularityHistory: PopularityDataPoint[];
-  winRateBySeat: WinRateBySeat[];
-  winRateByCut: WinRateByCut[];
+  topPlayers: TopPlayer[];
+  winRateHistory: TimeSeriesDataPoint[];
+  popularityHistory: TimeSeriesDataPoint[];
+  winRateBySeat: CommanderWinRateBySeat[];
+  winRateByCut: CommanderWinRateByCut[];
   topDecklists: TopDecklist[];
 }
 
@@ -36,7 +35,7 @@ export default function CommanderDetailsPage({
   commander,
   stats,
   matchups,
-  topPilots,
+  topPlayers,
   winRateHistory,
   popularityHistory,
   winRateBySeat,
@@ -61,7 +60,10 @@ export default function CommanderDetailsPage({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <BarChartComponent
-            data={winRateBySeat}
+            data={winRateBySeat.map((seat: CommanderWinRateBySeat) => ({
+              position: seat.position,
+              winRate: seat.winRate
+            }))}
             title="Win Rate by Seat Position"
             description="Impact of turn order on performance"
             tooltipLabel="Win Rate"
@@ -73,7 +75,10 @@ export default function CommanderDetailsPage({
         </div>
         <div className="lg:col-span-3">
           <TrendChart
-            data={winRateHistory}
+            data={winRateHistory.map((point: TimeSeriesDataPoint) => ({
+              date: point.timestamp,
+              winRate: point.value
+            }))}
             title="Win Rate Over Time"
             description="Average commander win rate in tournaments"
             dataKey="winRate"
@@ -89,7 +94,10 @@ export default function CommanderDetailsPage({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <TrendChart
-            data={popularityHistory}
+            data={popularityHistory.map((point: TimeSeriesDataPoint) => ({
+              date: point.timestamp,
+              popularity: point.value
+            }))}
             title="Popularity Over Time"
             description="Commander popularity in tournaments by meta share percentage"
             tooltipLabel="Popularity"
@@ -101,7 +109,10 @@ export default function CommanderDetailsPage({
         </div>
         <div className="lg:col-span-2">
           <BarChartComponent
-            data={winRateByCut}
+            data={winRateByCut.map((cut: CommanderWinRateByCut) => ({
+              cut: cut.cut,
+              winRate: cut.winRate
+            }))}
             title="Win Rate by Top Cut"
             description="Performance based on tournament rounds"
             tooltipLabel="Win Rate"
@@ -117,9 +128,9 @@ export default function CommanderDetailsPage({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <StatCard
           title="Best Matchup"
-          value={matchups.best.name}
+          value={matchups.best[0].commander.name}
           icon={ThumbsUp}
-          subtext={`${matchups.best.winRate.toFixed(1)}% win rate`}
+          subtext={`${matchups.best[0].winRate.toFixed(1)}% win rate`}
           textSize="text-2xl"
           valueFormat={(value) => (
             <Link
@@ -131,9 +142,9 @@ export default function CommanderDetailsPage({
         />
         <StatCard
           title="Worst Matchup"
-          value={matchups.worst.name}
+          value={matchups.worst[0].commander.name}
           icon={ThumbsDown}
-          subtext={`${matchups.worst.winRate.toFixed(1)}% win rate`}
+          subtext={`${matchups.worst[0].winRate.toFixed(1)}% win rate`}
           textSize="text-2xl"
           valueFormat={(value) => (
             <Link
@@ -145,7 +156,7 @@ export default function CommanderDetailsPage({
         />
       </div>
       {/* Top Pilots Table */}
-      <TopPilotsTable data={topPilots} />
+      <TopPilotsTable data={topPlayers} />
       {/* Top Decklists Table */}
       <TopDecklistsTable data={topDecklists} />
     </div>

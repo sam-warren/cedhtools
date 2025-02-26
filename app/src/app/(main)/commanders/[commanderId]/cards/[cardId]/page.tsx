@@ -24,6 +24,7 @@ export default async function Page({ params }: { params: { commanderId: string; 
       distribution={distribution}
       winRateHistory={winRateHistory}
       popularityHistory={popularityHistory}
+      commanderName={commanderName}
     />
   );
 }

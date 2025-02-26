@@ -148,7 +148,6 @@ interface CommanderDetails {
   manaCost?: string;
   cmc: number;
   oracleText?: string;
-  isCommander: true;         // Always true for commanders
   commanderLegality: 'banned' | 'legal' | 'not_legal'; // Commander format legality
   
   // Partner information (if applicable)

@@ -1,122 +1,71 @@
 'use server';
 
 import type {
+  CardAnalysis,
+  CardDistributionStats,
+  CardStatInCommander,
   Commander,
   CommanderDetails,
-  CommanderStats,
   CommanderMatchups,
-  TopPlayer,
+  CommanderStats,
+  CommanderWinRateBySeat,
+  CommanderWinRateByCut,
   TopDecklist,
-  CardAnalysis
+  TopPlayer
 } from "@/types/entities/commanders";
-import { EntityReference, CommanderReference } from "@/types/entities/common";
-import { createMockListFetcher, withErrorHandling, withCache } from "../lib/utils/api-utils";
+import { TimeSeriesDataPoint } from "@/types/entities/common";
+import { createMockListFetcher, withCache, withErrorHandling } from "../lib/utils/api-utils";
 
-export interface CardStats {
-  name: string;
-  winRate: number;
-  metaShare: number;
-}
+/**
+ * MOCK DATA GENERATORS
+ * These functions generate mock data for development and testing purposes.
+ * In a production environment, these would be replaced with actual API calls.
+ */
 
-export interface CardDistribution {
-  name: string;
-  metaShare: number;
-}
-
-// TypeScript type for chart data points (used in our API but not in entities)
-interface ChartDataPoint {
-  date: string;
-  value: number;
-}
-
-interface WinRateBySeat {
-  position: string;
-  winRate: number;
-}
-
-interface WinRateByCut {
-  cut: string;
-  winRate: number;
-}
-
-// Mock data using the entity types
+// Mock data for commanders
 const mockCommandersList: Commander[] = [
   {
-    id: "kraum-ludevics-opus-tymna-the-weaver",
-    name: "Kraum, Ludevic's Opus / Tymna the Weaver",
-    colorIdentity: "WUBR",
-    typeLine: "Legendary Creature — Zombie Horror + Legendary Creature — Human Cleric",
-    cmc: 7, // Combined CMC
-    isCommander: true,
-    commanderLegality: "legal",
-    partnerCommander: {
-      id: "tymna-the-weaver",
-      name: "Tymna the Weaver",
-      commanderLegality: "legal"
-    }
+    id: "kinnan-bonder-prodigy",
+    name: "Kinnan, Bonder Prodigy",
+    colorIdentity: "{U}{G}",
+    typeLine: "Legendary Creature — Human Druid",
+    manaCost: "{G}{U}",
+    cmc: 2,
+    image: "https://cards.scryfall.io/normal/front/6/3/63cda4a0-0dff-4edb-ae67-a2b7e2971350.jpg",
+    oracleText: "Nonland permanents you control have \"{T}: Add {C}.\"\n{4}{U}{G}: Look at the top five cards of your library. You may put a non-Human creature card from among them onto the battlefield. Put the rest on the bottom of your library in a random order.",
+    commanderLegality: "legal"
   },
   {
     id: "najeela-blade-blossom",
     name: "Najeela, the Blade-Blossom",
-    colorIdentity: "WUBRG",
+    colorIdentity: "{W}{U}{B}{R}{G}",
     typeLine: "Legendary Creature — Human Warrior",
+    manaCost: "{2}{R}",
     cmc: 3,
-    isCommander: true,
+    image: "https://cards.scryfall.io/normal/front/2/c/2cb1d1da-6077-46b5-8c63-39882b8016f2.jpg",
+    oracleText: "Whenever a Warrior attacks, you may create a 1/1 white Warrior creature token that's tapped and attacking.\n{W}{U}{B}{R}{G}: Until end of turn, creatures you control gain trample, lifelink, and vigilance. Untap them. After this phase, there is an additional combat phase.",
     commanderLegality: "legal"
   },
   {
     id: "kenrith-returned-king",
     name: "Kenrith, the Returned King",
-    colorIdentity: "WUBRG",
+    colorIdentity: "{W}{U}{B}{R}{G}",
     typeLine: "Legendary Creature — Human Noble",
+    manaCost: "{4}{W}",
     cmc: 5,
-    isCommander: true,
-    commanderLegality: "legal"
-  },
-  {
-    id: "derevi-empyrial-tactician",
-    name: "Derevi, Empyrial Tactician",
-    colorIdentity: "WUG",
-    typeLine: "Legendary Creature — Bird Wizard",
-    cmc: 4,
-    isCommander: true,
+    image: "https://cards.scryfall.io/normal/front/5/9/59ee8a95-a4db-4c5a-b1ce-a9f9c91f5927.jpg",
+    oracleText: "{W}: Target player gains 5 life.\n{U}: Target player draws a card.\n{B}: Put a +1/+1 counter on target creature. That creature gains menace until end of turn.\n{R}: Target creature gains trample and haste until end of turn.\n{G}: Return target card from a graveyard to its owner's hand.",
     commanderLegality: "legal"
   }
-  // Additional commanders would go here
 ];
 
-// Sample chart data for mock purposes
-const mockWinRateHistory: ChartDataPoint[] = [
-  { date: "2023-01", value: 22.1 },
-  { date: "2023-02", value: 21.5 },
-  { date: "2023-03", value: 22.8 },
-  { date: "2023-04", value: 23.4 }
-];
-
-const mockPopularityHistory: ChartDataPoint[] = [
-  { date: "2023-01", value: 7.2 },
-  { date: "2023-02", value: 7.5 },
-  { date: "2023-03", value: 8.1 },
-  { date: "2023-04", value: 7.8 }
-];
-
-const mockWinRateBySeat: WinRateBySeat[] = [
-  { position: "1", winRate: 24.5 },
-  { position: "2", winRate: 22.3 },
-  { position: "3", winRate: 21.1 },
-  { position: "4", winRate: 19.8 }
-];
-
-const mockWinRateByCut: WinRateByCut[] = [
-  { cut: "Pre-T8", winRate: 18.5 },
-  { cut: "T8", winRate: 24.2 },
-  { cut: "T4", winRate: 30.1 },
-  { cut: "Finals", winRate: 45.8 }
-];
-
-// Create a function to enhance a commander with additional details
+/**
+ * Enhances a commander with detailed information
+ * @param commander - Basic commander information
+ * @returns Complete CommanderDetails with stats, matchups, and card analysis
+ */
 const enhanceCommanderWithDetails = (commander: Commander): CommanderDetails => ({
-  // Core data
+  // Core data from commander
   id: commander.id,
   name: commander.name,
   colorIdentity: commander.colorIdentity,
@@ -125,352 +74,547 @@ const enhanceCommanderWithDetails = (commander: Commander): CommanderDetails => 
   manaCost: commander.manaCost,
   cmc: commander.cmc,
   oracleText: commander.oracleText,
-  isCommander: true,
   commanderLegality: commander.commanderLegality,
-  
-  // Partner information (if applicable)
+
+  // Partner information if applicable
   partnerCommander: commander.partnerCommander,
-  
+
   // Statistics
   stats: {
-    totalGames: 1000,
-    wins: 220,
-    draws: 150,
+    totalGames: 248,
+    wins: 124,
+    draws: 12,
     entries: {
-      total: 500,
-      uniquePlayers: 450
+      total: 54,
+      uniquePlayers: 32
     },
-    tournamentWins: 40,
-    top4s: 80,
-    top10s: 150,
-    top16s: 200,
-    winRate: 22.0,
-    drawRate: 15.0,
-    metaShare: 7.5
+    tournamentWins: 8,
+    top4s: 16,
+    top10s: 24,
+    top16s: 32,
+    winRate: 50.0,
+    drawRate: 4.8,
+    metaShare: 8.5
   },
-  
-  // Relationships
+
+  // Matchups
   matchups: {
     best: [
       {
-        commander: { id: "edric-spymaster-of-trest", name: "Edric, Spymaster of Trest" },
-        winRate: 68.2,
-        games: 47
+        commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
+        winRate: 68.5,
+        games: 28
       },
       {
-        commander: { id: "kenrith-returned-king", name: "Kenrith, the Returned King" },
-        winRate: 62.5,
-        games: 32
+        commander: { id: "urza-lord-high-artificer", name: "Urza, Lord High Artificer" },
+        winRate: 62.3,
+        games: 24
       }
     ],
     worst: [
       {
-        commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
-        winRate: 31.4,
-        games: 51
+        commander: { id: "thrasios-tymna", name: "Thrasios, Triton Hero / Tymna the Weaver" },
+        winRate: 32.1,
+        games: 32
       },
       {
-        commander: { id: "thrasios-bruse-tarl", name: "Thrasios / Bruse Tarl" },
-        winRate: 38.9,
-        games: 36
+        commander: { id: "kraum-tymna", name: "Kraum, Ludevic's Opus / Tymna the Weaver" },
+        winRate: 38.7,
+        games: 26
       }
     ]
   },
-  
-  // Related entities
+
+  // Top players with this commander
   topPlayers: [
     {
-      player: { id: "player1", name: "PlayerOne" },
-      winRate: 72.4,
+      player: { id: "player1", name: "Player One" },
+      winRate: 72.8,
       tournamentWins: 3,
-      top16s: 7,
-      games: 58
+      top16s: 5,
+      games: 32
     },
     {
-      player: { id: "player2", name: "PlayerTwo" },
-      winRate: 68.1,
+      player: { id: "player2", name: "Player Two" },
+      winRate: 65.2,
       tournamentWins: 2,
-      top16s: 5,
-      games: 47
+      top16s: 4,
+      games: 28
     }
   ],
+
+  // Top decklists with this commander
   topDecklists: [
     {
-      deck: { id: "deck1", name: "Winning Kraum/Tymna" },
-      player: { name: "WinnerPlayerName" },
-      tournamentStanding: "1/32",
-      winRate: 91.7,
-      tournament: { id: "t1", name: "Quarterly Championship" }
+      deck: { id: "deck1", name: "Top Kinnan Build" },
+      player: { id: "player1", name: "Player One" },
+      tournamentStanding: "1/64",
+      winRate: 83.3,
+      tournament: { id: "tournament1", name: "Summer Championship" }
+    },
+    {
+      deck: { id: "deck2", name: "Fast Kinnan" },
+      player: { id: "player3", name: "Player Three" },
+      tournamentStanding: "2/32",
+      winRate: 75.0
     }
   ],
-  
+
   // Card analysis
   cardAnalysis: {
-    staples: [
+    cards: [
+      {
+        card: { id: "basalt-monolith", name: "Basalt Monolith" },
+        inclusion: 95.2,
+        winRate: 0.65,
+        drawRate: 0.12
+      },
+      {
+        card: { id: "dramatic-reversal", name: "Dramatic Reversal" },
+        inclusion: 94.8,
+        winRate: 0.67,
+        drawRate: 0.10
+      },
+      {
+        card: { id: "thassas-oracle", name: "Thassa's Oracle" },
+        inclusion: 93.5,
+        winRate: 0.63,
+        drawRate: 0.15
+      },
       {
         card: { id: "force-of-will", name: "Force of Will" },
-        inclusion: 98.7
+        inclusion: 98.7,
+        winRate: 0.69,
+        drawRate: 0.11
       },
       {
         card: { id: "brainstorm", name: "Brainstorm" },
-        inclusion: 97.5
+        inclusion: 97.5,
+        winRate: 0.66,
+        drawRate: 0.13
       }
     ]
   }
 });
 
-// Update the getCommanders function to return entity types
-export const getCommanders = async () => {
+/**
+ * Generates mock commander statistics
+ * @param commanderId - ID of the commander
+ * @returns Commander statistics with tournament and game performance data
+ */
+const generateMockCommanderStats = (commanderId: string): CommanderStats => {
+  return {
+    totalGames: 248,
+    wins: 124,
+    draws: 12,
+    entries: {
+      total: 54,
+      uniquePlayers: 32
+    },
+    tournamentWins: 8,
+    top4s: 16,
+    top10s: 24,
+    top16s: 32,
+    winRate: 50.0,
+    drawRate: 4.8,
+    metaShare: 8.5
+  };
+};
+
+/**
+ * Generates mock commander matchups
+ * @param commanderId - ID of the commander
+ * @returns Matchup data showing best and worst pairings
+ */
+const generateMockCommanderMatchups = (commanderId: string): CommanderMatchups => {
+  return {
+    best: [
+      {
+        commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
+        winRate: 68.5,
+        games: 28
+      },
+      {
+        commander: { id: "urza-lord-high-artificer", name: "Urza, Lord High Artificer" },
+        winRate: 62.3,
+        games: 24
+      }
+    ],
+    worst: [
+      {
+        commander: { id: "thrasios-tymna", name: "Thrasios, Triton Hero / Tymna the Weaver" },
+        winRate: 32.1,
+        games: 32
+      },
+      {
+        commander: { id: "kraum-tymna", name: "Kraum, Ludevic's Opus / Tymna the Weaver" },
+        winRate: 38.7,
+        games: 26
+      }
+    ]
+  };
+};
+
+/**
+ * Generates mock top players for a commander
+ * @param commanderId - ID of the commander
+ * @returns Array of top players with performance metrics
+ */
+const generateMockTopPlayers = (commanderId: string): TopPlayer[] => {
+  return [
+    {
+      player: { id: "player1", name: "Player One" },
+      winRate: 72.8,
+      tournamentWins: 3,
+      top16s: 5,
+      games: 32
+    },
+    {
+      player: { id: "player2", name: "Player Two" },
+      winRate: 65.2,
+      tournamentWins: 2,
+      top16s: 4,
+      games: 28
+    },
+    {
+      player: { id: "player3", name: "Player Three" },
+      winRate: 58.6,
+      tournamentWins: 1,
+      top16s: 3,
+      games: 24
+    }
+  ];
+};
+
+/**
+ * Generates mock top decklists for a commander
+ * @param commanderId - ID of the commander
+ * @returns Array of top decklists with performance metrics
+ */
+const generateMockTopDecklists = (commanderId: string): TopDecklist[] => {
+  return [
+    {
+      deck: { id: "deck1", name: `Top ${commanderId.charAt(0).toUpperCase() + commanderId.slice(1)} Build` },
+      player: { id: "player1", name: "Player One" },
+      tournamentStanding: "1/64",
+      winRate: 83.3,
+      tournament: { id: "tournament1", name: "Summer Championship" }
+    },
+    {
+      deck: { id: "deck2", name: `Fast ${commanderId.charAt(0).toUpperCase() + commanderId.slice(1)}` },
+      player: { id: "player3", name: "Player Three" },
+      tournamentStanding: "2/32",
+      winRate: 75.0
+    },
+    {
+      deck: { id: "deck3", name: `${commanderId.charAt(0).toUpperCase() + commanderId.slice(1)} Control` },
+      player: { id: "player5", name: "Player Five" },
+      tournamentStanding: "3/48",
+      winRate: 68.2,
+      tournament: { id: "tournament3", name: "Fall Open" }
+    }
+  ];
+};
+
+/**
+ * Generate mock card analysis data for a commander
+ * @param commanderId Commander ID to generate analysis for
+ * @returns Card analysis with common cards played with this commander
+ */
+const generateMockCardAnalysis = (commanderId: string): CardAnalysis => {
+  const staples = [
+    { id: "basalt-monolith", name: "Basalt Monolith", inclusion: 95.2 },
+    { id: "dramatic-reversal", name: "Dramatic Reversal", inclusion: 94.8 },
+    { id: "thassas-oracle", name: "Thassa's Oracle", inclusion: 93.5 },
+    { id: "force-of-will", name: "Force of Will", inclusion: 98.7 },
+    { id: "brainstorm", name: "Brainstorm", inclusion: 97.5 }
+  ];
+
+  return {
+    cards: staples.map(card => ({
+      card: { id: card.id, name: card.name },
+      inclusion: card.inclusion,
+      winRate: Math.random() * 0.7,
+      drawRate: Math.random() * 0.2
+    }))
+  };
+};
+
+/**
+ * Generates time series data for commander metrics
+ * @param days - Number of days in the time series
+ * @param base - Base value for the data points
+ * @param variance - Maximum variance from the base value
+ * @returns Array of TimeSeriesDataPoint for the specified time period
+ */
+const generateTimeSeriesData = (days: number, base: number, variance: number): TimeSeriesDataPoint[] => {
+  const results: TimeSeriesDataPoint[] = [];
+  const now = new Date();
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    results.push({
+      timestamp: date.toISOString().split('T')[0],
+      value: base + (Math.random() * variance * 2 - variance)
+    });
+  }
+
+  return results.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+};
+
+/**
+ * API SERVICE FUNCTIONS
+ * These functions provide access to commander data throughout the application.
+ * Each function follows a consistent pattern of creating a fetcher, adding caching,
+ * and adding error handling before executing the request.
+ */
+
+/**
+ * Retrieves a list of all commanders
+ * @returns Promise resolving to an array of Commander entities
+ */
+export const getCommanders = async (): Promise<Commander[]> => {
   const listFetcher = await createMockListFetcher<Commander>(mockCommandersList);
   const cachedFetcher = await withCache(listFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher();
 };
 
-// Update getCommanderById to use the proper entity types
-export const getCommanderById = async (id: string) => {
-  // Create mock detailsFetcher that returns entity-typed details
+/**
+ * Retrieves detailed information about a specific commander
+ * @param id - The ID of the commander to retrieve
+ * @returns Promise resolving to a CommanderDetails entity with complete commander information
+ */
+export const getCommanderById = async (id: string): Promise<CommanderDetails> => {
   const detailsFetcher = async (commanderId: string): Promise<CommanderDetails> => {
-    const commander = mockCommandersList.find(cmd => cmd.id === commanderId);
+    const commander = mockCommandersList.find(c => c.id === commanderId);
     if (!commander) {
       throw new Error(`Commander with id ${commanderId} not found`);
     }
     return enhanceCommanderWithDetails(commander);
   };
-  
+
   const cachedFetcher = await withCache(detailsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(id);
 };
 
-export const getCommanderStats = async (commanderId: string) => {
+/**
+ * Retrieves statistics for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to a CommanderStats entity
+ */
+export const getCommanderStats = async (commanderId: string): Promise<CommanderStats> => {
   const statsFetcher = async (cmdId: string): Promise<CommanderStats> => {
-    const commander = mockCommandersList.find(cmd => cmd.id === cmdId);
-    if (!commander) {
-      throw new Error(`Commander with id ${cmdId} not found`);
-    }
-    
-    // Mock stats since we don't have them in our commander objects
-    return {
-      totalGames: 1000,
-      wins: 220,
-      draws: 150,
-      entries: {
-        total: 500,
-        uniquePlayers: 450
-      },
-      tournamentWins: 40,
-      top4s: 80,
-      top10s: 150,
-      top16s: 200,
-      winRate: 22.0,
-      drawRate: 15.0,
-      metaShare: 7.5
-    };
+    return generateMockCommanderStats(cmdId);
   };
-  
+
   const cachedFetcher = await withCache(statsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderMatchups = async (commanderId: string) => {
+/**
+ * Retrieves matchup information for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to a CommanderMatchups entity
+ */
+export const getCommanderMatchups = async (commanderId: string): Promise<CommanderMatchups> => {
   const matchupsFetcher = async (cmdId: string): Promise<CommanderMatchups> => {
-    // This would come from backend API in real implementation
-    return {
-      best: [
-        {
-          commander: { id: "edric-spymaster-of-trest", name: "Edric, Spymaster of Trest" },
-          winRate: 68.2,
-          games: 47
-        },
-        {
-          commander: { id: "kenrith-returned-king", name: "Kenrith, the Returned King" },
-          winRate: 62.5,
-          games: 32
-        }
-      ],
-      worst: [
-        {
-          commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
-          winRate: 31.4,
-          games: 51
-        },
-        {
-          commander: { id: "thrasios-bruse-tarl", name: "Thrasios / Bruse Tarl" },
-          winRate: 38.9,
-          games: 36
-        }
-      ]
-    };
+    return generateMockCommanderMatchups(cmdId);
   };
-  
+
   const cachedFetcher = await withCache(matchupsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderTopPlayers = async (commanderId: string) => {
+/**
+ * Retrieves top players for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to an array of TopPlayer entities
+ */
+export const getCommanderTopPlayers = async (commanderId: string): Promise<TopPlayer[]> => {
   const playersFetcher = async (cmdId: string): Promise<TopPlayer[]> => {
-    // This would come from backend API in real implementation
-    return [
-      {
-        player: { id: "player1", name: "PlayerOne" },
-        winRate: 72.4,
-        tournamentWins: 3,
-        top16s: 7,
-        games: 58
-      },
-      {
-        player: { id: "player2", name: "PlayerTwo" },
-        winRate: 68.1,
-        tournamentWins: 2,
-        top16s: 5,
-        games: 47
-      }
-    ];
+    return generateMockTopPlayers(cmdId);
   };
-  
+
   const cachedFetcher = await withCache(playersFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderWinRateHistory = async (commanderId: string) => {
-  const historyFetcher = async (cmdId: string): Promise<ChartDataPoint[]> => {
-    return mockWinRateHistory;
+/**
+ * Retrieves historical win rate data for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to time series data of win rates
+ */
+export const getCommanderWinRateHistory = async (commanderId: string): Promise<TimeSeriesDataPoint[]> => {
+  const historyFetcher = async (cmdId: string): Promise<TimeSeriesDataPoint[]> => {
+    return generateTimeSeriesData(90, 0.5, 0.15);
   };
-  
+
   const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderPopularityHistory = async (commanderId: string) => {
-  const historyFetcher = async (cmdId: string): Promise<ChartDataPoint[]> => {
-    return mockPopularityHistory;
+/**
+ * Retrieves historical popularity data for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to time series data of popularity metrics
+ */
+export const getCommanderPopularityHistory = async (commanderId: string): Promise<TimeSeriesDataPoint[]> => {
+  const historyFetcher = async (cmdId: string): Promise<TimeSeriesDataPoint[]> => {
+    return generateTimeSeriesData(90, 0.1, 0.05);
   };
-  
+
   const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderWinRateBySeat = async (commanderId: string) => {
-  const seatStatsFetcher = async (cmdId: string): Promise<WinRateBySeat[]> => {
-    return mockWinRateBySeat;
+/**
+ * Retrieves win rate by seat data for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to win rate by seat data
+ */
+export const getCommanderWinRateBySeat = async (commanderId: string): Promise<CommanderWinRateBySeat[]> => {
+  const seatStatsFetcher = async (cmdId: string): Promise<CommanderWinRateBySeat[]> => {
+    return [
+      { position: "1", winRate: 42.5 },
+      { position: "2", winRate: 48.7 },
+      { position: "3", winRate: 53.2 },
+      { position: "4", winRate: 56.8 }
+    ];
   };
-  
+
   const cachedFetcher = await withCache(seatStatsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCommanderWinRateByCut = async (commanderId: string) => {
-  const cutStatsFetcher = async (cmdId: string): Promise<WinRateByCut[]> => {
-    return mockWinRateByCut;
+/**
+ * Retrieves win rate by tournament cut for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to win rate by tournament cut data
+ */
+export const getCommanderWinRateByCut = async (commanderId: string): Promise<CommanderWinRateByCut[]> => {
+  const cutStatsFetcher = async (cmdId: string): Promise<CommanderWinRateByCut[]> => {
+    return [
+      { cut: "Top 4", winRate: 68.5 },
+      { cut: "Top 8", winRate: 62.3 },
+      { cut: "Top 16", winRate: 58.7 },
+      { cut: "Swiss", winRate: 54.2 }
+    ];
   };
-  
+
   const cachedFetcher = await withCache(cutStatsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCardStats = async (commanderId: string, cardId: string) => {
-  const cardStatsFetcher = async (): Promise<CardStats> => {
+/**
+ * Retrieves performance statistics for a specific card in a commander
+ * @param commanderId - The ID of the commander
+ * @param cardId - The ID of the card
+ * @returns Promise resolving to card statistics in this commander
+ */
+export const getCardStats = async (commanderId: string, cardId: string): Promise<CardStatInCommander> => {
+  const cardStatsFetcher = async (): Promise<CardStatInCommander> => {
+    // In a real implementation, we'd fetch actual card stats
+    // For mock purposes, we'll return fixed data
     return {
-      name: "Force of Will",
-      winRate: 23.5,
-      metaShare: 95.8
+      name: `Card ${cardId}`,
+      winRate: 55 + (Math.random() * 20 - 10),
+      metaShare: 12 + (Math.random() * 16)
     };
   };
-  
+
   const cachedFetcher = await withCache(cardStatsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher();
 };
 
-export const getCardDistribution = async (commanderId: string, cardId: string) => {
-  const distributionFetcher = async (): Promise<CardDistribution[]> => {
-    return [
-      { name: "Counterspell", metaShare: 82.3 },
-      { name: "Pact of Negation", metaShare: 78.6 },
-      { name: "Force of Negation", metaShare: 76.2 }
-    ];
+/**
+ * Retrieves distribution of a card across different commanders
+ * @param commanderId - The ID of the commander
+ * @param cardId - The ID of the card
+ * @returns Promise resolving to card distribution data
+ */
+export const getCardDistribution = async (commanderId: string, cardId: string): Promise<CardDistributionStats[]> => {
+  const distributionFetcher = async (): Promise<CardDistributionStats[]> => {
+    // In a real implementation, we'd fetch actual distribution data
+    // For mock purposes, we'll return fixed data
+    return Array.from({ length: 5 }, (_, i) => ({
+      name: `Commander ${i}`,
+      metaShare: 8 + (Math.random() * 20)
+    }));
   };
-  
+
   const cachedFetcher = await withCache(distributionFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher();
 };
 
-export const getCardWinRateHistory = async (commanderId: string, cardId: string) => {
-  const historyFetcher = async (): Promise<ChartDataPoint[]> => {
-    return mockWinRateHistory;
+/**
+ * Retrieves historical win rate data for a specific card in a commander
+ * @param commanderId - The ID of the commander
+ * @param cardId - The ID of the card
+ * @returns Promise resolving to time series data of card win rates
+ */
+export const getCardWinRateHistory = async (commanderId: string, cardId: string): Promise<TimeSeriesDataPoint[]> => {
+  const historyFetcher = async (): Promise<TimeSeriesDataPoint[]> => {
+    return generateTimeSeriesData(90, 60, 10);
   };
-  
+
   const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher();
 };
 
-export const getCardPopularityHistory = async (commanderId: string, cardId: string) => {
-  const historyFetcher = async (): Promise<ChartDataPoint[]> => {
-    return mockPopularityHistory;
+/**
+ * Retrieves historical inclusion data for a specific card in a commander
+ * @param commanderId - The ID of the commander
+ * @param cardId - The ID of the card
+ * @returns Promise resolving to time series data of card inclusion rates
+ */
+export const getCardPopularityHistory = async (commanderId: string, cardId: string): Promise<TimeSeriesDataPoint[]> => {
+  const historyFetcher = async (): Promise<TimeSeriesDataPoint[]> => {
+    return generateTimeSeriesData(90, 30, 10);
   };
-  
+
   const cachedFetcher = await withCache(historyFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher();
 };
 
-export const getCommanderTopDecklists = async (commanderId: string) => {
+/**
+ * Retrieves top decklists for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to an array of TopDecklist entities
+ */
+export const getCommanderTopDecklists = async (commanderId: string): Promise<TopDecklist[]> => {
   const decklistsFetcher = async (cmdId: string): Promise<TopDecklist[]> => {
-    // This would come from backend API in real implementation
-    return [
-      {
-        deck: { id: "deck1", name: "Winning Kraum/Tymna" },
-        player: { name: "WinnerPlayerName" },
-        tournamentStanding: "1/32",
-        winRate: 91.7,
-        tournament: { id: "t1", name: "Quarterly Championship" }
-      },
-      {
-        deck: { id: "deck2", name: "Runner-up Kraum/Tymna" },
-        player: { name: "RunnerUpName" },
-        tournamentStanding: "2/64",
-        winRate: 85.3,
-        tournament: { id: "t2", name: "Monthly Series" }
-      }
-    ];
+    return generateMockTopDecklists(cmdId);
   };
-  
+
   const cachedFetcher = await withCache(decklistsFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);
 };
 
-export const getCardAnalysis = async (commanderId: string) => {
+/**
+ * Retrieves card analysis for a specific commander
+ * @param commanderId - The ID of the commander
+ * @returns Promise resolving to a CardAnalysis entity with common cards played with this commander
+ */
+export const getCardAnalysis = async (commanderId: string): Promise<CardAnalysis> => {
   const analysisFetcher = async (cmdId: string): Promise<CardAnalysis> => {
-    // This would come from backend API in real implementation
-    return {
-      staples: [
-        {
-          card: { id: "force-of-will", name: "Force of Will" },
-          inclusion: 98.7
-        },
-        {
-          card: { id: "brainstorm", name: "Brainstorm" },
-          inclusion: 97.5
-        },
-        {
-          card: { id: "mana-crypt", name: "Mana Crypt" },
-          inclusion: 96.2
-        }
-      ]
-    };
+    return generateMockCardAnalysis(cmdId);
   };
-  
+
   const cachedFetcher = await withCache(analysisFetcher);
   const errorHandledFetcher = await withErrorHandling(cachedFetcher);
   return await errorHandledFetcher(commanderId);

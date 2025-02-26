@@ -5,7 +5,7 @@ import {
   getCommanderPopularityHistory,
   getCommanderStats,
   getCommanderTopDecklists,
-  getCommanderTopPilots,
+  getCommanderTopPlayers,
   getCommanderWinRateByCut,
   getCommanderWinRateBySeat,
   getCommanderWinRateHistory
@@ -16,7 +16,7 @@ export default async function Page({ params }: { params: { commanderId: string }
     commander,
     stats,
     matchups,
-    topPilots,
+    topPlayers,
     winRateHistory,
     popularityHistory,
     winRateBySeat,
@@ -26,7 +26,7 @@ export default async function Page({ params }: { params: { commanderId: string }
     getCommanderById(params.commanderId),
     getCommanderStats(params.commanderId),
     getCommanderMatchups(params.commanderId),
-    getCommanderTopPilots(params.commanderId),
+    getCommanderTopPlayers(params.commanderId),
     getCommanderWinRateHistory(params.commanderId),
     getCommanderPopularityHistory(params.commanderId),
     getCommanderWinRateBySeat(params.commanderId),
@@ -43,7 +43,7 @@ export default async function Page({ params }: { params: { commanderId: string }
       commander={commander}
       stats={stats}
       matchups={matchups}
-      topPilots={topPilots}
+      topPlayers={topPlayers}
       winRateHistory={winRateHistory}
       popularityHistory={popularityHistory}
       winRateBySeat={winRateBySeat}

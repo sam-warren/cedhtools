@@ -97,10 +97,49 @@ export interface TopDecklist {
  * Card Analysis
  */
 export interface CardAnalysis {
-  staples: Array<{           // Cards that appear in >90% of decks
+  cards: Array<{             // All cards played with this commander
     card: EntityReference;   // Use consistent card reference
     inclusion: number;       // Percentage of decks including this card
+    winRate?: number;        // Win rate when this card is included
+    drawRate?: number;       // Draw rate when this card is included
   }>;
+}
+
+/**
+ * Win Rate by Seating Position
+ * Represents a commander's performance based on turn order position
+ */
+export interface CommanderWinRateBySeat {
+  position: string;          // Seating position (1-4 or descriptive like "first")
+  winRate: number;           // Win rate as a percentage when playing from this position
+}
+
+/**
+ * Win Rate by Tournament Cut
+ * Represents a commander's performance in different tournament phases
+ */
+export interface CommanderWinRateByCut {
+  cut: string;               // Cut type (e.g., "Top 4", "Top 8", "Swiss")
+  winRate: number;           // Win rate as a percentage in this phase
+}
+
+/**
+ * Card Statistics in a Commander Deck
+ * Performance metrics for a specific card in a commander's deck
+ */
+export interface CardStatInCommander {
+  name: string;              // Card name
+  winRate: number;           // Win rate when this card is included
+  metaShare: number;         // Percentage of decks that include this card
+}
+
+/**
+ * Card Distribution Statistics
+ * Shows which commanders most commonly use a specific card
+ */
+export interface CardDistributionStats {
+  name: string;              // Commander name
+  metaShare: number;         // Percentage of decks with this commander that include the card
 }
 
 /**
@@ -116,7 +155,6 @@ export interface CommanderDetails {
   manaCost?: string;
   cmc: number;
   oracleText?: string;
-  isCommander: true;         // Always true for commanders
   commanderLegality: 'banned' | 'legal' | 'not_legal'; // Commander format legality
   
   // Partner information (if applicable)

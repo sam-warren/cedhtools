@@ -19,6 +19,73 @@ The Card entity represents a Magic: The Gathering card. It includes basic card i
 ### [Decks](decks.md)
 The Deck entity represents a cEDH deck. It includes statistics, composition, card performance, and tournament history.
 
+## Type Safety Improvements
+
+The entity models have been enhanced with improved type safety:
+
+### Use of `unknown` Instead of `any`
+
+All utility functions and data structures now use `unknown` instead of `any` types:
+
+```typescript
+// Before
+interface TimeSeriesDataPoint {
+  metadata?: Record<string, any>;  // Less safe - allows any operation
+}
+
+// After
+interface TimeSeriesDataPoint {
+  metadata?: Record<string, unknown>;  // More type-safe
+}
+```
+
+### Type-Safe Generic Constraints
+
+All generic utility functions use proper type constraints:
+
+```typescript
+// Type-safe utility function signature
+function withTransaction<Args extends unknown[], Return, DB>(
+  handler: (tx: DB, ...args: Args) => Promise<Return>,
+  db: { transaction: (fn: (tx: DB) => Promise<Return>) => Promise<Return> }
+): Promise<(...args: Args) => Promise<Return>>;
+```
+
+### Explicit Type Assertions
+
+Type assertions are used judiciously and only where necessary:
+
+```typescript
+// Proper type assertion for cache handling
+const result = await fn(...args);
+return result as ReturnType<T>;
+```
+
+### Function Parameter and Return Types
+
+Generic type parameters ensure function signatures are preserved:
+
+```typescript
+// Type-safe error handling with proper parameter and return types
+export async function withErrorHandling<T extends (...args: unknown[]) => Promise<unknown>>(fn: T): Promise<T> {
+  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+    try {
+      return await fn(...args) as ReturnType<T>;
+    } catch (error) {
+      console.error('Service error:', error);
+      throw error;
+    }
+  }) as T;
+}
+```
+
+These type safety improvements ensure:
+1. Better compile-time error detection
+2. Improved IDE autocompletion and suggestions
+3. More reliable refactoring
+4. Fewer runtime type errors
+5. Enhanced documentation through explicit type declarations
+
 ## Comprehensive Entity Relationships
 
 ### Direct Relationships
@@ -139,8 +206,9 @@ The Deck entity represents a cEDH deck. It includes statistics, composition, car
   - Provide consistent metadata for client-side caching
   - Include data versioning information for cache invalidation
   - Indicate when new data will be available based on ETL schedule
-- **Example**:
+- **Type-Safe Implementation**:
   ```typescript
+  // Type-safe entity response wrapper with generic parameter
   interface EntityResponse<T> {
     data: T;                   // The actual entity data
     meta: {
@@ -148,6 +216,54 @@ The Deck entity represents a cEDH deck. It includes statistics, composition, car
       dataVersion: string;     // Version hash of the dataset (for cache invalidation)
       nextUpdateExpected?: string; // When to expect the next data update
     };
+  }
+  
+  // Type-safe paginated response that extends the base entity response
+  interface PaginatedResponse<T> extends EntityResponse<T[]> {
+    meta: {
+      // Standard entity response metadata
+      lastUpdated: string;
+      dataVersion: string;
+      nextUpdateExpected?: string;
+
+      // Pagination metadata
+      pagination: {
+        totalCount: number;     // Total number of items across all pages
+        pageSize: number;       // Current page size
+        currentPage: number;    // Current page number (1-indexed)
+        totalPages: number;     // Total number of pages
+        hasNextPage: boolean;   // Whether there are more pages
+        hasPreviousPage: boolean; // Whether there are previous pages
+        nextCursor?: string;    // Cursor for the next page (if applicable)
+        prevCursor?: string;    // Cursor for the previous page (if applicable)
+      }
+    };
+  }
+  ```
+  
+- **Usage Examples**:
+  ```typescript
+  // Fetching a single entity with proper typing
+  async function fetchCommander(id: string): Promise<EntityResponse<Commander>> {
+    const response = await apiClient.get(`/commanders/${id}`);
+    return response.data;
+  }
+  
+  // Fetching a paginated list of entities
+  async function fetchCommanderList(
+    params: PaginationParams
+  ): Promise<PaginatedResponse<Commander>> {
+    const response = await apiClient.get('/commanders', { params });
+    return response.data;
+  }
+  
+  // Safely accessing data with type checking
+  function displayCommanderData(response: EntityResponse<Commander>): void {
+    const { data, meta } = response;
+    console.log(`Commander: ${data.name} (Last updated: ${meta.lastUpdated})`);
+    
+    // TypeScript knows the shape of data.stats
+    renderWinRate(data.stats.winRate);
   }
   ```
 
