@@ -2,6 +2,14 @@ import { Card } from './cards';
 import { CommanderReference, EntityReference } from './common';
 
 /**
+ * Common stats pattern that can be reused
+ */
+export interface StatsBase {
+  winRate: number;
+  totalGames: number;
+}
+
+/**
  * Commander Entity (extends Card)
  */
 export interface Commander extends Card {
@@ -12,20 +20,32 @@ export interface Commander extends Card {
   commanderLegality: 'banned' | 'legal' | 'not_legal'; // Always exists for commanders
   
   // If this is a partner pair, store the partner information
-  partnerCommander?: {
-    id: string;              // Partner's unique identifier
-    name: string;            // Partner's name
-    image?: string;          // Partner's image URL
-    commanderLegality: 'banned' | 'legal' | 'not_legal'; // Partner's legality
-  };
+  partnerCommander?: CommanderReference; // Use CommanderReference for consistency
+}
+
+/**
+ * Lightweight commander item for list views
+ * Contains only the essential data needed for tables and lists
+ */
+export interface CommanderListItem {
+  id: string;
+  name: string;
+  colorIdentity: string;
+  image?: string;
+  // Partner info (if applicable)
+  partnerCommander?: CommanderReference;
+  // Basic stats
+  winRate: number;
+  metaShare: number;
+  totalGames: number;
 }
 
 /**
  * Commander Statistics
  */
-export interface CommanderStats {
+export interface CommanderStats extends StatsBase {
+  id: string;                // To link back to the commander
   // Tournament performance
-  totalGames: number;        // Total games played
   wins: number;              // Total wins
   draws: number;             // Total draws
   entries: {
@@ -37,71 +57,59 @@ export interface CommanderStats {
   top10s: number;            // Number of top 10 finishes
   top16s: number;            // Number of top 16 finishes
   
-  // Derived statistics (computed on the client)
-  winRate?: number;          // Wins / totalGames
+  // Derived statistics
   drawRate?: number;         // Draws / totalGames
   metaShare?: number;        // Percentage of meta representation
+}
+
+/**
+ * Commander Matchup data
+ */
+export interface CommanderMatchup {
+  commander: CommanderReference;
+  winRate: number;
+  games: number;
 }
 
 /**
  * Commander Matchups
  */
 export interface CommanderMatchups {
-  best: Array<{
-    commander: CommanderReference; // Use consistent commander reference
-    winRate: number;         // Win rate against this commander
-    games: number;           // Number of games in this matchup
-  }>;
-  worst: Array<{
-    commander: CommanderReference; // Use consistent commander reference
-    winRate: number;         // Win rate against this commander
-    games: number;           // Number of games in this matchup
-  }>;
+  best: CommanderMatchup[];
+  worst: CommanderMatchup[];
 }
 
 /**
  * Top Players
  */
 export interface TopPlayer {
-  player: {                  // Use consistent player reference
-    id?: string;             // Player ID for linking (optional)
-    name: string;            // Player name
-  };
-  winRate: number;           // Win rate with this commander
-  tournamentWins: number;    // Tournament wins with this commander
-  top16s: number;            // Top 16 finishes with this commander
-  games: number;             // Total games with this commander
+  player: EntityReference;
+  winRate: number;
+  tournamentWins: number;
+  top16s: number;
+  games: number;
 }
 
 /**
  * Top Decklists
  */
 export interface TopDecklist {
-  deck: {                    // Use consistent deck reference
-    id: string;              // Deck ID 
-    name: string;            // Deck name
-  };
-  player: {                  // Use consistent player reference
-    id?: string;             // Optional player ID
-    name: string;            // Player name
-  };
-  tournamentStanding: string; // Standing in format "X/Y"
-  winRate: number;           // Win rate for this specific decklist
-  tournament?: {             // Optional tournament reference
-    id: string;              // Tournament ID
-    name: string;            // Tournament name
-  };
+  deck: EntityReference;
+  player: EntityReference;
+  tournamentStanding: string;
+  winRate: number;
+  tournament?: EntityReference;
 }
 
 /**
  * Card Analysis
  */
 export interface CardAnalysis {
-  cards: Array<{             // All cards played with this commander
-    card: EntityReference;   // Use consistent card reference
-    inclusion: number;       // Percentage of decks including this card
-    winRate?: number;        // Win rate when this card is included
-    drawRate?: number;       // Draw rate when this card is included
+  cards: Array<{
+    card: EntityReference;
+    inclusion: number;
+    winRate?: number;
+    drawRate?: number;
   }>;
 }
 
@@ -158,12 +166,7 @@ export interface CommanderDetails {
   commanderLegality: 'banned' | 'legal' | 'not_legal'; // Commander format legality
   
   // Partner information (if applicable)
-  partnerCommander?: {
-    id: string;
-    name: string;
-    image?: string;
-    commanderLegality: 'banned' | 'legal' | 'not_legal';
-  };
+  partnerCommander?: CommanderReference;
   
   // Statistics
   stats: CommanderStats;
@@ -177,4 +180,8 @@ export interface CommanderDetails {
   
   // Card analysis
   cardAnalysis: CardAnalysis;
+  
+  // Optional additional performance metrics
+  winRateBySeating?: CommanderWinRateBySeat[];
+  winRateByCut?: CommanderWinRateByCut[];
 } 

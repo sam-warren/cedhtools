@@ -1,17 +1,18 @@
 'use server';
 
 import type {
-  CardAnalysis,
   CardDistributionStats,
   CardStatInCommander,
   Commander,
-  CommanderDetails,
-  CommanderMatchups,
-  CommanderStats,
   CommanderWinRateBySeat,
   CommanderWinRateByCut,
+  CommanderListItem, 
+  CommanderDetails, 
+  CommanderStats, 
+  CommanderMatchups,
+  TopPlayer,
   TopDecklist,
-  TopPlayer
+  CardAnalysis
 } from "@/types/entities/commanders";
 import { TimeSeriesDataPoint } from "@/types/entities/common";
 import { createMockListFetcher, withCache, withErrorHandling } from "../lib/utils/api-utils";
@@ -81,6 +82,7 @@ const enhanceCommanderWithDetails = (commander: Commander): CommanderDetails => 
 
   // Statistics
   stats: {
+    id: commander.id,
     totalGames: 248,
     wins: 124,
     draws: 12,
@@ -204,6 +206,7 @@ const enhanceCommanderWithDetails = (commander: Commander): CommanderDetails => 
  */
 const generateMockCommanderStats = (commanderId: string): CommanderStats => {
   return {
+    id: commanderId,
     totalGames: 248,
     wins: 124,
     draws: 12,
@@ -371,14 +374,27 @@ const generateTimeSeriesData = (days: number, base: number, variance: number): T
  */
 
 /**
- * Retrieves a list of all commanders
- * @returns Promise resolving to an array of Commander entities
+ * Get all commanders with basic stats for list views
+ * Returns only the essential data needed for tables and lists
  */
-export const getCommanders = async (): Promise<Commander[]> => {
-  const listFetcher = await createMockListFetcher<Commander>(mockCommandersList);
-  const cachedFetcher = await withCache(listFetcher);
-  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return await errorHandledFetcher();
+export const getCommanders = async (): Promise<CommanderListItem[]> => {
+  // In a real implementation, this would be an API call that
+  // only returns the fields needed for the list view
+  return mockCommandersList.map(commander => ({
+    id: commander.id,
+    name: commander.name,
+    colorIdentity: commander.colorIdentity,
+    image: commander.image,
+    // Include partner info if available
+    ...(commander.partnerCommander ? {
+      partnerCommanderId: commander.partnerCommander.id,
+      partnerCommanderName: commander.partnerCommander.name
+    } : {}),
+    // Basic stats
+    winRate: Math.random() * 70 + 30, // Random win rate between 30-100%
+    metaShare: Math.random() * 15,    // Random meta share between 0-15%
+    totalGames: Math.floor(Math.random() * 500) + 50 // Random games between 50-550
+  }));
 };
 
 /**
@@ -387,17 +403,134 @@ export const getCommanders = async (): Promise<Commander[]> => {
  * @returns Promise resolving to a CommanderDetails entity with complete commander information
  */
 export const getCommanderById = async (id: string): Promise<CommanderDetails> => {
-  const detailsFetcher = async (commanderId: string): Promise<CommanderDetails> => {
-    const commander = mockCommandersList.find(c => c.id === commanderId);
-    if (!commander) {
-      throw new Error(`Commander with id ${commanderId} not found`);
+  // In a real implementation, this would be an API call that fetches
+  // the complete details for a specific commander
+  const commander = mockCommandersList.find(c => c.id === id);
+  if (!commander) {
+    throw new Error(`Commander with id ${id} not found`);
+  }
+  
+  return {
+    // Core data
+    id: commander.id,
+    name: commander.name,
+    colorIdentity: commander.colorIdentity,
+    image: commander.image,
+    typeLine: commander.typeLine,
+    manaCost: commander.manaCost,
+    cmc: commander.cmc,
+    oracleText: commander.oracleText,
+    commanderLegality: commander.commanderLegality,
+    
+    // Partner information if applicable
+    partnerCommander: commander.partnerCommander,
+    
+    // Statistics
+    stats: {
+      id: commander.id,
+      totalGames: 248,
+      wins: 124,
+      draws: 12,
+      entries: {
+        total: 54,
+        uniquePlayers: 32
+      },
+      tournamentWins: 8,
+      top4s: 16,
+      top10s: 24,
+      top16s: 32,
+      winRate: 50.0,
+      drawRate: 4.8,
+      metaShare: 8.5
+    },
+    
+    // Matchups
+    matchups: {
+      best: [
+        {
+          commander: { id: "najeela-blade-blossom", name: "Najeela, the Blade-Blossom" },
+          winRate: 68.5,
+          games: 28
+        },
+        {
+          commander: { id: "urza-lord-high-artificer", name: "Urza, Lord High Artificer" },
+          winRate: 62.3,
+          games: 24
+        }
+      ],
+      worst: [
+        {
+          commander: { id: "thrasios-tymna", name: "Thrasios, Triton Hero / Tymna the Weaver" },
+          winRate: 32.1,
+          games: 32
+        },
+        {
+          commander: { id: "kraum-tymna", name: "Kraum, Ludevic's Opus / Tymna the Weaver" },
+          winRate: 38.7,
+          games: 26
+        }
+      ]
+    },
+    
+    // Top players with this commander
+    topPlayers: [
+      {
+        player: { id: "player1", name: "Player One" },
+        winRate: 72.8,
+        tournamentWins: 3,
+        top16s: 5,
+        games: 32
+      },
+      {
+        player: { id: "player2", name: "Player Two" },
+        winRate: 65.2,
+        tournamentWins: 2,
+        top16s: 4,
+        games: 28
+      }
+    ],
+    
+    // Top decklists with this commander
+    topDecklists: [
+      {
+        deck: { id: "deck1", name: `Top ${commander.name} Build` },
+        player: { id: "player1", name: "Player One" },
+        tournamentStanding: "1/64",
+        winRate: 83.3,
+        tournament: { id: "tournament1", name: "Summer Championship" }
+      },
+      {
+        deck: { id: "deck2", name: `Fast ${commander.name}` },
+        player: { id: "player3", name: "Player Three" },
+        tournamentStanding: "2/32",
+        winRate: 75.0
+      }
+    ],
+    
+    // Card analysis
+    cardAnalysis: {
+      cards: [
+        {
+          card: { id: "basalt-monolith", name: "Basalt Monolith" },
+          inclusion: 95.2,
+          winRate: 0.65,
+          drawRate: 0.12
+        },
+        {
+          card: { id: "dramatic-reversal", name: "Dramatic Reversal" },
+          inclusion: 94.8,
+          winRate: 0.67,
+          drawRate: 0.10
+        },
+        {
+          card: { id: "thassas-oracle", name: "Thassa's Oracle" },
+          inclusion: 93.5,
+          winRate: 0.63,
+          drawRate: 0.15
+        }
+      ]
     }
-    return enhanceCommanderWithDetails(commander);
   };
-
-  const cachedFetcher = await withCache(detailsFetcher);
-  const errorHandledFetcher = await withErrorHandling(cachedFetcher);
-  return await errorHandledFetcher(id);
 };
 
 /**

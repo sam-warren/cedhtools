@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils/app-utils";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Info, MoreHorizontal, Trophy } from "lucide-react";
 import Link from "next/link";
-import type { CommanderStats } from "@/types/entities/commanders";
+import type { CommanderListItem } from "@/types/entities/commanders";
 
-export const columns: ColumnDef<CommanderStats>[] = [
+export const columns: ColumnDef<CommanderListItem>[] = [
   {
     accessorKey: "standing",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Standing" />,
@@ -48,7 +48,7 @@ export const columns: ColumnDef<CommanderStats>[] = [
     accessorKey: "name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Commander" />,
     cell: ({ row }) => (
-      <Link href={`/commanders/${row.original.}`} className="hover:underline">
+      <Link href={`/commanders/${row.original.id}`} className="hover:underline">
         {row.getValue("name")}
       </Link>
     )
@@ -64,14 +64,9 @@ export const columns: ColumnDef<CommanderStats>[] = [
     cell: ({ row }) => <div>{row.getValue<number>("winRate").toFixed(1)}%</div>
   },
   {
-    accessorKey: "drawRate",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Draw Rate" />,
-    cell: ({ row }) => <div>{row.getValue<number>("drawRate").toFixed(1)}%</div>
-  },
-  {
-    accessorKey: "entries",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Entries" />,
-    cell: ({ row }) => <div>{row.getValue<number>("entries")}</div>
+    accessorKey: "totalGames",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Total Games" />,
+    cell: ({ row }) => <div>{row.getValue<number>("totalGames")}</div>
   },
   {
     id: "actions",
@@ -86,7 +81,7 @@ export const columns: ColumnDef<CommanderStats>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <Link href={`/commanders/${row.original.standing}`} className="flex items-center">
+              <Link href={`/commanders/${row.original.id}`} className="flex items-center">
                 <Info className="mr-2 h-4 w-4" />
                 Show Details
               </Link>
