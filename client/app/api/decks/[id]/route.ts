@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
 import { MoxfieldClient } from '@/lib/etl/api-clients';
 
@@ -19,11 +19,11 @@ const MIN_REQUEST_INTERVAL = 1000; // 1 second in ms
 // };
 
 export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const deckId = params.id;
+        const { id: deckId } = await params;
 
         if (!deckId) {
             return NextResponse.json({ error: 'Deck ID is required' }, { status: 400 });
@@ -110,7 +110,7 @@ export async function GET(
 
         // Get unique card IDs from the deck mainboard
         const deckCardIds = deck.mainboard.cards.map(card => card.card.uniqueCardId);
-        
+
         // Fetch card data for any cards that might not have statistics
         const { data: cardData } = await supabaseServer
             .from('cards')
@@ -143,15 +143,15 @@ export async function GET(
 
             // Get type from our database instead of Moxfield
             // First try card stats (which includes the cards join), then fall back to direct card data
-            const typeNumber = 
-                (cardStat?.cards?.type) || 
-                (card?.type) || 
+            const typeNumber =
+                (cardStat?.cards?.type) ||
+                (card?.type) ||
                 0; // Default to 0 (unknown) if not found
-            
+
             // Get type_line from our database
-            const typeLine = 
-                (cardStat?.cards?.type_line) || 
-                (card?.type_line) || 
+            const typeLine =
+                (cardStat?.cards?.type_line) ||
+                (card?.type_line) ||
                 null;
 
             return {
