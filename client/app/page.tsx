@@ -1,15 +1,14 @@
-import { createClient } from "./utils/supabase/server";
 import { Header } from "@/components/layout/header";
 import { MoxfieldSearch } from "@/components/moxfield-search";
+import { Button } from "@/components/ui/button";
 import {
-  ArrowRight,
   BarChart3,
   Database,
   RefreshCw,
-  Users,
+  Users
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { createClient } from "./utils/supabase/server";
 
 export default async function Home() {
   const supabase = await createClient();
