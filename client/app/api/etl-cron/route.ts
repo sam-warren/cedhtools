@@ -3,7 +3,7 @@ import EtlProcessor from '../../../lib/etl/processor';
 
 // This endpoint will be called by Vercel Cron
 export const runtime = 'nodejs';
-export const maxDuration = 50000;
+export const maxDuration = 800;
 
 export async function GET() {
   try {
