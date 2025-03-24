@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 
 // This endpoint will be called by Vercel Cron
 export const runtime = 'nodejs';
@@ -27,27 +27,62 @@ export async function GET() {
         timestamp: new Date().toISOString(),
       });
     }
+
+    // Check if we need to run a seed job (every 6 months)
+    const { data: lastSeedJob } = await supabaseServer
+      .from('etl_jobs')
+      .select('created_at')
+      .eq('job_type', 'SEED')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const sixMonthsAgo = subMonths(new Date(), 6);
+    const shouldRunSeed = !lastSeedJob || !lastSeedJob[0] || new Date(lastSeedJob[0].created_at) < sixMonthsAgo;
+
+    if (shouldRunSeed) {
+      // Queue a seed job
+      const { data: seedJob, error: seedError } = await supabaseServer
+        .from('etl_jobs')
+        .insert({
+          job_type: 'SEED',
+          status: 'PENDING',
+          parameters: {
+            startDate: format(subMonths(new Date(), 6), 'yyyy-MM-dd'),
+            endDate: format(new Date(), 'yyyy-MM-dd')
+          },
+          priority: 2, // Higher priority than daily updates
+          max_runtime_seconds: 28800 // 8 hours max runtime for seed job
+        })
+        .select();
+        
+      if (seedError) throw seedError;
+      
+      return NextResponse.json({
+        message: 'Seed job queued successfully',
+        jobId: seedJob[0].id,
+        timestamp: new Date().toISOString(),
+      });
+    }
     
-    // Queue a new daily update job
-    const { data, error } = await supabaseServer
+    // Queue a daily update job
+    const { data: dailyJob, error: dailyError } = await supabaseServer
       .from('etl_jobs')
       .insert({
         job_type: 'DAILY_UPDATE',
         status: 'PENDING',
         parameters: {
-          // Today's date as the end date
           endDate: format(new Date(), 'yyyy-MM-dd')
         },
-        priority: 1, // Higher priority than seed jobs
-        max_runtime_seconds: 600 // 10 minutes max runtime per job
+        priority: 1,
+        max_runtime_seconds: 3600 // 1 hour max runtime for daily update
       })
       .select();
       
-    if (error) throw error;
+    if (dailyError) throw dailyError;
     
     return NextResponse.json({
-      message: 'ETL job queued successfully',
-      jobId: data[0].id,
+      message: 'Daily update job queued successfully',
+      jobId: dailyJob[0].id,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

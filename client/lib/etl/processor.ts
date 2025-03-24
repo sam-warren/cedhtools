@@ -237,6 +237,8 @@ export default class EtlProcessor {
         endDate?: string,
     ): Promise<void> {
         try {
+            console.log('[Processor] Starting ETL process...');
+            
             // Create a new ETL status record
             const etlStatusId = await this.createEtlStatus('RUNNING');
 
@@ -257,7 +259,7 @@ export default class EtlProcessor {
                 endDate = format(new Date(), 'yyyy-MM-dd');
             }
 
-            console.log(`Starting ETL process from ${startDate} to ${endDate}`);
+            console.log(`[Processor] Processing data from ${startDate} to ${endDate}`);
 
             let currentStartDate = startDate;
             let recordsProcessed = 0;
@@ -273,19 +275,23 @@ export default class EtlProcessor {
                     'yyyy-MM-dd'
                 );
 
-                console.log(`Processing batch from ${currentStartDate} to ${batchEndDate}`);
+                console.log(`[Processor] Processing batch from ${currentStartDate} to ${batchEndDate}`);
 
                 // Fetch tournaments for the current batch
+                console.log(`[Processor] Fetching tournaments from Topdeck...`);
                 const tournaments = await this.topdeckClient.fetchTournaments(
                     currentStartDate,
                     batchEndDate
                 );
 
-                console.log(`Found ${tournaments.length} tournaments`);
+                console.log(`[Processor] Found ${tournaments.length} tournaments`);
 
                 // Process the tournaments and their decklists
+                console.log(`[Processor] Starting to process tournaments...`);
                 const batchRecordsProcessed = await this.processTournaments(tournaments);
                 recordsProcessed += batchRecordsProcessed;
+
+                console.log(`[Processor] Processed ${batchRecordsProcessed} records in this batch. Total: ${recordsProcessed}`);
 
                 // Update the ETL status record
                 await this.updateEtlStatus(etlStatusId, {
@@ -303,9 +309,9 @@ export default class EtlProcessor {
                 endDate: new Date().toISOString()
             });
 
-            console.log(`ETL process completed successfully. Processed ${recordsProcessed} records.`);
+            console.log(`[Processor] ETL process completed successfully. Processed ${recordsProcessed} records.`);
         } catch (error) {
-            console.error('Error in ETL process:', error);
+            console.error('[Processor] Error in ETL process:', error);
 
             // Update the ETL status to failed
             if (error instanceof Error) {
