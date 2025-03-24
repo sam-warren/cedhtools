@@ -2,31 +2,26 @@ import { NextResponse } from 'next/server';
 import EtlProcessor from '../../../lib/etl/processor';
 
 // This endpoint will be called by Vercel Cron
-export const runtime = 'edge';
-export const maxDuration = 300; // 5 minutes
+export const runtime = 'nodejs';
+export const maxDuration = 50000;
 
 export async function GET() {
   try {
-    // Process the ETL data asynchronously
+    // Process the ETL data synchronously
     const processor = new EtlProcessor();
     
-    // Start the ETL process in the background
-    // This allows the function to return quickly while processing continues
-    processor.processData().catch(error => {
-      console.error('Error in scheduled ETL process:', error);
-      // You might want to implement a notification system here
-      // to alert you of failures
-    });
+    // Start the ETL process and wait for it to complete
+    await processor.processData();
     
     return NextResponse.json({
-      message: 'Scheduled ETL process started successfully',
+      message: 'ETL process completed successfully',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error starting scheduled ETL process:', error);
+    console.error('Error in ETL process:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to start scheduled ETL process',
+        error: 'Failed to complete ETL process',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
