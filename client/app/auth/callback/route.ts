@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, {
                 ...options,
-                // Ensure cookies work across all domains
-                domain: undefined,
                 // Ensure secure settings
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
+                sameSite: 'lax',
+                // Extend the cookie expiration
+                maxAge: 60 * 60 * 24 * 7 // 1 week
               })
             })
           },
@@ -44,17 +44,15 @@ export async function GET(request: NextRequest) {
     
     if (error) {
       console.error('Auth callback error:', error.message)
-      // Redirect to login page with error
       return NextResponse.redirect(
         new URL(`/login?error=${encodeURIComponent('Authentication failed')}`, origin)
       )
     }
 
-    // URL to redirect to after sign in process completes
+    // Simply redirect to home page after successful authentication
     return NextResponse.redirect(new URL('/', origin))
   } catch (error) {
     console.error('Unexpected error in auth callback:', error)
-    // Redirect to login page with error
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent('Authentication process failed')}`, origin)
     )
