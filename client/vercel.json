@@ -2,10 +2,7 @@
   "crons": [
     {
       "path": "/api/etl-cron",
-      "schedule": "0 0 * * *",
-      "headers": {
-        "Authorization": "Bearer ${CRON_SECRET_KEY}"
-      }
+      "schedule": "0 0 * * *"
     }
   ]
 }
