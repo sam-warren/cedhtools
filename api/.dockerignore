@@ -1,9 +1,0 @@
-target/
-Dockerfile*
-.dockerignore
-.git
-.gitignore
-README.md
-.env*
-tests/
-docs/ 
