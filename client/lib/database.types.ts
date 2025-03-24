@@ -192,6 +192,61 @@ export interface Database {
                     created_at?: string
                 }
             }
+            etl_jobs: {
+                Row: {
+                    id: number
+                    job_type: string
+                    status: string
+                    parameters: Json
+                    created_at: string
+                    updated_at: string
+                    priority: number
+                    max_runtime_seconds: number
+                }
+                Insert: {
+                    id?: number
+                    job_type: string
+                    status: string
+                    parameters: Json
+                    created_at?: string
+                    updated_at?: string
+                    priority: number
+                    max_runtime_seconds: number
+                }
+                Update: {
+                    id?: number
+                    job_type?: string
+                    status?: string
+                    parameters?: Json
+                    created_at?: string
+                    updated_at?: string
+                    priority?: number
+                    max_runtime_seconds?: number
+                }
+            }
+            etl_jobs_active: {
+                Row: {
+                    id: number
+                    job_type: string
+                    status: string
+                    created_at: string
+                    runtime_seconds: number
+                }
+                Insert: {
+                    id: number
+                    job_type: string
+                    status: string
+                    created_at: string
+                    runtime_seconds: number
+                }
+                Update: {
+                    id?: number
+                    job_type?: string
+                    status?: string
+                    created_at?: string
+                    runtime_seconds?: number
+                }
+            }
         }
         Views: {
             [_ in never]: never

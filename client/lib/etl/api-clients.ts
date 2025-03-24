@@ -62,7 +62,7 @@ export class TopdeckClient {
             }
 
             const data = await response.json();
-            return data;
+            return data as Tournament[];
         } catch (error) {
             console.error('Error fetching tournaments:', error);
             throw error;
@@ -93,37 +93,15 @@ export class MoxfieldClient {
     }
 
     async fetchDeck(deckId: string): Promise<MoxfieldDeck | null> {
-        return this.fetchWithRetry(async () => {
-            console.log(`Fetching deck ${deckId} from Moxfield`);
-
-            const response = await fetch(`${this.baseUrl}/${deckId}`, {
-                headers: {
-                    'User-Agent': this.userAgent
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    console.warn(`Deck ${deckId} not found on Moxfield`);
-                    return null;
-                }
-
-                throw new Error(`${response.status} ${response.statusText}`);
+        const response = await fetch(`${this.baseUrl}/api/v2/deck/${deckId}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null;
             }
-
-            const data = await response.json();
-
-            // Transform the data into our MoxfieldDeck format
-            return {
-                name: data.name,
-                mainboard: {
-                    cards: this.transformCards(data.boards.mainboard.cards),
-                },
-                commanders: {
-                    cards: this.transformCards(data.boards.commanders.cards),
-                },
-            };
-        });
+            throw new Error(`Failed to fetch deck: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return data as MoxfieldDeck;
     }
 
     private async fetchWithRetry<T>(fetchFn: () => Promise<T>, maxRetries = 5): Promise<T> {
