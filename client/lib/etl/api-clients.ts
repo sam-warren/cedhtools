@@ -78,8 +78,8 @@ export class MoxfieldClient {
     private consecutiveErrors: number = 0;
 
     constructor() {
-        this.baseUrl = process.env.MOXFIELD_API_BASE_URL || 'https://api2.moxfield.com/v3/decks/all';
-        this.userAgent = process.env.MOXFIELD_USER_AGENT || 'MoxKey; clickhole 4e3dcc519836';
+        this.baseUrl = process.env.MOXFIELD_API_BASE_URL || ''
+        this.userAgent = process.env.MOXFIELD_USER_AGENT || '';
 
         // Super conservative - one request every 5 seconds (configurable)
         const requestsPerSecond = parseFloat(process.env.ETL_REQUESTS_PER_SECOND || '0.2');
@@ -196,35 +196,5 @@ export class MoxfieldClient {
                 type_line: cardData.card.type_line || ''
             },
         }));
-    }
-
-    // Simple function to guess card type based on name
-    private determineCardType(cardName: string): number {
-        cardName = cardName.toLowerCase();
-
-        if (cardName.includes('battle') || cardName.includes('the battle of')) {
-            return TYPE_MAPPING.BATTLE;
-        } else if (cardName.includes('planeswalker')) {
-            return TYPE_MAPPING.PLANESWALKER;
-        } else if (cardName.includes('creature') || cardName.includes('elemental')) {
-            return TYPE_MAPPING.CREATURE;
-        } else if (cardName.includes('sorcery')) {
-            return TYPE_MAPPING.SORCERY;
-        } else if (cardName.includes('instant')) {
-            return TYPE_MAPPING.INSTANT;
-        } else if (cardName.includes('artifact')) {
-            return TYPE_MAPPING.ARTIFACT;
-        } else if (cardName.includes('enchantment') || cardName.includes('aura')) {
-            return TYPE_MAPPING.ENCHANTMENT;
-        } else if (cardName.includes('land') ||
-            cardName.includes('island') ||
-            cardName.includes('mountain') ||
-            cardName.includes('swamp') ||
-            cardName.includes('plains') ||
-            cardName.includes('forest')) {
-            return TYPE_MAPPING.LAND;
-        }
-
-        return TYPE_MAPPING.UNKNOWN;
     }
 } 

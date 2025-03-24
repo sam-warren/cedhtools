@@ -3,12 +3,15 @@ import { format, subMonths } from 'date-fns';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// Load environment variables from .env.local
-config({ path: resolve(__dirname, '../../.env.local') });
+// Determine which env file to load
+const envFile = process.env.ENV_FILE || '.env.local';
+console.log(`Loading environment from: ${envFile}`);
+config({ path: resolve(__dirname, `../../${envFile}`) });
 
 /**
  * This script seeds the database with data from the last 6 months
- * Run with: npm run etl:seed
+ * Run with: npm run etl:seed (local database)
+ * Run with: npm run etl:seed:prod (production database)
  */
 async function seedDatabase() {
     console.log('┌────────────────────────────────────────┐');
