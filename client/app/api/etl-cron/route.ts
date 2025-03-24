@@ -7,15 +7,6 @@ export const maxDuration = 300; // 5 minutes
 
 export async function GET(request: Request) {
   try {
-    // Verify the request is from Vercel Cron
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET_KEY}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     // Process the ETL data asynchronously
     const processor = new EtlProcessor();
     
