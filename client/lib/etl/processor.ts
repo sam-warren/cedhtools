@@ -10,7 +10,7 @@ import {
     EtlStatus,
     MoxfieldCard
 } from './types';
-import { addDays, format, subMonths, parseISO } from 'date-fns';
+import { addDays, format, subMonths, parseISO, subDays } from 'date-fns';
 
 export default class EtlProcessor {
     private topdeckClient: TopdeckClient;
@@ -21,6 +21,215 @@ export default class EtlProcessor {
         this.topdeckClient = new TopdeckClient();
         this.moxfieldClient = new MoxfieldClient();
         this.concurrencyLimit = parseInt(process.env.ETL_CONCURRENCY_LIMIT || '5', 10);
+    }
+
+    /**
+     * Process data in batches with cursor support
+     * This method is used by the worker to process data in smaller batches that fit within time constraints
+     * 
+     * @param cursor Optional cursor to resume processing from (tournament id or date)
+     * @param batchSize Maximum number of records to process in this batch
+     * @returns Information about the processed batch and next cursor
+     */
+    async processBatch(
+        cursor: string | null,
+        batchSize: number = 50
+    ): Promise<{ nextCursor: string | null; recordsProcessed: number; isComplete: boolean }> {
+        try {
+            // Create a new ETL status record
+            const etlStatusId = await this.createEtlStatus('RUNNING');
+
+            if (!etlStatusId) {
+                throw new Error('Failed to create ETL status record');
+            }
+
+            // Parse the cursor if provided
+            let currentDate: string;
+            let currentTournamentIndex = 0;
+            let tournamentIdToSkipTo: string | null = null;
+
+            if (cursor) {
+                // Cursor format: YYYY-MM-DD:tournamentId:index
+                const [date, tournamentId, indexStr] = cursor.split(':');
+                currentDate = date;
+                tournamentIdToSkipTo = tournamentId || null;
+                currentTournamentIndex = indexStr ? parseInt(indexStr, 10) : 0;
+            } else {
+                // If no cursor, get the last processed date or default to 7 days ago
+                const lastEtlStatus = await this.getLastCompletedEtlStatus();
+                currentDate = lastEtlStatus?.lastProcessedDate
+                    ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
+                    : format(subDays(new Date(), 7), 'yyyy-MM-dd');
+            }
+
+            // Default end date is today
+            const endDate = format(new Date(), 'yyyy-MM-dd');
+            
+            let recordsProcessed = 0;
+            let nextCursor: string | null = null;
+            let isComplete = false;
+
+            // Process just one day's worth of data per batch
+            // This provides natural chunking for the batches
+            if (currentDate <= endDate) {
+                console.log(`Processing batch for date ${currentDate}`);
+
+                // Fetch tournaments for the current date
+                const tournaments = await this.topdeckClient.fetchTournaments(
+                    currentDate,
+                    currentDate
+                );
+
+                console.log(`Found ${tournaments.length} tournaments for ${currentDate}`);
+
+                // Apply tournament filtering based on cursor
+                let tournamentsToProcess = tournaments;
+                
+                if (tournamentIdToSkipTo) {
+                    // Find the index of the tournament to resume from
+                    const resumeIndex = tournaments.findIndex(t => t.TID === tournamentIdToSkipTo);
+                    if (resumeIndex >= 0) {
+                        // Start from this tournament and skip processed standings
+                        tournamentsToProcess = tournaments.slice(resumeIndex);
+                    }
+                }
+
+                // Process tournaments until we hit the batch size limit
+                let batchComplete = true;
+                
+                for (let i = 0; i < tournamentsToProcess.length; i++) {
+                    const tournament = tournamentsToProcess[i];
+                    
+                    console.log(`Processing tournament: ${tournament.tournamentName} (ID: ${tournament.TID})`);
+
+                    // Check if tournament has already been processed
+                    const { data: existingTournament } = await supabaseServer
+                        .from('processed_tournaments')
+                        .select('tournament_id, record_count')
+                        .eq('tournament_id', tournament.TID)
+                        .single();
+
+                    if (existingTournament) {
+                        console.log(`Skipping already processed tournament: ${tournament.tournamentName}`);
+                        continue;
+                    }
+
+                    // Filter standings to only include those with Moxfield decklists
+                    const moxfieldStandings = tournament.standings.filter(
+                        standing => standing.decklist && standing.decklist.includes('moxfield.com/decks/')
+                    );
+
+                    console.log(`Found ${moxfieldStandings.length} Moxfield decklists in tournament ${tournament.tournamentName}`);
+
+                    let tournamentRecordsProcessed = 0;
+                    
+                    // Start from the specified index if this is the tournament we're resuming
+                    const startingIndex = (tournament.TID === tournamentIdToSkipTo) ? currentTournamentIndex : 0;
+
+                    // Process each standing in batches based on concurrency limit
+                    let standingIndex = startingIndex;
+                    
+                    while (standingIndex < moxfieldStandings.length) {
+                        const batchEndIndex = Math.min(standingIndex + this.concurrencyLimit, moxfieldStandings.length);
+                        const standingsBatch = moxfieldStandings.slice(standingIndex, batchEndIndex);
+
+                        // Process batch sequentially to handle rate limiting properly
+                        for (const standing of standingsBatch) {
+                            try {
+                                await this.processStanding(standing);
+                                recordsProcessed++;
+                                tournamentRecordsProcessed++;
+                                
+                                // Check if we've hit the batch size limit
+                                if (recordsProcessed >= batchSize) {
+                                    // Set the next cursor and stop processing
+                                    nextCursor = `${currentDate}:${tournament.TID}:${standingIndex + 1}`;
+                                    batchComplete = false;
+                                    break;
+                                }
+                            } catch (error) {
+                                if (error instanceof Error &&
+                                    (error.message.includes('429') || error.message.includes('Too Many Requests'))) {
+                                    // For rate limiting errors, we need to pause and retry the same standing
+                                    console.log(`Rate limited, setting cursor and pausing...`);
+                                    
+                                    // Set cursor to current position
+                                    nextCursor = `${currentDate}:${tournament.TID}:${standingIndex}`;
+                                    batchComplete = false;
+                                    break;
+                                } else {
+                                    // For other errors, just log and continue with next item
+                                    console.error(`Error processing standing, skipping:`, error);
+                                }
+                            }
+                        }
+
+                        // If we've hit the batch size limit or encountered rate limiting, stop processing
+                        if (!batchComplete) {
+                            break;
+                        }
+
+                        standingIndex = batchEndIndex;
+                    }
+
+                    // Mark tournament as processed if we completed all its standings
+                    if (batchComplete && tournamentRecordsProcessed > 0) {
+                        await supabaseServer
+                            .from('processed_tournaments')
+                            .insert({
+                                tournament_id: tournament.TID,
+                                tournament_date: new Date(tournament.startDate).toISOString(),
+                                name: tournament.tournamentName,
+                                record_count: tournamentRecordsProcessed,
+                                processed_at: new Date().toISOString()
+                            });
+
+                        console.log(`Marked tournament ${tournament.tournamentName} as processed with ${tournamentRecordsProcessed} records`);
+                    }
+                    
+                    // If we've hit the batch size limit, stop processing
+                    if (!batchComplete) {
+                        break;
+                    }
+                }
+
+                // If we've completed all tournaments for this day, move to the next day
+                if (batchComplete) {
+                    const nextDate = format(addDays(parseISO(currentDate), 1), 'yyyy-MM-dd');
+                    
+                    if (nextDate <= endDate) {
+                        // There are more days to process
+                        nextCursor = `${nextDate}::`; // Set cursor to the start of the next day
+                    } else {
+                        // We've processed all data up to the end date
+                        isComplete = true;
+                    }
+                }
+            } else {
+                // Current date is past the end date, we're done
+                isComplete = true;
+            }
+
+            // Update the ETL status record
+            await this.updateEtlStatus(etlStatusId, {
+                status: 'COMPLETED',
+                endDate: new Date().toISOString(),
+                recordsProcessed,
+                lastProcessedDate: currentDate
+            });
+
+            return { nextCursor, recordsProcessed, isComplete };
+        } catch (error) {
+            console.error('Error in batch processing:', error);
+
+            // Update any ETL status to failed
+            await this.updateEtlStatus(undefined, {
+                status: 'FAILED',
+                endDate: new Date().toISOString()
+            });
+
+            throw error;
+        }
     }
 
     async processData(

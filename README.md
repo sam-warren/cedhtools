@@ -57,19 +57,63 @@ To test the ETL pipeline locally:
 
 This will process tournament data from the last 7 days.
 
+### Asynchronous Job Queue System
+
+The ETL pipeline now uses an asynchronous job queue system to handle long-running tasks. This architecture separates the web application from the ETL processing, allowing for more resilient handling of rate limits and long processing times.
+
+#### Components:
+
+1. **ETL Jobs Table**: Stores job metadata, status, and progress
+2. **ETL Worker**: Processes jobs from the queue one by one
+3. **Cron Trigger**: Schedules daily update jobs
+4. **API Endpoints**: For job management and monitoring
+
+#### Running the Worker
+
+The worker service runs independently of the web application and can be deployed to a separate server:
+
+```
+# For local development:
+npm run etl:worker
+
+# For production:
+npm run etl:worker:prod
+```
+
+The worker will:
+- Process one job at a time
+- Automatically retry on rate limit errors
+- Report job progress and status
+- Create follow-up jobs for batch processing
+
+#### Job Types
+
+The system supports three types of jobs:
+
+- **SEED**: For initial database seeding (6 months of data)
+- **DAILY_UPDATE**: For daily incremental updates
+- **BATCH_PROCESS**: For processing data in smaller chunks with cursor-based resumption
+
 ### API Endpoints
 
 - `GET /api/etl` - Check if the ETL API is running
-- `POST /api/etl` - Trigger the ETL process
+- `GET /api/etl?jobId=123` - Get status of a specific job
+- `GET /api/etl?list=true` - List recent jobs
+- `POST /api/etl` - Trigger a new ETL job
 
 The POST endpoint requires authentication with the ETL_API_KEY as a Bearer token.
 
-Example request:
+Example request to queue a seed job:
 ```
 curl -X POST https://your-domain.com/api/etl \
   -H "Authorization: Bearer YOUR_ETL_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"startDate": "2023-01-01", "endDate": "2023-01-31"}'
+  -d '{
+    "jobType": "SEED", 
+    "startDate": "2023-01-01", 
+    "endDate": "2023-06-30",
+    "priority": 0
+  }'
 ```
 
 ## Deployment
