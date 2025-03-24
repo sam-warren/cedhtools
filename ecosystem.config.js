@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'cedhtools-worker',
-    script: 'client/dist/etl/worker.js',
+    script: 'cedhtools/client/dist/etl/etl/worker.js',
     instances: 1,
     autorestart: true,
     watch: false,
