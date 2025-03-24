@@ -41,7 +41,7 @@ export function Header() {
             <>
               {user ? (
                 <Button variant="ghost" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
+                  <Link href="/">Dashboard</Link>
                 </Button>
               ) : (
                 <Button variant="ghost" asChild>

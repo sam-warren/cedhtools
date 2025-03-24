@@ -20,7 +20,7 @@ export function AppSidebar() {
           items={[
             {
               title: "Dashboard",
-              url: "/dashboard",
+              url: "/",
               icon: LayoutDashboardIcon,
             },
             {
@@ -40,7 +40,7 @@ export function AppSidebar() {
             },
             {
               title: "Settings",
-              url: "/settings",
+              url: "/",
               icon: Settings2Icon,
             },
           ]}
