@@ -5,7 +5,7 @@ import EtlProcessor from '../../../lib/etl/processor';
 export const runtime = 'edge';
 export const maxDuration = 300; // 5 minutes
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Process the ETL data asynchronously
     const processor = new EtlProcessor();
