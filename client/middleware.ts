@@ -2,6 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Special case for auth callback URL with code parameter
+  const requestUrl = new URL(request.url)
+  if (requestUrl.pathname === '/auth/callback' && requestUrl.searchParams.has('code')) {
+    // Pass through the callback without any auth checking
+    return NextResponse.next()
+  }
+  
   let supabaseResponse = NextResponse.next({
     request,
   })
