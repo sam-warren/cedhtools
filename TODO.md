@@ -1,3 +1,7 @@
+High Level
+- [ ] Set up Supabase Auth
+- [ ] Set up Stripe
+
 MVP
 - [ ] User should be able to upload Moxfield decklist
 - [ ] User should be able to see cards in their decklist and their winrates with that commander
