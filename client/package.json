@@ -14,7 +14,7 @@
     "etl:seed:prod": "ENV_FILE=.env.development dotenv -e .env.development -- tsx lib/etl/seed-db.ts",
     "etl:worker": "dotenv -e .env.local -- tsx lib/etl/run-worker.ts",
     "etl:worker:prod": "dotenv -e .env.development -- tsx lib/etl/run-worker.ts",
-    "etl:build": "tsc lib/etl/worker.ts --outDir dist/etl --esModuleInterop --module commonjs --target es2020 --strict"
+    "etl:build": "tsc -p tsconfig.worker.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
