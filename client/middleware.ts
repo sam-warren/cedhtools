@@ -2,11 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Special case for auth callback URL with code parameter
   const requestUrl = new URL(request.url)
+  
+  // Special case 1: Direct auth callback with code parameter
   if (requestUrl.pathname === '/auth/callback' && requestUrl.searchParams.has('code')) {
     // Pass through the callback without any auth checking
     return NextResponse.next()
+  }
+
+  // Special case 2: Code on root path - need to redirect to callback
+  if (requestUrl.pathname === '/' && requestUrl.searchParams.has('code')) {
+    const code = requestUrl.searchParams.get('code')
+    // Redirect to the proper callback URL
+    return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, requestUrl.origin))
   }
   
   let supabaseResponse = NextResponse.next({
