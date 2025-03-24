@@ -166,7 +166,7 @@ export default async function Home() {
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} CEDHTools. All rights reserved.
+              © {new Date().getFullYear()} HUNCTIONTECH INC. All rights reserved.
             </p>
             <div className="flex gap-4">
               <Link
