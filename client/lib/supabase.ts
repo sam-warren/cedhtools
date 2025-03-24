@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/lib/database.types';
+import { Database } from './database.types';
 
 // Create a single supabase client for the entire app
 export const createServerClient = () => {
