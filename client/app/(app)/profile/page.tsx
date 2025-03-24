@@ -1,6 +1,5 @@
-import { createClient } from "../utils/supabase/server";
-import LogoutButton from "../components/logout-button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { createClient } from "@/app/utils/supabase/server";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function Profile() {
   const supabase = await createClient();
@@ -25,7 +24,12 @@ export default async function Profile() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">ID:</span>
-                <span className="font-medium truncate max-w-[200px]" title={user?.id}>{user?.id}</span>
+                <span
+                  className="font-medium truncate max-w-[200px]"
+                  title={user?.id}
+                >
+                  {user?.id}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Sign In:</span>
@@ -38,10 +42,6 @@ export default async function Profile() {
             </div>
           </div>
         </CardContent>
-
-        <CardFooter className="flex justify-end">
-          <LogoutButton />
-        </CardFooter>
       </Card>
     </div>
   );
