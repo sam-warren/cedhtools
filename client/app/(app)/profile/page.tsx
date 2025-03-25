@@ -16,12 +16,15 @@ import { AlertTriangleIcon, CreditCardIcon, SettingsIcon, TrashIcon, UserCircleI
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-type ProfileProps = {
-  searchParams: { portal_error?: string; tab?: string };
-};
-
-export default async function Profile({ searchParams }: ProfileProps) {
-  const { portal_error: portalError, tab } = await Promise.resolve(searchParams);
+export default async function Profile({
+  searchParams,
+}: {
+  searchParams: Promise<{ portal_error?: string; tab?: string }>;
+}) {
+  // Access the params after resolving the promise
+  const params = await searchParams;
+  const portalError = params?.portal_error;
+  const tab = params?.tab;
   const activeTab = tab || "account";
   
   const supabase = await createClient();
