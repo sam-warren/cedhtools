@@ -1,16 +1,13 @@
-import { TopdeckClient, MoxfieldClient } from './api-clients';
+import { addDays, format, parseISO, subDays, subMonths } from 'date-fns';
 import { supabaseServer } from '../supabase';
+import { MoxfieldClient, TopdeckClient } from './api-clients';
 import {
-    Tournament,
-    TournamentStanding,
-    MoxfieldDeck,
-    Commander,
-    Card,
-    Statistic,
     EtlStatus,
-    MoxfieldCardEntry
+    MoxfieldCardEntry,
+    MoxfieldDeck,
+    Tournament,
+    TournamentStanding
 } from './types';
-import { addDays, format, subMonths, parseISO, subDays } from 'date-fns';
 
 export default class EtlProcessor {
     private topdeckClient: TopdeckClient;
@@ -482,73 +479,133 @@ export default class EtlProcessor {
             const commanderId = this.generateCommanderId(commanderCards);
             const commanderName = this.generateCommanderName(commanderCards);
 
-            // Upsert the commander into the database
-            const upsertCommanderStart = Date.now();
-            await this.upsertCommander({
-                id: commanderId,
-                name: commanderName,
-                wins: standing.wins,
-                losses: standing.losses,
-                draws: standing.draws,
-                entries: 1
-            });
-            const upsertCommanderEnd = Date.now();
-            dbOperationsTime += (upsertCommanderEnd - upsertCommanderStart);
-            console.log(`[PERF] Upserting commander took ${upsertCommanderEnd - upsertCommanderStart}ms`);
-
-            // Check if mainboard exists
+            // Prepare to batch process all cards
             if (!deck.boards.mainboard || !deck.boards.mainboard.cards) {
                 console.warn(`Deck has no mainboard cards`);
                 return;
             }
 
-            // Process each card in the mainboard - also a map not an array
+            // Process all cards in the mainboard at once
             const mainboardCards = Object.values(deck.boards.mainboard.cards);
             console.log(`[PERF] Processing ${mainboardCards.length} cards in mainboard`);
             
             const cardProcessingStart = Date.now();
-            let cardsProcessed = 0;
             
-            for (const cardEntry of mainboardCards) {
+            // Step 1: Fetch the commander data
+            const commanderFetchStart = Date.now();
+            const { data: existingCommander } = await supabaseServer
+                .from('commanders')
+                .select('*')
+                .eq('id', commanderId)
+                .single();
+            
+            const commanderFetchTime = Date.now() - commanderFetchStart;
+            dbOperationsTime += commanderFetchTime;
+            
+            // Step 2: Prepare all cards data for batch operations
+            const allCards = mainboardCards.map(cardEntry => {
                 if (!cardEntry || !cardEntry.card) {
-                    console.warn(`Invalid card entry in mainboard`);
-                    continue;
+                    return null;
                 }
-
-                const card: Card = {
-                    uniqueCardId: cardEntry.card.uniqueCardId || '',
+                
+                return {
+                    unique_card_id: cardEntry.card.uniqueCardId || '',
                     name: cardEntry.card.name || 'Unknown Card',
-                    scryfallId: cardEntry.card.scryfall_id || '',
+                    scryfall_id: cardEntry.card.scryfall_id || '',
                     type: cardEntry.card.type || 0,
-                    type_line: cardEntry.card.type_line || ''
+                    type_line: cardEntry.card.type_line || '',
+                    updated_at: new Date().toISOString()
                 };
-
-                // Upsert the card
-                const upsertCardStart = Date.now();
-                await this.upsertCard(card);
-                const upsertCardEnd = Date.now();
-                dbOperationsTime += (upsertCardEnd - upsertCardStart);
-
-                // Upsert the statistics
-                const upsertStatStart = Date.now();
-                await this.upsertStatistic({
-                    commanderId,
-                    cardId: card.uniqueCardId,
-                    wins: standing.wins,
-                    losses: standing.losses,
-                    draws: standing.draws,
-                    entries: 1
-                });
-                const upsertStatEnd = Date.now();
-                dbOperationsTime += (upsertStatEnd - upsertStatStart);
+            }).filter(Boolean);
+            
+            // Get all card IDs for fetching existing statistics
+            const allCardIds = allCards.map(card => card!.unique_card_id);
+            
+            // Step 3: Fetch all existing statistics in one query
+            const statsFetchStart = Date.now();
+            const { data: existingStatistics } = await supabaseServer
+                .from('statistics')
+                .select('*')
+                .eq('commander_id', commanderId)
+                .in('card_id', allCardIds);
+            
+            const statsFetchTime = Date.now() - statsFetchStart;
+            dbOperationsTime += statsFetchTime;
+            
+            // Create a map for faster lookups
+            const statsMap = (existingStatistics || []).reduce((acc, stat) => {
+                acc[stat.card_id] = stat;
+                return acc;
+            }, {});
+            
+            // Step 4: Calculate new commander values
+            const newCommanderValues = {
+                id: commanderId,
+                name: commanderName,
+                wins: (existingCommander?.wins || 0) + standing.wins,
+                losses: (existingCommander?.losses || 0) + standing.losses,
+                draws: (existingCommander?.draws || 0) + standing.draws,
+                entries: (existingCommander?.entries || 0) + 1,
+                updated_at: new Date().toISOString()
+            };
+            
+            // Step 5: Prepare all statistics records
+            const allStatistics = allCardIds.map(cardId => {
+                const existingStat = statsMap[cardId];
                 
-                cardsProcessed++;
+                return {
+                    commander_id: commanderId,
+                    card_id: cardId,
+                    wins: (existingStat?.wins || 0) + standing.wins,
+                    losses: (existingStat?.losses || 0) + standing.losses,
+                    draws: (existingStat?.draws || 0) + standing.draws,
+                    entries: (existingStat?.entries || 0) + 1,
+                    updated_at: new Date().toISOString()
+                };
+            });
+            
+            // Step 6: Execute batch operations
+            const batchUpsertStart = Date.now();
+            
+            // Use a transaction to ensure data consistency
+            const { error } = await supabaseServer.rpc('batch_upsert_deck_data', {
+                commander_data: newCommanderValues,
+                cards_data: allCards,
+                stats_data: allStatistics
+            });
+            
+            if (error) {
+                // If RPC fails, fall back to standard batch operations
+                console.warn(`RPC batch operation failed: ${error.message}. Falling back to standard batch operations.`);
                 
-                // Log every 20 cards to avoid excessive logging
-                if (cardsProcessed % 20 === 0) {
-                    console.log(`[PERF] Processed ${cardsProcessed}/${mainboardCards.length} cards (Card upsert: ${upsertCardEnd - upsertCardStart}ms, Stat upsert: ${upsertStatEnd - upsertStatStart}ms)`);
+                // Perform batch operations in sequence
+                const commanderResult = await supabaseServer
+                    .from('commanders')
+                    .upsert(newCommanderValues, { onConflict: 'id' });
+                    
+                if (commanderResult.error) {
+                    console.error(`Error upserting commander: ${commanderResult.error.message}`);
+                }
+                
+                const cardsResult = await supabaseServer
+                    .from('cards')
+                    .upsert(allCards, { onConflict: 'unique_card_id' });
+                    
+                if (cardsResult.error) {
+                    console.error(`Error upserting cards: ${cardsResult.error.message}`);
+                }
+                
+                const statsResult = await supabaseServer
+                    .from('statistics')
+                    .upsert(allStatistics, { onConflict: 'commander_id,card_id' });
+                    
+                if (statsResult.error) {
+                    console.error(`Error upserting statistics: ${statsResult.error.message}`);
                 }
             }
+            
+            const batchUpsertTime = Date.now() - batchUpsertStart;
+            dbOperationsTime += batchUpsertTime;
             
             const cardProcessingEnd = Date.now();
             const totalProcessingTime = cardProcessingEnd - startTime;
@@ -558,9 +615,12 @@ export default class EtlProcessor {
             console.log(`[PERF] Deck processing summary:
             - Total time: ${totalProcessingTime}ms
             - DB operations: ${dbOperationsTime}ms (${Math.round(dbOperationsTime/totalProcessingTime*100)}%)
+            - Command fetch: ${commanderFetchTime}ms
+            - Stats fetch: ${statsFetchTime}ms
+            - Batch upsert: ${batchUpsertTime}ms
             - Other processing: ${nonDbTime}ms (${Math.round(nonDbTime/totalProcessingTime*100)}%)
-            - Cards processed: ${cardsProcessed}
-            - Avg time per card: ${cardsProcessed > 0 ? Math.round(dbOperationsTime/cardsProcessed) : 0}ms`);
+            - Cards processed: ${allCards.length}
+            - Avg time per card: ${allCards.length > 0 ? Math.round(dbOperationsTime/allCards.length) : 0}ms`);
         } catch (error) {
             console.error(`Error processing deck:`, error);
         }
@@ -582,122 +642,6 @@ export default class EtlProcessor {
     private extractDeckId(decklistUrl: string): string | null {
         const match = decklistUrl.match(/moxfield\.com\/decks\/([a-zA-Z0-9_-]+)/);
         return match ? match[1] : null;
-    }
-
-    private async upsertCommander(commander: Commander): Promise<void> {
-        const startTime = Date.now();
-        
-        // First get the existing commander if it exists
-        const { data: existingCommander } = await supabaseServer
-            .from('commanders')
-            .select('*')
-            .eq('id', commander.id)
-            .single();
-        
-        const selectTime = Date.now() - startTime;
-
-        // Calculate the new values
-        const newValues = {
-            id: commander.id,
-            name: commander.name,
-            wins: (existingCommander?.wins || 0) + commander.wins,
-            losses: (existingCommander?.losses || 0) + commander.losses,
-            draws: (existingCommander?.draws || 0) + commander.draws,
-            entries: (existingCommander?.entries || 0) + commander.entries,
-            updated_at: new Date().toISOString()
-        };
-
-        const upsertStart = Date.now();
-        // Upsert with the calculated values
-        const { error } = await supabaseServer
-            .from('commanders')
-            .upsert(newValues, { onConflict: 'id' });
-        
-        const upsertTime = Date.now() - upsertStart;
-        const totalTime = Date.now() - startTime;
-
-        if (error) {
-            console.error(`Error upserting commander:`, error);
-            throw error;
-        }
-        
-        if (totalTime > 500) { // Only log slow operations
-            console.log(`[PERF-DETAIL] Commander upsert: ${totalTime}ms (Select: ${selectTime}ms, Upsert: ${upsertTime}ms)`);
-        }
-    }
-
-    private async upsertCard(card: Card): Promise<void> {
-        const startTime = Date.now();
-        
-        const { error } = await supabaseServer
-            .from('cards')
-            .upsert(
-                {
-                    unique_card_id: card.uniqueCardId,
-                    name: card.name,
-                    scryfall_id: card.scryfallId,
-                    type: card.type,
-                    type_line: card.type_line,
-                    updated_at: new Date().toISOString()
-                },
-                {
-                    onConflict: 'unique_card_id'
-                }
-            );
-        
-        const totalTime = Date.now() - startTime;
-        
-        if (error) {
-            console.error(`Error upserting card:`, error);
-            throw error;
-        }
-        
-        if (totalTime > 200) { // Only log slow operations
-            console.log(`[PERF-DETAIL] Card upsert for ${card.name} took ${totalTime}ms`);
-        }
-    }
-
-    private async upsertStatistic(statistic: Statistic): Promise<void> {
-        const startTime = Date.now();
-        
-        // First get the existing statistic if it exists
-        const { data: existingStat } = await supabaseServer
-            .from('statistics')
-            .select('*')
-            .eq('commander_id', statistic.commanderId)
-            .eq('card_id', statistic.cardId)
-            .single();
-        
-        const selectTime = Date.now() - startTime;
-
-        // Calculate the new values
-        const newValues = {
-            commander_id: statistic.commanderId,
-            card_id: statistic.cardId,
-            wins: (existingStat?.wins || 0) + statistic.wins,
-            losses: (existingStat?.losses || 0) + statistic.losses,
-            draws: (existingStat?.draws || 0) + statistic.draws,
-            entries: (existingStat?.entries || 0) + statistic.entries,
-            updated_at: new Date().toISOString()
-        };
-
-        const upsertStart = Date.now();
-        // Upsert with the calculated values
-        const { error } = await supabaseServer
-            .from('statistics')
-            .upsert(newValues, { onConflict: 'commander_id,card_id' });
-        
-        const upsertTime = Date.now() - upsertStart;
-        const totalTime = Date.now() - startTime;
-
-        if (error) {
-            console.error(`Error upserting statistic:`, error);
-            throw error;
-        }
-        
-        if (totalTime > 200) { // Only log slow operations
-            console.log(`[PERF-DETAIL] Statistic upsert took ${totalTime}ms (Select: ${selectTime}ms, Upsert: ${upsertTime}ms)`);
-        }
     }
 
     private async createEtlStatus(status: 'RUNNING' | 'COMPLETED' | 'FAILED'): Promise<number | null> {
