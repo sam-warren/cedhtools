@@ -14,36 +14,28 @@ export interface TournamentStanding {
 
 export interface MoxfieldDeck {
     name: string;
-    mainboard: MoxfieldBoard;
-    commanders: MoxfieldBoard;
+    boards: {
+        mainboard: MoxfieldBoard;
+        commanders: MoxfieldBoard;
+    };
 }
 
 export interface MoxfieldBoard {
-    cards: MoxfieldCard[];
+    count: number;
+    cards: Record<string, MoxfieldCardEntry>;
 }
 
-export interface MoxfieldCard {
+export interface MoxfieldCardEntry {
     quantity: number;
-    card: {
-        name: string;
-        uniqueCardId: string;
-        scryfallId: string;
-        type: number;
-        type_line?: string;
-    };
+    card: MoxfieldCardData;
 }
 
 export interface MoxfieldCardData {
-    quantity: number;
-    card: {
-        name: string;
-        uniqueCardId?: string;
-        id?: string;
-        scryfall_id?: string;
-        scryfallId?: string;
-        type?: number;
-        type_line?: string;
-    };
+    name: string;
+    uniqueCardId: string;
+    scryfall_id?: string;
+    type?: number;
+    type_line?: string;
 }
 
 export interface Commander {

@@ -8,7 +8,7 @@ import {
     Card,
     Statistic,
     EtlStatus,
-    MoxfieldCard
+    MoxfieldCardEntry
 } from './types';
 import { addDays, format, subMonths, parseISO, subDays } from 'date-fns';
 
@@ -435,9 +435,28 @@ export default class EtlProcessor {
         standing: TournamentStanding
     ): Promise<void> {
         try {
-            // Extract commander(s) from the deck
-            const commanderCards = deck.commanders.cards;
+            // First check if deck exists
+            if (!deck) {
+                console.warn(`Deck is null or undefined`);
+                return;
+            }
 
+            // Check if deck has boards property
+            if (!deck.boards) {
+                console.warn(`Deck has no boards property`);
+                return;
+            }
+
+            // Check if commanders board exists
+            if (!deck.boards.commanders) {
+                console.warn(`Deck has no commanders board`);
+                return;
+            }
+
+            // Extract commanders - in the API, cards is an object map not an array
+            const commanderCardsObj = deck.boards.commanders.cards || {};
+            const commanderCards = Object.values(commanderCardsObj);
+            
             if (commanderCards.length === 0) {
                 console.warn(`Deck has no commanders`);
                 return;
@@ -457,14 +476,27 @@ export default class EtlProcessor {
                 entries: 1
             });
 
-            // Process each card in the mainboard
-            for (const cardEntry of deck.mainboard.cards) {
+            // Check if mainboard exists
+            if (!deck.boards.mainboard || !deck.boards.mainboard.cards) {
+                console.warn(`Deck has no mainboard cards`);
+                return;
+            }
+
+            // Process each card in the mainboard - also a map not an array
+            const mainboardCards = Object.values(deck.boards.mainboard.cards);
+
+            for (const cardEntry of mainboardCards) {
+                if (!cardEntry || !cardEntry.card) {
+                    console.warn(`Invalid card entry in mainboard`);
+                    continue;
+                }
+
                 const card: Card = {
-                    uniqueCardId: cardEntry.card.uniqueCardId,
-                    name: cardEntry.card.name,
-                    scryfallId: cardEntry.card.scryfallId,
-                    type: cardEntry.card.type,
-                    type_line: cardEntry.card.type_line
+                    uniqueCardId: cardEntry.card.uniqueCardId || '',
+                    name: cardEntry.card.name || 'Unknown Card',
+                    scryfallId: cardEntry.card.scryfall_id || '',
+                    type: cardEntry.card.type || 0,
+                    type_line: cardEntry.card.type_line || ''
                 };
 
                 // Upsert the card
@@ -485,17 +517,17 @@ export default class EtlProcessor {
         }
     }
 
-    private generateCommanderId(commanderCards: MoxfieldCard[]): string {
+    private generateCommanderId(commanderCards: MoxfieldCardEntry[]): string {
         // Sort by uniqueCardId to ensure consistent ordering
         const sortedCards = [...commanderCards].sort((a, b) =>
-            a.card.uniqueCardId.localeCompare(b.card.uniqueCardId)
+            (a.card.uniqueCardId || '').localeCompare(b.card.uniqueCardId || '')
         );
 
-        return sortedCards.map(card => card.card.uniqueCardId).join('_');
+        return sortedCards.map(card => card.card.uniqueCardId || '').join('_');
     }
 
-    private generateCommanderName(commanderCards: MoxfieldCard[]): string {
-        return commanderCards.map(card => card.card.name).join(' + ');
+    private generateCommanderName(commanderCards: MoxfieldCardEntry[]): string {
+        return commanderCards.map(card => card.card.name || 'Unknown Commander').join(' + ');
     }
 
     private extractDeckId(decklistUrl: string): string | null {

@@ -1,17 +1,4 @@
-import { MoxfieldDeck, Tournament, MoxfieldCard, MoxfieldCardData } from './types';
-
-// Card type mapping
-const TYPE_MAPPING = {
-    BATTLE: 1,
-    PLANESWALKER: 2,
-    CREATURE: 3,
-    SORCERY: 4,
-    INSTANT: 5,
-    ARTIFACT: 6,
-    ENCHANTMENT: 7,
-    LAND: 8,
-    UNKNOWN: 0
-};
+import { MoxfieldDeck, Tournament } from './types';
 
 export class TopdeckClient {
     private baseUrl: string;
@@ -162,18 +149,5 @@ export class MoxfieldClient {
         }
 
         this.lastRequestTime = Date.now();
-    }
-
-    private transformCards(cardsObject: Record<string, MoxfieldCardData>): MoxfieldCard[] {
-        return Object.values(cardsObject).map(cardData => ({
-            quantity: cardData.quantity,
-            card: {
-                name: cardData.card.name,
-                uniqueCardId: cardData.card.uniqueCardId || cardData.card.id || '',
-                scryfallId: cardData.card.scryfall_id || cardData.card.scryfallId || '',
-                type: cardData.card.type || TYPE_MAPPING.UNKNOWN,
-                type_line: cardData.card.type_line || ''
-            },
-        }));
     }
 } 
