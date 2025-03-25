@@ -60,6 +60,8 @@ export async function middleware(request: NextRequest) {
   // If no user and trying to access protected route, redirect to login
   if (!user) {
     console.log('[Middleware] No user found, redirecting to login')
+    
+    // Always redirect to login page, regardless of whether it's an API route or not
     const returnTo = encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)
     return NextResponse.redirect(new URL(`/login?returnTo=${returnTo}`, request.url))
   }

@@ -23,7 +23,7 @@ export default function PaymentSuccessPage() {
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button asChild className="w-full">
-            <Link href="/">Go to Dashboard</Link>
+            <Link href="/dashboard">Go to Dashboard</Link>
           </Button>
         </CardFooter>
       </Card>

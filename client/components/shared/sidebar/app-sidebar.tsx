@@ -9,6 +9,7 @@ import { NavMain } from "@/components/shared/sidebar/nav-main";
 import { NavSearch } from "@/components/shared/sidebar/nav-search";
 import { NavSecondary } from "@/components/shared/sidebar/nav-secondary";
 import { NavUser } from "@/components/shared/sidebar/nav-user";
+import { NavRecentDecks } from "@/components/shared/sidebar/nav-recent-decks";
 import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
@@ -20,11 +21,12 @@ export function AppSidebar() {
           items={[
             {
               title: "Dashboard",
-              url: "/",
+              url: "/dashboard",
               icon: LayoutDashboardIcon,
             },
           ]}
         />
+        <NavRecentDecks />
         <NavSecondary
           className="mt-auto"
           items={[

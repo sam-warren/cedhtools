@@ -47,7 +47,7 @@ export function SiteHeader() {
         </div>
 
         {!loading && user && user.subscription_tier !== "PRO" && (
-          <Button asChild size="sm" className="gap-2 bg-indigo-500">
+          <Button asChild size="sm" className="gap-2 bg-indigo-500 dark:text-white">
             <Link href="/pricing">
               <SparklesIcon className="h-4 w-4" />
               Upgrade to PRO

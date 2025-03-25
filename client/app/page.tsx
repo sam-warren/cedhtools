@@ -147,7 +147,7 @@ export default async function Home() {
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button asChild size="lg" variant="outline">
-                  <Link href="/">Search Decks</Link>
+                  <Link href="/dashboard">Search Decks</Link>
                 </Button>
               </div>
             </div>

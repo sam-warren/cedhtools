@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { fetchWithAuth, redirectToLogin } from "@/app/utils/api";
 
 // Type mapping for display purposes
 const TYPE_NAMES: Record<string, string> = {
@@ -96,25 +97,24 @@ export default function DeckPage() {
     const fetchDeck = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/decks/${params.id}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (data.type === 'UPGRADE_REQUIRED') {
-            setShowUpgradeDialog(true);
-            setError(data.message);
+        try {
+          const data = await fetchWithAuth<DeckData>(`/api/decks/${params.id}`);
+          setDeckData(data);
+          setError(null);
+        } catch (err) {
+          // Error is already handled by fetchWithAuth
+          if (err instanceof Error) {
+            if (err.message.includes('UPGRADE_REQUIRED')) {
+              setShowUpgradeDialog(true);
+            } else {
+              // For other errors, show the error message
+              setError(err.message);
+            }
           } else {
-            setError(data.message || data.error || 'Failed to fetch deck data');
+            setError("An unexpected error occurred");
           }
           setDeckData(null);
-          return;
         }
-
-        setDeckData(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        setDeckData(null);
       } finally {
         setLoading(false);
       }
@@ -159,17 +159,22 @@ export default function DeckPage() {
         {loading ? (
           <DeckPageSkeleton />
         ) : error ? (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-red-500">Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{error}</p>
-              <p className="mt-4">
-                Please check the Moxfield deck ID and try again.
-              </p>
-            </CardContent>
-          </Card>
+          error.toLowerCase().includes('authentication required') ? (
+            // If it's an auth error, immediately redirect to login
+            <RedirectToLogin />
+          ) : (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-red-500">Error</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>{error}</p>
+                <p className="mt-4">
+                  Please check the Moxfield deck ID and try again.
+                </p>
+              </CardContent>
+            </Card>
+          )
         ) : deckData ? (
           <>
             {/* Generate formatted commander name */}
@@ -456,5 +461,25 @@ function DeckPageSkeleton() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function RedirectToLogin() {
+  useEffect(() => {
+    redirectToLogin();
+  }, []);
+  
+  // Show a loading state while redirecting
+  return (
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle>Redirecting to login...</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-center">
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

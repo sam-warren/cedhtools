@@ -63,7 +63,11 @@ export async function GET(
 
         if (!user) {
             console.log('[API] No user found, returning 401'); // Add logging
-            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+            return NextResponse.json({ 
+                error: 'Authentication required',
+                message: 'Please log in to access this feature',
+                type: 'AUTH_REQUIRED'
+            }, { status: 401 });
         }
 
         // Check user's analysis limits
@@ -78,27 +82,46 @@ export async function GET(
             return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
         }
 
-        // Check if user has reached their analysis limit
-        if (userData.analyses_used >= userData.analyses_limit) {
-            return NextResponse.json({
-                error: 'Analysis limit reached',
-                message: 'You have used all your free analyses. Please upgrade to PRO for unlimited analyses.',
-                type: 'UPGRADE_REQUIRED'
-            }, { status: 403 });
+        // Check if this deck has already been analyzed by this user
+        const moxfieldUrl = `https://www.moxfield.com/decks/${deckId}`;
+        const { data: existingAnalysis, error: existingAnalysisError } = await supabase
+            .from('deck_analyses')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('moxfield_url', moxfieldUrl)
+            .maybeSingle();
+
+        if (existingAnalysisError) {
+            console.error('Error checking for existing analysis:', existingAnalysisError);
+            return NextResponse.json({ error: 'Failed to check for existing analysis' }, { status: 500 });
         }
 
-        // Record the analysis in deck_analyses table
-        const { error: analysisError } = await supabase
-            .from('deck_analyses')
-            .insert({
-                user_id: user.id,
-                moxfield_url: `https://www.moxfield.com/decks/${deckId}`,
-                commander_id: commanderId
-            });
+        // Only count toward the limit and create a new record if this is a new analysis
+        if (!existingAnalysis) {
+            // Check if user has reached their analysis limit
+            if (userData.analyses_used >= userData.analyses_limit) {
+                return NextResponse.json({
+                    error: 'Analysis limit reached',
+                    message: 'You have used all your free analyses. Please upgrade to PRO for unlimited analyses.',
+                    type: 'UPGRADE_REQUIRED'
+                }, { status: 403 });
+            }
 
-        if (analysisError) {
-            console.error('Error recording deck analysis:', analysisError);
-            return NextResponse.json({ error: 'Failed to record deck analysis' }, { status: 500 });
+            // Record the analysis in deck_analyses table
+            const { error: analysisError } = await supabase
+                .from('deck_analyses')
+                .insert({
+                    user_id: user.id,
+                    moxfield_url: moxfieldUrl,
+                    commander_id: commanderId
+                });
+
+            if (analysisError) {
+                console.error('Error recording deck analysis:', analysisError);
+                return NextResponse.json({ error: 'Failed to record deck analysis' }, { status: 500 });
+            }
+        } else {
+            console.log(`[API] User ${user.id} has already analyzed deck ${deckId}, not counting toward limit`);
         }
 
         // Fetch commander data

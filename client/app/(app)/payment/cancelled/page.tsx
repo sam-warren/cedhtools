@@ -26,7 +26,7 @@ export default function PaymentCancelledPage() {
             <Link href="/pricing">Try Again</Link>
           </Button>
           <Button variant="outline" asChild className="w-full">
-            <Link href="/">Return to Dashboard</Link>
+            <Link href="/dashboard">Return to Dashboard</Link>
           </Button>
         </CardFooter>
       </Card>
