@@ -73,8 +73,6 @@ export async function createCheckoutSession({
         success_url: `${returnUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${returnUrl}/payment/cancelled`,
         client_reference_id: userId,
-        // Automatically create a customer record if one doesn't exist
-        customer_creation: 'always',
         metadata: {
             userId,
         },
