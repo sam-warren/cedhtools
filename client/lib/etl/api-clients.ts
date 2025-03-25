@@ -93,7 +93,7 @@ export class MoxfieldClient {
     }
 
     async fetchDeck(deckId: string): Promise<MoxfieldDeck | null> {
-        const response = await fetch(`${this.baseUrl}/api/v2/deck/${deckId}`);
+        const response = await fetch(`${this.baseUrl}/decks/all/${deckId}`);
         if (!response.ok) {
             if (response.status === 404) {
                 return null;
