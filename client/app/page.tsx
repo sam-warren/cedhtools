@@ -1,12 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { MoxfieldSearch } from "@/components/moxfield-search";
 import { Button } from "@/components/ui/button";
-import {
-  BarChart3,
-  Database,
-  RefreshCw,
-  Users
-} from "lucide-react";
+import { BarChart3, Database, Users } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "./utils/supabase/server";
 
@@ -77,8 +72,7 @@ export default async function Home() {
                 </div>
                 <div className="flex flex-col items-center">
                   <div className="text-primary font-semibold text-2xl font-mono">
-                    <RefreshCw className="inline h-5 w-5 mr-2 mb-1" />
-                    New Data Weekly
+                    New Data Daily
                   </div>
                   <div className="text-muted-foreground">Always up to date</div>
                 </div>
@@ -166,7 +160,8 @@ export default async function Home() {
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} JUNCTIONTECH INC. All rights reserved.
+              © {new Date().getFullYear()} JUNCTIONTECH INC. All rights
+              reserved.
             </p>
             <div className="flex gap-4">
               <Link
