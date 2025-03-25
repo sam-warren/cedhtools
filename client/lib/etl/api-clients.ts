@@ -80,26 +80,53 @@ export class MoxfieldClient {
     }
 
     async fetchDeck(deckId: string): Promise<MoxfieldDeck | null> {
-        console.log(`Attempting to fetch from URL ${this.baseUrl}/decks/all/${deckId}...`);
-        const response = await fetch(`${this.baseUrl}/decks/all/${deckId}`);
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null;
+        // Use fetchWithRetry to benefit from rate limiting and retry logic
+        return this.fetchWithRetry(async () => {
+            const requestStartTime = Date.now();
+            console.log(`[PERF] Moxfield API request starting for deck ${deckId}...`);
+            
+            const response = await fetch(`${this.baseUrl}/decks/all/${deckId}`);
+            const responseTime = Date.now() - requestStartTime;
+            
+            console.log(`[PERF] Moxfield API response received in ${responseTime}ms for deck ${deckId}`);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log(`[PERF] Deck ${deckId} not found (404) in ${responseTime}ms`);
+                    return null;
+                }
+                console.error(`[PERF] Failed fetch for ${deckId}: ${response.status} ${response.statusText} in ${responseTime}ms`);
+                throw new Error(`Failed to fetch deck: ${response.statusText}`);
             }
-            throw new Error(`Failed to fetch deck: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return data as MoxfieldDeck;
+            
+            const jsonStartTime = Date.now();
+            const data = await response.json();
+            const jsonTime = Date.now() - jsonStartTime;
+            
+            const totalTime = Date.now() - requestStartTime;
+            console.log(`[PERF] Moxfield API complete for deck ${deckId}: ${totalTime}ms (Network: ${responseTime}ms, JSON parse: ${jsonTime}ms)`);
+            
+            return data as MoxfieldDeck;
+        });
     }
 
     private async fetchWithRetry<T>(fetchFn: () => Promise<T>, maxRetries = 5): Promise<T> {
+        // Track retry attempt number for logging
+        const attempt = 5 - maxRetries + 1;
+        
+        console.log(`[RETRY] Starting attempt ${attempt}/${5}`);
+        
         // Wait for the minimum delay since last request
         await this.enforceDelay();
 
         try {
+            const requestStartTime = Date.now();
             const result = await fetchFn();
+            const requestTime = Date.now() - requestStartTime;
+            
             // Success - reset error count
             this.consecutiveErrors = 0;
+            console.log(`[RETRY] Attempt ${attempt} succeeded in ${requestTime}ms`);
             return result;
         } catch (error) {
             // Handle rate limiting
@@ -109,7 +136,7 @@ export class MoxfieldClient {
                 this.consecutiveErrors++;
 
                 if (maxRetries <= 0) {
-                    console.error('Max retries exceeded:', error);
+                    console.error('[RETRY] Max retries exceeded:', error);
                     throw error;
                 }
 
@@ -124,16 +151,20 @@ export class MoxfieldClient {
                 const jitter = Math.floor(Math.random() * 1000);
                 const totalDelay = backoff + jitter;
 
-                console.warn(`Rate limited by Moxfield. Retry in ${Math.round(totalDelay / 1000)}s. Retries left: ${maxRetries}`);
+                console.warn(`[RETRY] Attempt ${attempt} rate limited (429) by Moxfield. Consecutive errors: ${this.consecutiveErrors}`);
+                console.warn(`[RETRY] Backoff calculation: base=${baseDelay}ms, multiplier=${Math.pow(2, this.consecutiveErrors - 1)}, jitter=${jitter}ms`);
+                console.warn(`[RETRY] Will retry in ${Math.round(totalDelay / 1000)}s. Retries left: ${maxRetries}`);
 
                 // Wait for the backoff period
                 await new Promise(resolve => setTimeout(resolve, totalDelay));
+                console.log(`[RETRY] Backoff complete, attempting retry ${attempt + 1}`);
 
                 // Try again with one fewer retry
                 return this.fetchWithRetry(fetchFn, maxRetries - 1);
             }
 
             // For non-rate-limit errors, just throw
+            console.error(`[RETRY] Non-rate-limit error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
             throw error;
         }
     }
@@ -141,11 +172,17 @@ export class MoxfieldClient {
     private async enforceDelay(): Promise<void> {
         const now = Date.now();
         const timeSinceLastRequest = now - this.lastRequestTime;
-
+        
+        console.log(`[RATE-LIMIT] Config: ${this.requestDelay}ms between requests`);
+        console.log(`[RATE-LIMIT] Time since last request: ${timeSinceLastRequest}ms`);
+        
         if (timeSinceLastRequest < this.requestDelay) {
             const waitTime = this.requestDelay - timeSinceLastRequest;
-            console.log(`Waiting ${waitTime}ms before next Moxfield request`);
+            console.log(`[RATE-LIMIT] Waiting ${waitTime}ms before next Moxfield request (${new Date().toISOString()})`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
+            console.log(`[RATE-LIMIT] Done waiting, proceeding with request at ${new Date().toISOString()}`);
+        } else {
+            console.log(`[RATE-LIMIT] No delay needed, proceeding immediately (${timeSinceLastRequest}ms since last request)`);
         }
 
         this.lastRequestTime = Date.now();

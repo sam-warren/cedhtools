@@ -51,17 +51,18 @@ export async function GET(
         }
 
         // Extract the commander ID
-        const commanderCards = deck.commanders.cards;
+        const commanderCardsObj = deck.boards.commanders.cards || {};
+        const commanderCards = Object.values(commanderCardsObj);
         if (!commanderCards || commanderCards.length === 0) {
             return NextResponse.json({ error: 'No commanders found in deck' }, { status: 400 });
         }
 
         // Generate commander ID (using the same logic as in EtlProcessor)
         const sortedCommanders = [...commanderCards].sort((a, b) =>
-            a.card.uniqueCardId.localeCompare(b.card.uniqueCardId)
+            (a.card.uniqueCardId || '').localeCompare(b.card.uniqueCardId || '')
         );
 
-        const commanderId = sortedCommanders.map(card => card.card.uniqueCardId).join('_');
+        const commanderId = sortedCommanders.map(card => card.card.uniqueCardId || '').join('_');
 
         // Fetch commander data
         const { data: commanderData } = await supabaseServer
@@ -75,13 +76,13 @@ export async function GET(
             return NextResponse.json({
                 deck: {
                     name: deck.name,
-                    commanders: deck.commanders.cards.map(c => ({
+                    commanders: commanderCards.map(c => ({
                         name: c.card.name,
                         id: c.card.uniqueCardId
                     })),
                 },
                 error: 'Commander statistics not found in database',
-                cards: deck.mainboard.cards.map(c => ({
+                cards: Object.values(deck.boards.mainboard.cards || {}).map(c => ({
                     name: c.card.name,
                     id: c.card.uniqueCardId,
                     quantity: c.quantity
@@ -109,7 +110,7 @@ export async function GET(
             .eq('commander_id', commanderId);
 
         // Get unique card IDs from the deck mainboard
-        const deckCardIds = deck.mainboard.cards.map(card => card.card.uniqueCardId);
+        const deckCardIds = Object.values(deck.boards.mainboard.cards || {}).map(card => card.card.uniqueCardId || '');
 
         // Fetch card data for any cards that might not have statistics
         const { data: cardData } = await supabaseServer
@@ -118,7 +119,7 @@ export async function GET(
             .in('unique_card_id', deckCardIds);
 
         // Prepare the card data with statistics
-        const deckCards = deck.mainboard.cards.map(deckCard => {
+        const deckCards = Object.values(deck.boards.mainboard.cards || {}).map(deckCard => {
             const cardStat = cardStats?.find(stat => stat.card_id === deckCard.card.uniqueCardId);
             // Find card data in our database
             const card = cardData?.find(c => c.unique_card_id === deckCard.card.uniqueCardId);
@@ -155,9 +156,9 @@ export async function GET(
                 null;
 
             return {
-                id: deckCard.card.uniqueCardId,
+                id: deckCard.card.uniqueCardId || '',
                 name: deckCard.card.name,
-                scryfallId: deckCard.card.scryfallId,
+                scryfallId: deckCard.card.scryfall_id || '',
                 quantity: deckCard.quantity,
                 type: typeNumber,
                 type_line: typeLine,
@@ -213,7 +214,7 @@ export async function GET(
             deck: {
                 id: deckId,
                 name: deck.name,
-                commanders: deck.commanders.cards.map(c => ({
+                commanders: commanderCards.map(c => ({
                     name: c.card.name,
                     id: c.card.uniqueCardId
                 })),

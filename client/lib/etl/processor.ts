@@ -401,6 +401,8 @@ export default class EtlProcessor {
 
     private async processStanding(standing: TournamentStanding): Promise<void> {
         try {
+            const startTime = Date.now();
+            
             // Extract Moxfield deck ID from the decklist URL
             const deckId = this.extractDeckId(standing.decklist);
 
@@ -410,7 +412,11 @@ export default class EtlProcessor {
             }
 
             // Fetch the deck from Moxfield - let rate limit errors propagate to retry logic
+            console.log(`[PERF] Starting fetch for deck ${deckId}...`);
+            const fetchStartTime = Date.now();
             const deck = await this.moxfieldClient.fetchDeck(deckId);
+            const fetchEndTime = Date.now();
+            console.log(`[PERF] Fetch for deck ${deckId} took ${fetchEndTime - fetchStartTime}ms`);
 
             if (!deck) {
                 console.warn(`Deck not found: ${deckId}`);
@@ -418,7 +424,14 @@ export default class EtlProcessor {
             }
 
             // Process the deck data
+            console.log(`[PERF] Starting processing for deck ${deckId}...`);
+            const processStartTime = Date.now();
             await this.processDeck(deck, standing);
+            const processEndTime = Date.now();
+            
+            const totalTime = processEndTime - startTime;
+            console.log(`[PERF] Processing deck ${deckId} took ${processEndTime - processStartTime}ms`);
+            console.log(`[PERF] Total time for deck ${deckId}: ${totalTime}ms (Fetch: ${fetchEndTime - fetchStartTime}ms, Process: ${processEndTime - processStartTime}ms)`);
         } catch (error) {
             console.error(`Error processing standing:`, error);
             // Re-throw rate limit errors so they can be properly handled
@@ -435,6 +448,9 @@ export default class EtlProcessor {
         standing: TournamentStanding
     ): Promise<void> {
         try {
+            const startTime = Date.now();
+            let dbOperationsTime = 0;
+            
             // First check if deck exists
             if (!deck) {
                 console.warn(`Deck is null or undefined`);
@@ -467,6 +483,7 @@ export default class EtlProcessor {
             const commanderName = this.generateCommanderName(commanderCards);
 
             // Upsert the commander into the database
+            const upsertCommanderStart = Date.now();
             await this.upsertCommander({
                 id: commanderId,
                 name: commanderName,
@@ -475,6 +492,9 @@ export default class EtlProcessor {
                 draws: standing.draws,
                 entries: 1
             });
+            const upsertCommanderEnd = Date.now();
+            dbOperationsTime += (upsertCommanderEnd - upsertCommanderStart);
+            console.log(`[PERF] Upserting commander took ${upsertCommanderEnd - upsertCommanderStart}ms`);
 
             // Check if mainboard exists
             if (!deck.boards.mainboard || !deck.boards.mainboard.cards) {
@@ -484,7 +504,11 @@ export default class EtlProcessor {
 
             // Process each card in the mainboard - also a map not an array
             const mainboardCards = Object.values(deck.boards.mainboard.cards);
-
+            console.log(`[PERF] Processing ${mainboardCards.length} cards in mainboard`);
+            
+            const cardProcessingStart = Date.now();
+            let cardsProcessed = 0;
+            
             for (const cardEntry of mainboardCards) {
                 if (!cardEntry || !cardEntry.card) {
                     console.warn(`Invalid card entry in mainboard`);
@@ -500,9 +524,13 @@ export default class EtlProcessor {
                 };
 
                 // Upsert the card
+                const upsertCardStart = Date.now();
                 await this.upsertCard(card);
+                const upsertCardEnd = Date.now();
+                dbOperationsTime += (upsertCardEnd - upsertCardStart);
 
                 // Upsert the statistics
+                const upsertStatStart = Date.now();
                 await this.upsertStatistic({
                     commanderId,
                     cardId: card.uniqueCardId,
@@ -511,7 +539,28 @@ export default class EtlProcessor {
                     draws: standing.draws,
                     entries: 1
                 });
+                const upsertStatEnd = Date.now();
+                dbOperationsTime += (upsertStatEnd - upsertStatStart);
+                
+                cardsProcessed++;
+                
+                // Log every 20 cards to avoid excessive logging
+                if (cardsProcessed % 20 === 0) {
+                    console.log(`[PERF] Processed ${cardsProcessed}/${mainboardCards.length} cards (Card upsert: ${upsertCardEnd - upsertCardStart}ms, Stat upsert: ${upsertStatEnd - upsertStatStart}ms)`);
+                }
             }
+            
+            const cardProcessingEnd = Date.now();
+            const totalProcessingTime = cardProcessingEnd - startTime;
+            const nonDbTime = totalProcessingTime - dbOperationsTime;
+            
+            console.log(`[PERF] Card processing complete in ${cardProcessingEnd - cardProcessingStart}ms`);
+            console.log(`[PERF] Deck processing summary:
+            - Total time: ${totalProcessingTime}ms
+            - DB operations: ${dbOperationsTime}ms (${Math.round(dbOperationsTime/totalProcessingTime*100)}%)
+            - Other processing: ${nonDbTime}ms (${Math.round(nonDbTime/totalProcessingTime*100)}%)
+            - Cards processed: ${cardsProcessed}
+            - Avg time per card: ${cardsProcessed > 0 ? Math.round(dbOperationsTime/cardsProcessed) : 0}ms`);
         } catch (error) {
             console.error(`Error processing deck:`, error);
         }
@@ -536,12 +585,16 @@ export default class EtlProcessor {
     }
 
     private async upsertCommander(commander: Commander): Promise<void> {
+        const startTime = Date.now();
+        
         // First get the existing commander if it exists
         const { data: existingCommander } = await supabaseServer
             .from('commanders')
             .select('*')
             .eq('id', commander.id)
             .single();
+        
+        const selectTime = Date.now() - startTime;
 
         // Calculate the new values
         const newValues = {
@@ -554,18 +607,28 @@ export default class EtlProcessor {
             updated_at: new Date().toISOString()
         };
 
+        const upsertStart = Date.now();
         // Upsert with the calculated values
         const { error } = await supabaseServer
             .from('commanders')
             .upsert(newValues, { onConflict: 'id' });
+        
+        const upsertTime = Date.now() - upsertStart;
+        const totalTime = Date.now() - startTime;
 
         if (error) {
             console.error(`Error upserting commander:`, error);
             throw error;
         }
+        
+        if (totalTime > 500) { // Only log slow operations
+            console.log(`[PERF-DETAIL] Commander upsert: ${totalTime}ms (Select: ${selectTime}ms, Upsert: ${upsertTime}ms)`);
+        }
     }
 
     private async upsertCard(card: Card): Promise<void> {
+        const startTime = Date.now();
+        
         const { error } = await supabaseServer
             .from('cards')
             .upsert(
@@ -581,14 +644,22 @@ export default class EtlProcessor {
                     onConflict: 'unique_card_id'
                 }
             );
-
+        
+        const totalTime = Date.now() - startTime;
+        
         if (error) {
             console.error(`Error upserting card:`, error);
             throw error;
         }
+        
+        if (totalTime > 200) { // Only log slow operations
+            console.log(`[PERF-DETAIL] Card upsert for ${card.name} took ${totalTime}ms`);
+        }
     }
 
     private async upsertStatistic(statistic: Statistic): Promise<void> {
+        const startTime = Date.now();
+        
         // First get the existing statistic if it exists
         const { data: existingStat } = await supabaseServer
             .from('statistics')
@@ -596,6 +667,8 @@ export default class EtlProcessor {
             .eq('commander_id', statistic.commanderId)
             .eq('card_id', statistic.cardId)
             .single();
+        
+        const selectTime = Date.now() - startTime;
 
         // Calculate the new values
         const newValues = {
@@ -608,14 +681,22 @@ export default class EtlProcessor {
             updated_at: new Date().toISOString()
         };
 
+        const upsertStart = Date.now();
         // Upsert with the calculated values
         const { error } = await supabaseServer
             .from('statistics')
             .upsert(newValues, { onConflict: 'commander_id,card_id' });
+        
+        const upsertTime = Date.now() - upsertStart;
+        const totalTime = Date.now() - startTime;
 
         if (error) {
             console.error(`Error upserting statistic:`, error);
             throw error;
+        }
+        
+        if (totalTime > 200) { // Only log slow operations
+            console.log(`[PERF-DETAIL] Statistic upsert took ${totalTime}ms (Select: ${selectTime}ms, Upsert: ${upsertTime}ms)`);
         }
     }
 
