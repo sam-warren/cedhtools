@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
+import { ensureUserRecord } from '@/lib/user-helpers'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -47,6 +48,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         new URL(`/login?error=${encodeURIComponent('Authentication failed')}`, origin)
       )
+    }
+
+    // Get the user after successful authentication
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      // Ensure user record exists in the database
+      const { error: userError } = await ensureUserRecord(
+        supabase,
+        user.id,
+        user.email || ''
+      )
+      
+      if (userError) {
+        console.error('Error creating user record:', userError)
+      }
     }
 
     // Simply redirect to home page after successful authentication
