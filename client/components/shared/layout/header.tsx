@@ -40,11 +40,11 @@ export function Header() {
           {!loading && (
             <>
               {user ? (
-                <Button variant="ghost" asChild>
-                  <Link href="/">Dashboard</Link>
+                <Button variant="default" asChild>
+                  <Link href="/dashboard">Dashboard</Link>
                 </Button>
               ) : (
-                <Button variant="ghost" asChild>
+                <Button variant="default" asChild>
                   <Link href="/login">Log in</Link>
                 </Button>
               )}

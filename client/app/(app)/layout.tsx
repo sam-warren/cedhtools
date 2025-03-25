@@ -1,7 +1,7 @@
 "use client";
 
-import { SiteHeader } from "@/components/layout/site-header";
-import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { SiteHeader } from "@/components/shared/layout/site-header";
+import { AppSidebar } from "@/components/shared/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

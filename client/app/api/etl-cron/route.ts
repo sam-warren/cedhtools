@@ -1,17 +1,40 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { format, subMonths } from 'date-fns';
 
 // This endpoint will be called by Vercel Cron
 export const runtime = 'nodejs';
 export const maxDuration = 30; // We only need a short duration to queue the job
 
+// Create Supabase client with cookie handling
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => {
+          return [...cookieStore.getAll()];
+        },
+        setAll: (cookies) => {
+          cookies.map((cookie) => {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+          });
+        }
+      },
+    }
+  );
+}
+
 export async function GET() {
   try {
+    const supabase = await createClient();
     console.log('ETL cron job triggered at', new Date().toISOString());
     
     // Check for any running jobs before queueing a new one
-    const { data: activeJobs, error: activeJobsError } = await supabaseServer
+    const { data: activeJobs, error: activeJobsError } = await supabase
       .from('etl_jobs_active')
       .select('id, job_type, status, created_at, runtime_seconds')
       .order('created_at', { ascending: false });
@@ -29,7 +52,7 @@ export async function GET() {
     }
 
     // Check if we need to run a seed job (every 6 months)
-    const { data: lastSeedJob } = await supabaseServer
+    const { data: lastSeedJob } = await supabase
       .from('etl_jobs')
       .select('created_at')
       .eq('job_type', 'SEED')
@@ -41,7 +64,7 @@ export async function GET() {
 
     if (shouldRunSeed) {
       // Queue a seed job
-      const { data: seedJob, error: seedError } = await supabaseServer
+      const { data: seedJob, error: seedError } = await supabase
         .from('etl_jobs')
         .insert({
           job_type: 'SEED',
@@ -65,7 +88,7 @@ export async function GET() {
     }
     
     // Queue a daily update job
-    const { data: dailyJob, error: dailyError } = await supabaseServer
+    const { data: dailyJob, error: dailyError } = await supabase
       .from('etl_jobs')
       .insert({
         job_type: 'DAILY_UPDATE',

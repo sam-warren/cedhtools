@@ -1,19 +1,18 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
-import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { DataTableColumnHeader } from "@/components/shared/data-table/column-header";
 import { WinRateBadge } from "@/components/ui/win-rate-badge";
 import { InclusionRateBadge } from "@/components/ui/inclusion-rate-badge";
 import Link from "next/link";
 
 // Define the type for a card row
-export type CardData = {
+export type OtherCardData = {
   id: string;
   name: string;
   scryfallId: string;
   type: number;
-  quantity: number;
+  type_line: string | null;
   stats: {
     wins: number;
     losses: number;
@@ -22,10 +21,14 @@ export type CardData = {
     winRate: number;
     inclusionRate: number;
     winRateDiff: number;
-  } | null;
+  };
 };
 
-export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
+// Helper function removed and replaced with WinRateBadge component
+
+export const otherCardsColumns = (
+  commanderWinRate: number
+): ColumnDef<OtherCardData>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -33,15 +36,9 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
     ),
     cell: ({ row }) => {
       const scryfallId = row.original.scryfallId;
-      const hasQuantity = row.original.quantity > 1;
 
       return (
         <div className="flex items-center">
-          {hasQuantity && (
-            <div className="mr-2">
-              <Badge variant="outline">{row.original.quantity}x</Badge>
-            </div>
-          )}
           <Link
             href={`https://scryfall.com/card/${scryfallId}`}
             target="_blank"
@@ -57,7 +54,7 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
   {
     accessorKey: "type_line",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Card Type" />
+      <DataTableColumnHeader column={column} title="Type" />
     ),
     cell: ({ row }) => {
       const typeValue = row.getValue("type_line") as number;
@@ -70,11 +67,9 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
       <DataTableColumnHeader column={column} title="Inclusion %" />
     ),
     cell: ({ row }) => {
-      const inclusionRate = row.original.stats?.inclusionRate;
-      const entries = row.original.stats?.entries;
+      const inclusionRate = row.original.stats.inclusionRate;
+      const entries = row.original.stats.entries;
       const cardName = row.original.name;
-
-      if (inclusionRate === undefined) return <div>-</div>;
 
       return (
         <InclusionRateBadge
@@ -82,8 +77,8 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
           variant="outline"
           tooltipData={{
             cardName: cardName,
-            decksIncluding: entries || 0,
-            totalDecks: Math.round(entries ? (entries / (inclusionRate / 100)) : 0)
+            decksIncluding: entries,
+            totalDecks: Math.round(entries / (inclusionRate / 100)),
           }}
         />
       );
@@ -95,11 +90,11 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
       <DataTableColumnHeader column={column} title="Impact on Win Rate" />
     ),
     cell: ({ row }) => {
-      const winRateDiff = row.original.stats?.winRateDiff;
-      const winRate = row.original.stats?.winRate;
+      const winRateDiff = row.original.stats.winRateDiff;
+      const winRate = row.original.stats.winRate;
       const cardName = row.original.name;
 
-      return winRateDiff !== undefined && winRate !== undefined ? (
+      return (
         <WinRateBadge
           value={winRateDiff}
           variant="outline"
@@ -110,8 +105,6 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
             commanderWinRate: commanderWinRate,
           }}
         />
-      ) : (
-        <div>-</div>
       );
     },
   },

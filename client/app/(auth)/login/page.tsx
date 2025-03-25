@@ -9,6 +9,12 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Suspense } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/app/utils/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 // Main page component
 export default function LoginPage() {
@@ -38,14 +44,6 @@ export default function LoginPage() {
   );
 }
 
-// Client component with hooks
-import { useState, useEffect } from "react";
-import { createClient } from "@/app/utils/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-
 function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,10 +63,14 @@ function LoginForm() {
       setLoading(true);
       setError(null);
 
+      // Get the returnTo URL from the search params
+      const returnTo = searchParams.get("returnTo");
+      const redirectTo = `${window.location.origin}/auth/callback${returnTo ? `?returnTo=${returnTo}` : ''}`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
           queryParams: {
             prompt: "select_account",
           },

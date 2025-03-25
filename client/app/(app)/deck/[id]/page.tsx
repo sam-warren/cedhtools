@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -11,13 +11,23 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable } from "@/components/data-table/data-table";
-import { columns } from "@/app/(app)/deck/[id]/deck-card-columns";
+import { DataTable } from "@/components/shared/data-table/data-table";
+import { columns } from "@/components/deck-analysis/deck-card-columns";
 import {
   otherCardsColumns,
   OtherCardData,
-} from "@/app/(app)/deck/[id]/other-cards-columns";
+} from "@/components/deck-analysis/other-cards-columns";
 import { PercentIcon, Trophy, XCircle, Handshake, Ticket } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Type mapping for display purposes
 const TYPE_NAMES: Record<string, string> = {
@@ -76,39 +86,48 @@ interface DeckData {
 
 export default function DeckPage() {
   const params = useParams();
-
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deckData, setDeckData] = useState<DeckData | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
-  // Fetch deck data when the component mounts
   useEffect(() => {
-    async function fetchDeckData() {
+    const fetchDeck = async () => {
       try {
-        if (!params.id) {
-          setError("No deck ID provided");
-          setLoading(false);
-          return;
-        }
-
+        setLoading(true);
         const response = await fetch(`/api/decks/${params.id}`);
         const data = await response.json();
 
-        if (response.ok) {
-          setDeckData(data);
-        } else {
-          setError(data.error || "Failed to fetch deck data");
+        if (!response.ok) {
+          if (data.type === 'UPGRADE_REQUIRED') {
+            setShowUpgradeDialog(true);
+            setError(data.message);
+          } else {
+            setError(data.message || data.error || 'Failed to fetch deck data');
+          }
+          setDeckData(null);
+          return;
         }
+
+        setDeckData(data);
+        setError(null);
       } catch (err) {
-        console.error("Error fetching deck data:", err);
-        setError("An unexpected error occurred");
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        setDeckData(null);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchDeckData();
+    if (params.id) {
+      fetchDeck();
+    }
   }, [params.id]);
+
+  const handleUpgrade = () => {
+    router.push('/pricing');
+  };
 
   // Sort card types by numeric order
   const cardTypes = deckData?.cardsByType
@@ -377,6 +396,23 @@ export default function DeckPage() {
           </>
         ) : null}
       </main>
+
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upgrade to PRO</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have used all your free deck analyses. Upgrade to PRO to get unlimited analyses and access to advanced statistics.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpgrade}>
+              Upgrade Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

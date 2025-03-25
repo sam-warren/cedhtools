@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { DataTablePagination } from "@/components/data-table/pagination";
+import { DataTablePagination } from "@/components/shared/data-table/pagination";
 import {
   Table,
   TableBody,

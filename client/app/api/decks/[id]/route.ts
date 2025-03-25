@@ -1,22 +1,7 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { MoxfieldClient } from '@/lib/etl/api-clients';
-
-// Track the last request time for rate limiting
-let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1000; // 1 second in ms
-
-// Card type mapping - kept for reference
-// const TYPE_MAPPING = {
-//   BATTLE: 1,
-//   PLANESWALKER: 2,
-//   CREATURE: 3,
-//   SORCERY: 4,
-//   INSTANT: 5,
-//   ARTIFACT: 6,
-//   ENCHANTMENT: 7,
-//   LAND: 8,
-// };
 
 export async function GET(
     request: Request,
@@ -29,16 +14,24 @@ export async function GET(
             return NextResponse.json({ error: 'Deck ID is required' }, { status: 400 });
         }
 
-        // Implement rate limiting - ensure at least 1 second between requests
-        const now = Date.now();
-        const timeSinceLastRequest = now - lastRequestTime;
-
-        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-            const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-
-        lastRequestTime = Date.now();
+        // Create Supabase client with cookie handling
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll: () => {
+                        return [...cookieStore.getAll()];
+                    },
+                    setAll: (cookies) => {
+                        cookies.map((cookie) => {
+                            cookieStore.set(cookie.name, cookie.value, cookie.options);
+                        });
+                    }
+                },
+            }
+        );
 
         // Instantiate the Moxfield client
         const moxfieldClient = new MoxfieldClient();
@@ -64,8 +57,52 @@ export async function GET(
 
         const commanderId = sortedCommanders.map(card => card.card.uniqueCardId || '').join('_');
 
+        // Get the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('[API] User authenticated:', !!user); // Add logging
+
+        if (!user) {
+            console.log('[API] No user found, returning 401'); // Add logging
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
+        // Check user's analysis limits
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('subscription_tier, analyses_used, analyses_limit')
+            .eq('id', user.id)
+            .single();
+
+        if (userError) {
+            console.error('Error fetching user data:', userError);
+            return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
+        }
+
+        // Check if user has reached their analysis limit
+        if (userData.analyses_used >= userData.analyses_limit) {
+            return NextResponse.json({
+                error: 'Analysis limit reached',
+                message: 'You have used all your free analyses. Please upgrade to PRO for unlimited analyses.',
+                type: 'UPGRADE_REQUIRED'
+            }, { status: 403 });
+        }
+
+        // Record the analysis in deck_analyses table
+        const { error: analysisError } = await supabase
+            .from('deck_analyses')
+            .insert({
+                user_id: user.id,
+                moxfield_url: `https://www.moxfield.com/decks/${deckId}`,
+                commander_id: commanderId
+            });
+
+        if (analysisError) {
+            console.error('Error recording deck analysis:', analysisError);
+            return NextResponse.json({ error: 'Failed to record deck analysis' }, { status: 500 });
+        }
+
         // Fetch commander data
-        const { data: commanderData } = await supabaseServer
+        const { data: commanderData } = await supabase
             .from('commanders')
             .select('*')
             .eq('id', commanderId)
@@ -95,7 +132,7 @@ export async function GET(
         const winRate = totalGames > 0 ? (commanderData.wins / totalGames) * 100 : 0;
 
         // Fetch card statistics for this commander
-        const { data: cardStats } = await supabaseServer
+        const { data: cardStats } = await supabase
             .from('statistics')
             .select(`
         *,
@@ -113,7 +150,7 @@ export async function GET(
         const deckCardIds = Object.values(deck.boards.mainboard.cards || {}).map(card => card.card.uniqueCardId || '');
 
         // Fetch card data for any cards that might not have statistics
-        const { data: cardData } = await supabaseServer
+        const { data: cardData } = await supabase
             .from('cards')
             .select('*')
             .in('unique_card_id', deckCardIds);

@@ -1,5 +1,5 @@
-import { Header } from "@/components/layout/header";
-import { MoxfieldSearch } from "@/components/moxfield-search";
+import { Header } from "@/components/shared/layout/header";
+import { MoxfieldSearch } from "@/components/shared/search/moxfield-search";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Database, Users } from "lucide-react";
 import Link from "next/link";
@@ -100,7 +100,7 @@ export default async function Home() {
                 <div className="p-3 bg-primary/10 rounded-full w-fit mb-4">
                   <Database className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Tournament Data</h3>
+                <h3 className="text-xl font-bold mb-2">Real Tournament Data</h3>
                 <p className="text-muted-foreground mb-4 flex-grow">
                   Real statistics from competitive EDH tournaments worldwide.
                   Access data from hundreds of events.

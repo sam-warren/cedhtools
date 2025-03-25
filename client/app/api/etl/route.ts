@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { format, subMonths } from 'date-fns';
 
 // Verify API key from request headers
@@ -21,9 +22,32 @@ async function verifyApiKey(request: Request) {
   return true;
 }
 
+// Create Supabase client with cookie handling
+async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => {
+          return [...cookieStore.getAll()];
+        },
+        setAll: (cookies) => {
+          cookies.map((cookie) => {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+          });
+        }
+      },
+    }
+  );
+}
+
 // API status and job status endpoint
 export async function GET(request: Request) {
   try {
+    const supabase = await createClient();
+    
     // Check if we're requesting job status (requires auth)
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('jobId');
@@ -42,7 +66,7 @@ export async function GET(request: Request) {
       
       if (jobId) {
         // Get status of specific job
-        const { data, error } = await supabaseServer
+        const { data, error } = await supabase
           .from('etl_jobs')
           .select('*')
           .eq('id', jobId)
@@ -56,7 +80,7 @@ export async function GET(request: Request) {
         });
       } else if (listJobs) {
         // Get recent jobs
-        const { data, error } = await supabaseServer
+        const { data, error } = await supabase
           .from('etl_jobs')
           .select('*')
           .order('created_at', { ascending: false })
@@ -91,6 +115,8 @@ export async function GET(request: Request) {
 // Queue ETL job endpoint
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    
     // Verify API key
     const isAuthorized = await verifyApiKey(request);
     
@@ -121,7 +147,7 @@ export async function POST(request: Request) {
     }
     
     // Queue the job
-    const { data, error } = await supabaseServer
+    const { data, error } = await supabase
       .from('etl_jobs')
       .insert({
         job_type: jobType,

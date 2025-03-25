@@ -6,6 +6,7 @@ import { ensureUserRecord } from '@/lib/user-helpers'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const returnTo = requestUrl.searchParams.get('returnTo')
   const origin = requestUrl.origin
 
   if (!code) {
@@ -66,8 +67,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Simply redirect to home page after successful authentication
-    return NextResponse.redirect(new URL('/', origin))
+    // Redirect to the returnTo URL if provided, otherwise to home
+    const redirectTo = returnTo ? decodeURIComponent(returnTo) : '/'
+    return NextResponse.redirect(new URL(redirectTo, origin))
   } catch (error) {
     console.error('Unexpected error in auth callback:', error)
     return NextResponse.redirect(
