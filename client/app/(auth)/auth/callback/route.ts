@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
-import { ensureUserRecord } from '@/lib/user-helpers'
+import { getUserRecord } from '@/lib/user-helpers'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -55,15 +55,15 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
-      // Ensure user record exists in the database
-      const { error: userError } = await ensureUserRecord(
+      // Get user record - the trigger will have created it already
+      const { error: userError } = await getUserRecord(
         supabase,
         user.id,
         user.email || ''
       )
       
-      if (userError) {
-        console.error('Error creating user record:', userError)
+      if (userError && userError.code !== 'PGRST116') {
+        console.error('Error getting user record:', userError)
       }
     }
 

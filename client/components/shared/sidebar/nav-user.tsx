@@ -6,7 +6,7 @@ import {
   UserCircleIcon,
   UserIcon,
 } from "lucide-react";
-
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -29,7 +29,11 @@ import { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export function NavUser() {
+interface NavUserProps {
+  className?: string;
+}
+
+export function NavUser({ className }: NavUserProps) {
   const { isMobile } = useSidebar();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -54,7 +58,7 @@ export function NavUser() {
 
   if (loading) {
     return (
-      <SidebarMenu>
+      <SidebarMenu className={className}>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg">
             <Avatar className="h-8 w-8 rounded-lg">
@@ -73,7 +77,7 @@ export function NavUser() {
 
   if (!user) {
     return (
-      <SidebarMenu>
+      <SidebarMenu className={className}>
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -115,7 +119,7 @@ export function NavUser() {
   }
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className={className}>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

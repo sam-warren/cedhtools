@@ -40,6 +40,11 @@ export default function RootLayout({
           <Analytics />
         </ThemeProvider>
       </body>
+      <script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8245473356412891"
+        crossOrigin="anonymous"
+      ></script>
     </html>
   );
 }

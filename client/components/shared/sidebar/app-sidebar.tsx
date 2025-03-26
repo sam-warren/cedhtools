@@ -6,10 +6,9 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/shared/sidebar/nav-main";
-import { NavSearch } from "@/components/shared/sidebar/nav-search";
-import { NavSecondary } from "@/components/shared/sidebar/nav-secondary";
-import { NavUser } from "@/components/shared/sidebar/nav-user";
 import { NavRecentDecks } from "@/components/shared/sidebar/nav-recent-decks";
+import { NavSearch } from "@/components/shared/sidebar/nav-search";
+import { NavUser } from "@/components/shared/sidebar/nav-user";
 import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
@@ -24,12 +23,6 @@ export function AppSidebar() {
               url: "/dashboard",
               icon: LayoutDashboardIcon,
             },
-          ]}
-        />
-        <NavRecentDecks />
-        <NavSecondary
-          className="mt-auto"
-          items={[
             {
               title: "Support",
               url: "/support",
@@ -37,7 +30,8 @@ export function AppSidebar() {
             },
           ]}
         />
-        <NavUser />
+        <NavRecentDecks/>
+        <NavUser className="mt-auto" />
       </SidebarContent>
     </Sidebar>
   );

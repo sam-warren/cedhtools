@@ -57,71 +57,45 @@ export async function GET(
 
         const commanderId = sortedCommanders.map(card => card.card.uniqueCardId || '').join('_');
 
-        // Get the current user
+        // Get the current user - authentication is optional
         const { data: { user } } = await supabase.auth.getUser();
-        console.log('[API] User authenticated:', !!user); // Add logging
+        console.log('[API] User authenticated:', !!user);
 
-        if (!user) {
-            console.log('[API] No user found, returning 401'); // Add logging
-            return NextResponse.json({ 
-                error: 'Authentication required',
-                message: 'Please log in to access this feature',
-                type: 'AUTH_REQUIRED'
-            }, { status: 401 });
-        }
-
-        // Check user's analysis limits
-        const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('subscription_tier, analyses_used, analyses_limit')
-            .eq('id', user.id)
-            .single();
-
-        if (userError) {
-            console.error('Error fetching user data:', userError);
-            return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
-        }
-
-        // Check if this deck has already been analyzed by this user
-        const moxfieldUrl = `https://www.moxfield.com/decks/${deckId}`;
-        const { data: existingAnalysis, error: existingAnalysisError } = await supabase
-            .from('deck_analyses')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('moxfield_url', moxfieldUrl)
-            .maybeSingle();
-
-        if (existingAnalysisError) {
-            console.error('Error checking for existing analysis:', existingAnalysisError);
-            return NextResponse.json({ error: 'Failed to check for existing analysis' }, { status: 500 });
-        }
-
-        // Only count toward the limit and create a new record if this is a new analysis
-        if (!existingAnalysis) {
-            // Check if user has reached their analysis limit
-            if (userData.analyses_used >= userData.analyses_limit) {
-                return NextResponse.json({
-                    error: 'Analysis limit reached',
-                    message: 'You have used all your free analyses. Please upgrade to PRO for unlimited analyses.',
-                    type: 'UPGRADE_REQUIRED'
-                }, { status: 403 });
-            }
-
-            // Record the analysis in deck_analyses table
-            const { error: analysisError } = await supabase
+        // If user is authenticated, track this deck analysis
+        if (user) {
+            // Check if this deck has already been analyzed by this user
+            const moxfieldUrl = `https://www.moxfield.com/decks/${deckId}`;
+            const { data: existingAnalysis, error: existingAnalysisError } = await supabase
                 .from('deck_analyses')
-                .insert({
-                    user_id: user.id,
-                    moxfield_url: moxfieldUrl,
-                    commander_id: commanderId
-                });
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('moxfield_url', moxfieldUrl)
+                .maybeSingle();
 
-            if (analysisError) {
-                console.error('Error recording deck analysis:', analysisError);
-                return NextResponse.json({ error: 'Failed to record deck analysis' }, { status: 500 });
+            if (existingAnalysisError) {
+                console.error('Error checking for existing analysis:', existingAnalysisError);
+                // Continue processing even if there's an error checking for existing analysis
             }
-        } else {
-            console.log(`[API] User ${user.id} has already analyzed deck ${deckId}, not counting toward limit`);
+
+            // Create a new record if this is a new analysis and no errors checking existing ones
+            if (!existingAnalysis && !existingAnalysisError) {
+                // Record the analysis in deck_analyses table
+                const { error: analysisError } = await supabase
+                    .from('deck_analyses')
+                    .insert({
+                        user_id: user.id,
+                        moxfield_url: moxfieldUrl,
+                        commander_id: commanderId,
+                        deck_name: deck.name
+                    });
+
+                if (analysisError) {
+                    console.error('Error recording deck analysis:', analysisError);
+                    // Continue processing even if there's an error recording the analysis
+                }
+            } else {
+                console.log(`[API] User ${user.id} has already analyzed deck ${deckId}`);
+            }
         }
 
         // Fetch commander data

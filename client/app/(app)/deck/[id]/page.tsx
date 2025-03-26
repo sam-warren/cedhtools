@@ -273,34 +273,34 @@ export default function DeckPage() {
                     </CardContent>
                   </Card>
 
-                  <Tabs defaultValue="all">
-                    <TabsList
-                      className="grid"
-                      style={{
-                        gridTemplateColumns: `repeat(${
-                          cardTypes.length + 1
-                        }, minmax(0, 1fr))`,
-                      }}
-                    >
-                      <TabsTrigger value="all">All Cards</TabsTrigger>
-                      {cardTypes.map((typeId) => (
-                        <TabsTrigger key={typeId} value={typeId}>
-                          {TYPE_NAMES[typeId] || `Type ${typeId}`}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
+                  {/* Cards in Deck section */}
+                  <Card className="mt-8">
+                    <CardHeader>
+                      <CardTitle>Cards in Deck</CardTitle>
+                      <CardDescription>
+                        Cards from your decklist with statistics
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="all">
+                        <TabsList
+                          className="grid mb-4"
+                          style={{
+                            gridTemplateColumns: `repeat(${
+                              cardTypes.length + 1
+                            }, minmax(0, 1fr))`,
+                          }}
+                        >
+                          <TabsTrigger value="all">All Cards</TabsTrigger>
+                          {cardTypes.map((typeId) => (
+                            <TabsTrigger key={typeId} value={typeId}>
+                              {TYPE_NAMES[typeId] || `Type ${typeId}`}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
 
-                    {/* "All" tab content - contains all cards */}
-                    <TabsContent value="all">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>All Cards</CardTitle>
-                          <CardDescription>
-                            {Object.values(deckData.cardsByType).flat().length}{" "}
-                            cards in total
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                        {/* "All" tab content - contains all cards */}
+                        <TabsContent value="all">
                           <DataTable
                             columns={deckColumns}
                             data={Object.values(deckData.cardsByType).flat()}
@@ -308,23 +308,10 @@ export default function DeckPage() {
                             globalFilter={true}
                             filterableColumns={[]}
                           />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
+                        </TabsContent>
 
-                    {cardTypes.map((typeId) => (
-                      <TabsContent key={typeId} value={typeId}>
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>
-                              {TYPE_NAMES[typeId] || `Type ${typeId}`} Cards
-                            </CardTitle>
-                            <CardDescription>
-                              {deckData.cardsByType[typeId].length} cards in
-                              this category
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
+                        {cardTypes.map((typeId) => (
+                          <TabsContent key={typeId} value={typeId}>
                             <DataTable
                               columns={deckColumns}
                               data={deckData.cardsByType[typeId]}
@@ -332,11 +319,11 @@ export default function DeckPage() {
                               globalFilter={true}
                               filterableColumns={[]}
                             />
-                          </CardContent>
-                        </Card>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    </CardContent>
+                  </Card>
 
                   {/* Other Cards Table with Tabs */}
                   {deckData.otherCards && deckData.otherCards.length > 0 && (
@@ -463,7 +450,6 @@ function DeckPageSkeleton() {
     </div>
   );
 }
-
 function RedirectToLogin() {
   useEffect(() => {
     redirectToLogin();
@@ -483,3 +469,4 @@ function RedirectToLogin() {
     </Card>
   );
 }
+

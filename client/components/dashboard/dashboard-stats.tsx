@@ -12,15 +12,31 @@ import { ColumnDef } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart3 } from "lucide-react";
 import type { Analysis } from "@/lib/types/dashboard";
+import Link from "next/link";
 
 const columns: ColumnDef<Analysis>[] = [
   {
-    accessorKey: "commanders.name",
-    header: "Commander",
+    accessorKey: "deck_name",
+    header: "Deck Name",
+    cell: ({ row }) => {
+      const deckName = row.getValue("deck_name") as string | null;
+      const url = row.getValue("moxfield_url") as string;
+      const deckId = url.split("/").pop();
+
+      // Use deck_name if available, otherwise fall back to "Deck {deckId}"
+      return (
+        <Link
+          href={`/deck/${deckId}`}
+          className="text-blue-500 hover:text-blue-700 underline"
+        >
+          {deckName || `Deck ${deckId}`}
+        </Link>
+      );
+    },
   },
   {
     accessorKey: "moxfield_url",
-    header: "Deck URL",
+    header: "Moxfield",
     cell: ({ row }) => {
       const url = row.getValue("moxfield_url") as string;
       return (
@@ -49,7 +65,7 @@ const columns: ColumnDef<Analysis>[] = [
   },
   {
     id: "winRate",
-    header: "Win Rate",
+    header: "Commander Win Rate",
     cell: ({ row }) => {
       const commander = row.original.commanders;
       const total = commander.wins + commander.losses;
@@ -66,48 +82,19 @@ interface DashboardStatsProps {
 
 export function DashboardStats({ analyses }: DashboardStatsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-      <Card className="col-span-4">
-        <CardHeader>
-          <CardTitle>Recent Analyses</CardTitle>
-          <CardDescription>Your most recent deck analyses</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={analyses || []} />
-        </CardContent>
-      </Card>
-      <Card className="col-span-3">
-        <CardHeader>
-          <CardTitle>Commander Stats</CardTitle>
-          <CardDescription>
-            Win rates of your analyzed commanders
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {analyses?.map((analysis) => (
-              <div key={analysis.id} className="flex items-center">
-                <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {analysis.commanders.name}
-                  </p>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <BarChart3 className="mr-1 h-4 w-4" />
-                    Win rate:{" "}
-                    {Math.round(
-                      (analysis.commanders.wins /
-                        (analysis.commanders.wins +
-                          analysis.commanders.losses)) *
-                        100
-                    )}
-                    %
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent Analyses</CardTitle>
+        <CardDescription>Your most recent deck analyses</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DataTable
+          columns={columns}
+          data={analyses || []}
+          enablePagination={false}
+          enableFiltering={false}
+        />
+      </CardContent>
+    </Card>
   );
 }

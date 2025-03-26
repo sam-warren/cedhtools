@@ -21,21 +21,15 @@ Authentication:
 
 ### 2.1 Front End
 - The user will be able to log in using Google OAuth and their account will be automatically managed by Supabase
-- The user will be able to subscripe to a PRO plan to access more deck analyses through Stripe's payment gateway
 - The user will be able to upload a Moxfield Deck URL to analyze their deck
 - The user will be able to view in table form the cards in their deck and their respective statistics
-- The user will be able to see how many deck analyses they have left in the current month
 - The user will be able to see when the last ETL process was run
 
 ### 2.2 Back End
 - The API will be built in Next.js and will be hosted on Vercel
 - The API will be connected to Supabase to store user data and deck data
-- The API will be connected to Stripe to manage PRO plan subscriptions
 - The API will have the following routes:
     - POST /api/deck/analysis
-- The API will check the user's subscription status before allowing them to make requests to the deck analysis route
-- Free tier users will be allowed to make 5 deck analysis requests per month
-- PRO tier users will be allowed to make unlimited deck analysis requests
 - The API will be connected to the Supabase database to fetch the deck data and perform the analysis
 - The API will return the analysis results to the user
 

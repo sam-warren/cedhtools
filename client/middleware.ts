@@ -42,30 +42,10 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Check if this is a public route
-  if (publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))) {
-    console.log('[Middleware] Public route, allowing access')
-    return response
-  }
-
-  // Get user
-  const { data: { user }, error } = await supabase.auth.getUser()
+  // Get user - but don't require authentication
+  await supabase.auth.getUser()
   
-  if (error) {
-    console.error('[Middleware] Error getting user:', error.message)
-  }
-
-  console.log('[Middleware] User authenticated:', !!user)
-
-  // If no user and trying to access protected route, redirect to login
-  if (!user) {
-    console.log('[Middleware] No user found, redirecting to login')
-    
-    // Always redirect to login page, regardless of whether it's an API route or not
-    const returnTo = encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)
-    return NextResponse.redirect(new URL(`/login?returnTo=${returnTo}`, request.url))
-  }
-
+  // Allow access to all routes regardless of authentication status
   return response
 }
 

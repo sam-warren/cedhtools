@@ -146,6 +146,7 @@ export interface Database {
                     user_id: string
                     moxfield_url: string
                     commander_id: string
+                    deck_name: string | null
                     created_at: string
                 }
                 Insert: {
@@ -153,6 +154,7 @@ export interface Database {
                     user_id: string
                     moxfield_url: string
                     commander_id: string
+                    deck_name?: string | null
                     created_at?: string
                 }
                 Update: {
@@ -160,6 +162,7 @@ export interface Database {
                     user_id?: string
                     moxfield_url?: string
                     commander_id?: string
+                    deck_name?: string | null
                     created_at?: string
                 }
             }

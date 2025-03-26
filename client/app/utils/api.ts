@@ -15,7 +15,7 @@ export function redirectToLogin() {
 }
 
 /**
- * Custom fetch wrapper that handles common API errors including authentication
+ * Custom fetch wrapper that handles common API errors without requiring authentication
  */
 export async function fetchWithAuth<T>(
     url: string,
@@ -38,26 +38,21 @@ export async function fetchWithAuth<T>(
                 };
             }
 
-            // Handle authentication errors
-            if (response.status === 401 ||
-                errorData.error?.toLowerCase().includes('authentication') ||
-                errorData.type === 'AUTH_REQUIRED') {
-                // For auth errors, immediately redirect to login
-                redirectToLogin();
-
-                // Return a promise that never resolves to stop further execution
-                return new Promise(() => { });
-            } else if (errorData.type === 'UPGRADE_REQUIRED') {
-                // Handle upgrade required errors
-                toast.error(errorData.message || "Upgrade required", {
+            // Handle different error types
+            if (errorData.type === 'AUTH_REQUIRED') {
+                // Authentication is optional, but show a toast suggesting login
+                toast.info("Sign in to save your analyses", {
                     action: {
-                        label: "Upgrade",
+                        label: "Sign In",
                         onClick: () => {
-                            window.location.href = "/pricing";
+                            redirectToLogin();
                         },
                     },
                     duration: 5000,
                 });
+                
+                // Continue with the response
+                throw new Error(errorData.message || errorData.error || "Authentication suggested but not required");
             } else {
                 // Handle other errors
                 toast.error(errorData.message || errorData.error || "An error occurred");
