@@ -2,7 +2,6 @@ import { ScrollToTopButton } from "@/components/shared/buttons/scroll-to-top-but
 import { Header } from "@/components/shared/layout/header";
 import { MoxfieldSearch } from "@/components/shared/search/moxfield-search";
 import { BarChart3, Database, Users } from "lucide-react";
-import Link from "next/link";
 import { createClient } from "./utils/supabase/server";
 
 export default async function Home() {
