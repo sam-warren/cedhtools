@@ -15,8 +15,8 @@ export default function AboutPage() {
       <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">What is cedhtools?</h2>
         <p className="mb-4">
-          cedhtools is a comprehensive analytics platform designed specifically
-          for competitive Commander (cEDH) players in Magic: The Gathering. Our
+          cedhtools is an analytics platform designed specifically for
+          competitive Commander (cEDH) players in Magic: The Gathering. Our
           application aggregates tournament data from Topdeck.gg, processes it,
           and presents it in an easily digestible format to help you make
           data-driven decisions for deck building and metagame analysis.
@@ -44,8 +44,8 @@ export default function AboutPage() {
           </li>
           <li>
             <strong>Impact on Win Rate</strong>: The average win rate of a
-            specific commander playing a specific card, minus that commander&apos;s
-            average win rate overall.
+            specific commander playing a specific card, minus that
+            commander&apos;s average win rate overall.
           </li>
         </ul>
       </section>
@@ -78,8 +78,8 @@ export default function AboutPage() {
           </li>
           <li>
             <strong>Playgroup Variance</strong>: Tournament data reflects a
-            competitive environment that may differ from your local playgroup&apos;s
-            meta.
+            competitive environment that may differ from your local
+            playgroup&apos;s meta.
           </li>
           <li>
             <strong>Data Freshness</strong>: Our ETL pipeline updates data
@@ -107,17 +107,20 @@ export default function AboutPage() {
       <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">Data Sources</h2>
         <p className="mb-4">
-          cedhtools currently aggregates data from Topdeck.gg tournaments. We&apos;re
-          continuously working to expand our data sources to provide an even
-          more comprehensive view of the CEDH landscape.
+          cedhtools currently aggregates data from Topdeck.gg tournaments.
+          We&apos;re continuously working to expand our data sources to provide
+          an even more comprehensive view of the CEDH landscape.
         </p>
         <p className="mb-4">
           Our ETL (Extract, Transform, Load) pipeline processes this data daily
           to ensure you have access to the most current information available.
         </p>
+        <p className="mb-4">
+          Data is collected from September 24, 2024 onwards.
+        </p>
       </section>
 
-      <section>
+      <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">
           Feedback and Suggestions
         </h2>
@@ -137,6 +140,31 @@ export default function AboutPage() {
           </Link>
           .
         </p>
+      </section>
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">
+          Acknowledgements and Thanks
+        </h2>
+        <p>
+          We would like to thank the following people for their help and support
+          in the development of cedhtools:
+        </p>
+        <ul>
+          <li>
+            -{" "}
+            <Link href="https://topdeck.gg/" className="underline">
+              Topdeck.gg
+            </Link>{" "}
+            for providing the data that powers cedhtools.
+          </li>
+          <li>
+            -{" "}
+            <Link href="https://www.moxfield.com/" className="underline">
+              Moxfield
+            </Link>{" "}
+            for providing the platform for collecting and sharing decklists.
+          </li>
+        </ul>
       </section>
     </div>
   );

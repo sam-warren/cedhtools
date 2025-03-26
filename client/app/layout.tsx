@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "cedhtools",
   description:
     "Analyze CEDH decks with data from real tournaments. Find the best cards for your commander.",
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.svg",
+    shortcut: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
