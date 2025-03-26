@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SettingsIcon, TrashIcon, UserCircleIcon } from "lucide-react";
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function Profile({
   searchParams,
@@ -55,13 +55,6 @@ export default async function Profile({
       </div>
     );
   }
-
-  // Get user details
-  const { data: userData } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user?.id)
-    .single();
 
   // Get user analysis history
   const { data: analysisData } = await supabase

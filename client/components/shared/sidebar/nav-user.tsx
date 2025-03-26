@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  LogOutIcon,
-  MoreVerticalIcon,
-  UserCircleIcon,
-  UserIcon,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { createClient } from "@/app/utils/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,11 +17,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useEffect, useState } from "react";
-import { createClient } from "@/app/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
+import {
+  LogOutIcon,
+  MoreVerticalIcon,
+  UserCircleIcon,
+  UserIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface NavUserProps {
   className?: string;

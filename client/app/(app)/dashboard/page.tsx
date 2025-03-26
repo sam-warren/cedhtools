@@ -1,11 +1,10 @@
-import { Metadata } from "next";
 import { createClient } from "@/app/utils/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Analysis } from "@/lib/types/dashboard";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import { TournamentStats } from "@/components/dashboard/tournament-stats";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Dashboard | CEDHTools",

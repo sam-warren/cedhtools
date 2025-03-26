@@ -12,7 +12,6 @@ import { Database } from './database.types';
 export async function getUserRecord(
   supabase: SupabaseClient<Database>,
   userId: string,
-  email: string
 ) {
   // Check if user record exists
   const { data: existingUser, error: fetchError } = await supabase
@@ -32,22 +31,21 @@ export async function getUserRecord(
 export async function getCurrentUserRecord(supabase: SupabaseClient<Database>) {
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return null;
   }
-  
+
   // Get user record
   const { user: userRecord, error } = await getUserRecord(
     supabase,
     user.id,
-    user.email || ''
   );
-  
+
   if (error) {
     console.error('Error getting user record:', error);
     return null;
   }
-  
+
   return userRecord;
 } 

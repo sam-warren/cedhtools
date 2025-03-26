@@ -1,5 +1,6 @@
 "use client";
 
+import { DataTable } from "@/components/shared/data-table/data-table";
 import {
   Card,
   CardContent,
@@ -7,11 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DataTable } from "@/components/shared/data-table/data-table";
+import type { Analysis } from "@/lib/types/dashboard";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
-import { BarChart3 } from "lucide-react";
-import type { Analysis } from "@/lib/types/dashboard";
 import Link from "next/link";
 
 const columns: ColumnDef<Analysis>[] = [

@@ -4,7 +4,6 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Layers } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 
 import {
   SidebarGroup,
@@ -14,7 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import type { Analysis } from "@/lib/types/dashboard";
 
 interface DeckAnalysis {
   id: number;

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // Exchange the code for a session
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    
+
     if (error) {
       console.error('Auth callback error:', error.message)
       return NextResponse.redirect(
@@ -53,15 +53,14 @@ export async function GET(request: NextRequest) {
 
     // Get the user after successful authentication
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (user) {
       // Get user record - the trigger will have created it already
       const { error: userError } = await getUserRecord(
         supabase,
         user.id,
-        user.email || ''
       )
-      
+
       if (userError && userError.code !== 'PGRST116') {
         console.error('Error getting user record:', userError)
       }
