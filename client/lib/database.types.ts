@@ -112,7 +112,6 @@ export interface Database {
                     subscription_tier: string
                     subscription_start_date: string | null
                     subscription_end_date: string | null
-                    analyses_used: number
                     analyses_limit: number
                     created_at: string
                     updated_at: string
@@ -123,7 +122,6 @@ export interface Database {
                     subscription_tier?: string
                     subscription_start_date?: string | null
                     subscription_end_date?: string | null
-                    analyses_used?: number
                     analyses_limit?: number
                     created_at?: string
                     updated_at?: string
@@ -134,7 +132,6 @@ export interface Database {
                     subscription_tier?: string
                     subscription_start_date?: string | null
                     subscription_end_date?: string | null
-                    analyses_used?: number
                     analyses_limit?: number
                     created_at?: string
                     updated_at?: string

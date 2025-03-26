@@ -163,26 +163,6 @@ export default async function Home() {
               © {new Date().getFullYear()} JUNCTIONTECH INC. All rights
               reserved.
             </p>
-            <div className="flex gap-4">
-              <Link
-                href="#"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Privacy
-              </Link>
-              <Link
-                href="#"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Terms
-              </Link>
-              <Link
-                href="#"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Contact
-              </Link>
-            </div>
           </div>
         </div>
       </footer>
