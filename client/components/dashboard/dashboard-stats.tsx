@@ -26,7 +26,7 @@ const columns: ColumnDef<Analysis>[] = [
       return (
         <Link
           href={`/deck/${deckId}`}
-          className="text-blue-500 hover:text-blue-700 underline"
+          className="hover:underline"
         >
           {deckName || `Deck ${deckId}`}
         </Link>
@@ -43,7 +43,7 @@ const columns: ColumnDef<Analysis>[] = [
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700 underline"
+          className="hover:underline"
         >
           View Deck
         </a>

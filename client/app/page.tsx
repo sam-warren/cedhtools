@@ -1,6 +1,6 @@
+import { ScrollToTopButton } from "@/components/shared/buttons/scroll-to-top-button";
 import { Header } from "@/components/shared/layout/header";
 import { MoxfieldSearch } from "@/components/shared/search/moxfield-search";
-import { Button } from "@/components/ui/button";
 import { BarChart3, Database, Users } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "./utils/supabase/server";
@@ -18,8 +18,8 @@ export default async function Home() {
     .select("*", { count: "exact", head: true });
 
   // Use counts or fallback to default values
-  const displayTournamentCount = tournamentCount || 500;
-  const displayCommanderCount = commanderCount || 700;
+  const displayTournamentCount = tournamentCount || 0;
+  const displayCommanderCount = commanderCount || 0;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -146,9 +146,9 @@ export default async function Home() {
                 tournament data.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Button asChild size="lg" variant="outline">
-                  <Link href="/dashboard">Search Decks</Link>
-                </Button>
+                <ScrollToTopButton size="lg" variant="outline">
+                  Search Decks
+                </ScrollToTopButton>
               </div>
             </div>
           </div>
