@@ -9,8 +9,8 @@ export default async function Home() {
   const supabase = await createClient();
 
   // Fetch actual counts from database
-  const { count: tournamentCount } = await supabase
-    .from("processed_tournaments")
+  const { count: cardCount } = await supabase
+    .from("cards")
     .select("*", { count: "exact", head: true });
 
   const { count: commanderCount } = await supabase
@@ -18,7 +18,7 @@ export default async function Home() {
     .select("*", { count: "exact", head: true });
 
   // Use counts or fallback to default values
-  const displayTournamentCount = tournamentCount || 0;
+  const displayCardCount = cardCount || 0;
   const displayCommanderCount = commanderCount || 0;
 
   return (
@@ -58,10 +58,10 @@ export default async function Home() {
               <div className="flex flex-wrap justify-center gap-8 mt-8">
                 <div className="flex flex-col items-center">
                   <div className="text-primary font-semibold text-2xl font-mono">
-                    {displayTournamentCount.toLocaleString()}
+                    {displayCardCount.toLocaleString()}
                   </div>
                   <div className="text-muted-foreground">
-                    Tournaments Processed
+                    Unique Cards
                   </div>
                 </div>
                 <div className="flex flex-col items-center">
