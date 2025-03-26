@@ -52,11 +52,5 @@ export async function middleware(request: NextRequest) {
 // Update config to only run middleware on specific paths
 export const config = {
   matcher: [
-    // Protected routes
-    '/deck/:path*',
-    '/api/decks/:path*',
-    '/dashboard',
-    '/profile',
-    '/pricing'
   ]
 } 

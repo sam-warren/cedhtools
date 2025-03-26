@@ -28,19 +28,26 @@ async function createClient() {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return new Response('Unauthorized', {
+        status: 401,
+      });
+    }
+
     const supabase = await createClient();
     console.log('ETL cron job triggered at', new Date().toISOString());
-    
+
     // Check for any running jobs before queueing a new one
     const { data: activeJobs, error: activeJobsError } = await supabase
       .from('etl_jobs_active')
       .select('id, job_type, status, created_at, runtime_seconds')
       .order('created_at', { ascending: false });
-      
+
     if (activeJobsError) throw activeJobsError;
-    
+
     // If there are already active jobs, don't create a new one
     if (activeJobs && activeJobs.length > 0) {
       const activeJob = activeJobs[0];
@@ -77,16 +84,16 @@ export async function GET() {
           max_runtime_seconds: 28800 // 8 hours max runtime for seed job
         })
         .select();
-        
+
       if (seedError) throw seedError;
-      
+
       return NextResponse.json({
         message: 'Seed job queued successfully',
         jobId: seedJob[0].id,
         timestamp: new Date().toISOString(),
       });
     }
-    
+
     // Queue a daily update job
     const { data: dailyJob, error: dailyError } = await supabase
       .from('etl_jobs')
@@ -100,9 +107,9 @@ export async function GET() {
         max_runtime_seconds: 3600 // 1 hour max runtime for daily update
       })
       .select();
-      
+
     if (dailyError) throw dailyError;
-    
+
     return NextResponse.json({
       message: 'Daily update job queued successfully',
       jobId: dailyJob[0].id,

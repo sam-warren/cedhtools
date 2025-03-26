@@ -7,7 +7,7 @@
  */
 
 import EtlProcessor from './processor';
-import { supabaseServer } from '../supabase';
+import { supabaseServer, supabaseServiceRole } from '../supabase';
 import { format, subMonths } from 'date-fns';
 
 interface EtlJob {
@@ -32,7 +32,7 @@ interface EtlJob {
 
 async function updateJob(jobId: number, updates: Partial<EtlJob>) {
   try {
-    const { error } = await supabaseServer
+    const { error } = await supabaseServiceRole
       .from('etl_jobs')
       .update(updates)
       .eq('id', jobId);
@@ -83,7 +83,7 @@ async function processJob(job: EtlJob) {
         
         // If there's more to process, create a new job for the next batch
         if (!isComplete && nextCursor) {
-          await supabaseServer
+          await supabaseServiceRole
             .from('etl_jobs')
             .insert({
               job_type: 'BATCH_PROCESS',
@@ -128,7 +128,7 @@ async function processJob(job: EtlJob) {
 async function findAndProcessNextJob() {
   try {
     // Reset any stuck jobs first
-    await supabaseServer.rpc('reset_stuck_jobs');
+    await supabaseServiceRole.rpc('reset_stuck_jobs');
     
     // Find next available job
     const { data: jobs, error } = await supabaseServer
