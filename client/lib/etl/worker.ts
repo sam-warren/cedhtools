@@ -7,7 +7,7 @@
  */
 
 import EtlProcessor from './processor';
-import { supabaseServer, supabaseServiceRole } from '../supabase';
+import { supabaseServiceRole } from '../supabase';
 import { format, subMonths } from 'date-fns';
 
 interface EtlJob {
@@ -131,7 +131,7 @@ async function findAndProcessNextJob() {
     await supabaseServiceRole.rpc('reset_stuck_jobs');
     
     // Find next available job
-    const { data: jobs, error } = await supabaseServer
+    const { data: jobs, error } = await supabaseServiceRole
       .from('etl_jobs')
       .select('*')
       .eq('status', 'PENDING')
@@ -145,7 +145,6 @@ async function findAndProcessNextJob() {
     }
 
     if (!jobs || jobs.length === 0) {
-      // No jobs available
       return false;
     }
 
