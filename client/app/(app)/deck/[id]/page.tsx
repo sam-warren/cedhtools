@@ -1,7 +1,7 @@
 "use client";
 
 import { fetchWithAuth } from "@/app/utils/api";
-import { columns } from "@/components/deck-analysis/deck-card-columns";
+import { CardData, columns } from "@/components/deck-analysis/deck-card-columns";
 import {
   OtherCardData,
   otherCardsColumns,
@@ -303,7 +303,7 @@ export default function DeckPage() {
                           <TabsContent value="all">
                             <DataTable
                               columns={deckColumns}
-                              data={Object.values(deckData.cardsByType).flat()}
+                              data={Object.values(deckData.cardsByType).flat() as CardData[]}
                               enableFiltering={true}
                               globalFilter={true}
                               filterableColumns={[]}
@@ -318,7 +318,7 @@ export default function DeckPage() {
                             <TabsContent key={typeId} value={typeId}>
                               <DataTable
                                 columns={deckColumns}
-                                data={deckData.cardsByType[typeId]}
+                                data={deckData.cardsByType[typeId] as CardData[]}
                                 enableFiltering={true}
                                 globalFilter={true}
                                 filterableColumns={[]}

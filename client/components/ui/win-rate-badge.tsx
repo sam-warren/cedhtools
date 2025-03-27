@@ -28,6 +28,7 @@ type WinRateBadgeProps = {
     cardName: string;
     cardWinRate: number;
     commanderWinRate: number;
+    confidence: number;
   };
 };
 
@@ -101,6 +102,24 @@ export function WinRateBadge({
                 <span className="font-medium">
                   {tooltipData.commanderWinRate.toFixed(2)}%
                 </span>
+              </div>
+              <div className="mt-2 pt-2 border-t border-border/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Confidence:</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "font-semibold px-2 py-0.5",
+                      tooltipData.confidence >= 70
+                        ? "bg-green-500/10 text-green-500 border-green-500/20"
+                        : tooltipData.confidence >= 40
+                        ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                        : "bg-red-500/10 text-red-500 border-red-500/20"
+                    )}
+                  >
+                    {tooltipData.confidence}%
+                  </Badge>
+                </div>
               </div>
             </div>
           </TooltipContent>

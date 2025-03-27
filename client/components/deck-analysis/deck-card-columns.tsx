@@ -22,6 +22,7 @@ export type CardData = {
     winRate: number;
     inclusionRate: number;
     winRateDiff: number;
+    confidence: number;
   } | null;
 };
 
@@ -98,6 +99,7 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
       const winRateDiff = row.original.stats?.winRateDiff;
       const winRate = row.original.stats?.winRate;
       const cardName = row.original.name;
+      const confidence = row.original.stats?.confidence;
 
       return winRateDiff !== undefined && winRate !== undefined ? (
         <WinRateBadge
@@ -108,6 +110,7 @@ export const columns = (commanderWinRate: number): ColumnDef<CardData>[] => [
             cardName: cardName,
             cardWinRate: winRate,
             commanderWinRate: commanderWinRate,
+            confidence: confidence || 0
           }}
         />
       ) : (

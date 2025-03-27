@@ -21,6 +21,7 @@ export type OtherCardData = {
     winRate: number;
     inclusionRate: number;
     winRateDiff: number;
+    confidence: number;
   };
 };
 
@@ -93,6 +94,7 @@ export const otherCardsColumns = (
       const winRateDiff = row.original.stats.winRateDiff;
       const winRate = row.original.stats.winRate;
       const cardName = row.original.name;
+      const confidence = row.original.stats.confidence;
 
       return (
         <WinRateBadge
@@ -103,6 +105,7 @@ export const otherCardsColumns = (
             cardName: cardName,
             cardWinRate: winRate,
             commanderWinRate: commanderWinRate,
+            confidence: confidence
           }}
         />
       );

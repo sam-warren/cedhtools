@@ -16,5 +16,17 @@ export interface Analysis {
         winRate: number;
         inclusionRate: number;
         winRateDiff: number;
+        confidence: number;
     } | null;
+}
+
+export interface CardStats {
+    wins: number;
+    losses: number;
+    draws: number;
+    entries: number;
+    winRate: number;
+    inclusionRate: number;
+    winRateDiff: number;
+    confidence: number;
 } 
