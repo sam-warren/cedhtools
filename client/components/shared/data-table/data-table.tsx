@@ -11,6 +11,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ColumnDef,
   ColumnFiltersState,
   flexRender,
@@ -24,12 +31,25 @@ import {
   RowSelectionState,
 } from "@tanstack/react-table";
 import React from "react";
+
+interface DataItemWithStats {
+  stats?: {
+    entries: number;
+    wins: number;
+    losses: number;
+    draws: number;
+    winRate: number;
+    inclusionRate: number;
+    winRateDiff: number;
+  } | null;
+}
+
 /**
  * Props interface for the DataTable component.
  * @template TData - The type of data being displayed in the table
  * @template TValue - The type of values in the table cells
  */
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends DataItemWithStats, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   enableRowSelection?: boolean;
@@ -41,9 +61,13 @@ interface DataTableProps<TData, TValue> {
   globalFilter?: boolean;
   filterableColumns?: string[];
   onRowSelectionChange?: (updatedSelection: RowSelectionState) => void;
+  enableMinEntriesFilter?: boolean;
+  minEntriesOptions?: number[];
+  defaultMinEntries?: number;
+  onMinEntriesChange?: (value: number) => void;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends DataItemWithStats, TValue>({
   columns,
   data,
   enableRowSelection = false,
@@ -54,6 +78,10 @@ export function DataTable<TData, TValue>({
   globalFilter = true,
   filterableColumns = [],
   onRowSelectionChange,
+  enableMinEntriesFilter = false,
+  minEntriesOptions = [5, 25, 50, 100],
+  defaultMinEntries = 5,
+  onMinEntriesChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -63,9 +91,29 @@ export function DataTable<TData, TValue>({
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilterValue, setGlobalFilterValue] = React.useState("");
+  const [minEntries, setMinEntries] = React.useState(defaultMinEntries);
+
+  // Update parent when minEntries changes
+  React.useEffect(() => {
+    onMinEntriesChange?.(minEntries);
+  }, [minEntries, onMinEntriesChange]);
+
+  // Update local state when defaultMinEntries changes
+  React.useEffect(() => {
+    setMinEntries(defaultMinEntries);
+  }, [defaultMinEntries]);
+
+  // Filter data based on minimum entries
+  const filteredData = React.useMemo(() => {
+    if (!enableMinEntriesFilter) return data;
+    return data.filter((item) => {
+      const entries = item.stats?.entries || 0;
+      return entries >= minEntries;
+    });
+  }, [data, enableMinEntriesFilter, minEntries]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: enablePagination
@@ -126,6 +174,26 @@ export function DataTable<TData, TValue>({
                 )
               );
             })}
+          </div>
+        )}
+        {enableMinEntriesFilter && (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium whitespace-nowrap">Minimum Entries:</span>
+            <Select
+              value={minEntries.toString()}
+              onValueChange={(value) => setMinEntries(Number(value))}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Select minimum entries" />
+              </SelectTrigger>
+              <SelectContent>
+                {minEntriesOptions.map((value) => (
+                  <SelectItem key={value} value={value.toString()}>
+                    {value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>

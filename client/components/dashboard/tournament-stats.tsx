@@ -15,6 +15,15 @@ import { format } from "date-fns";
 interface Tournament {
   name: string;
   processed_at: string;
+  stats?: {
+    entries: number;
+    wins: number;
+    losses: number;
+    draws: number;
+    winRate: number;
+    inclusionRate: number;
+    winRateDiff: number;
+  } | null;
 }
 
 const columns: ColumnDef<Tournament>[] = [

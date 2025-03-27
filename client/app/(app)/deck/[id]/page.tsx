@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Handshake, PercentIcon, Ticket, Trophy, XCircle } from "lucide-react";
+import { Handshake, PercentIcon, Ticket, Trophy, XCircle, Info } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Type mapping for display purposes
 const TYPE_NAMES: Record<string, string> = {
@@ -79,6 +80,8 @@ export default function DeckPage() {
   const params = useParams();
   const [loading, setLoading] = useState(true);
   const [deckData, setDeckData] = useState<DeckData | null>(null);
+  const [deckMinEntries, setDeckMinEntries] = useState<number>(5);
+  const [otherMinEntries, setOtherMinEntries] = useState<number>(5);
 
   useEffect(() => {
     const fetchDeck = async () => {
@@ -157,6 +160,19 @@ export default function DeckPage() {
 
             return (
               <>
+                <Alert className="mb-8 bg-blue-50/50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    <p className="font-medium mb-1">Important Disclaimer</p>
+                    <p>
+                      This data is meant as a guide and should be taken with a grain of salt. Due to limited quantity of data, statistical significance is low across the board. For more information about data considerations and limitations, please visit the{" "}
+                      <a href="/about" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                        About page
+                      </a>
+                      .
+                    </p>
+                  </AlertDescription>
+                </Alert>
                 <Card className="mb-8">
                   <CardHeader>
                     <CardTitle className="text-xl text-muted-foreground">
@@ -291,6 +307,10 @@ export default function DeckPage() {
                               enableFiltering={true}
                               globalFilter={true}
                               filterableColumns={[]}
+                              enableMinEntriesFilter={true}
+                              minEntriesOptions={[5, 25, 50, 100]}
+                              defaultMinEntries={deckMinEntries}
+                              onMinEntriesChange={setDeckMinEntries}
                             />
                           </TabsContent>
 
@@ -302,6 +322,10 @@ export default function DeckPage() {
                                 enableFiltering={true}
                                 globalFilter={true}
                                 filterableColumns={[]}
+                                enableMinEntriesFilter={true}
+                                minEntriesOptions={[5, 25, 50, 100]}
+                                defaultMinEntries={deckMinEntries}
+                                onMinEntriesChange={setDeckMinEntries}
                               />
                             </TabsContent>
                           ))}
@@ -347,6 +371,10 @@ export default function DeckPage() {
                               enableFiltering={true}
                               globalFilter={true}
                               filterableColumns={[]}
+                              enableMinEntriesFilter={true}
+                              minEntriesOptions={[5, 25, 50, 100]}
+                              defaultMinEntries={otherMinEntries}
+                              onMinEntriesChange={setOtherMinEntries}
                             />
                           </TabsContent>
 
@@ -359,6 +387,10 @@ export default function DeckPage() {
                                 enableFiltering={true}
                                 globalFilter={true}
                                 filterableColumns={[]}
+                                enableMinEntriesFilter={true}
+                                minEntriesOptions={[5, 25, 50, 100]}
+                                defaultMinEntries={otherMinEntries}
+                                onMinEntriesChange={setOtherMinEntries}
                               />
                             </TabsContent>
                           ))}

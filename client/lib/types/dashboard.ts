@@ -8,4 +8,13 @@ export interface Analysis {
         wins: number;
         losses: number;
     };
+    stats?: {
+        entries: number;
+        wins: number;
+        losses: number;
+        draws: number;
+        winRate: number;
+        inclusionRate: number;
+        winRateDiff: number;
+    } | null;
 } 
