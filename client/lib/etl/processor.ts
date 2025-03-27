@@ -1,5 +1,5 @@
 import { addDays, format, parseISO, subDays, subMonths } from 'date-fns';
-import { supabaseServer } from '../supabase';
+import { supabaseServiceRole } from '../supabase';
 import { MoxfieldClient, TopdeckClient } from './api-clients';
 import {
     EtlStatus,
@@ -100,7 +100,7 @@ export default class EtlProcessor {
                     console.log(`Processing tournament: ${tournament.tournamentName} (ID: ${tournament.TID})`);
 
                     // Check if tournament has already been processed
-                    const { data: existingTournament } = await supabaseServer
+                    const { data: existingTournament } = await supabaseServiceRole
                         .from('processed_tournaments')
                         .select('tournament_id, record_count')
                         .eq('tournament_id', tournament.TID)
@@ -171,7 +171,7 @@ export default class EtlProcessor {
 
                     // Mark tournament as processed if we completed all its standings
                     if (batchComplete && tournamentRecordsProcessed > 0) {
-                        await supabaseServer
+                        await supabaseServiceRole
                             .from('processed_tournaments')
                             .insert({
                                 tournament_id: tournament.TID,
@@ -329,7 +329,7 @@ export default class EtlProcessor {
             console.log(`Processing tournament: ${tournament.tournamentName} (ID: ${tournament.TID})`);
 
             // Check if tournament has already been processed
-            const { data: existingTournament } = await supabaseServer
+            const { data: existingTournament } = await supabaseServiceRole
                 .from('processed_tournaments')
                 .select('tournament_id, record_count')
                 .eq('tournament_id', tournament.TID)
@@ -379,7 +379,7 @@ export default class EtlProcessor {
 
             // Mark tournament as processed
             if (tournamentRecordsProcessed > 0) {
-                await supabaseServer
+                await supabaseServiceRole
                     .from('processed_tournaments')
                     .insert({
                         tournament_id: tournament.TID,
@@ -493,7 +493,7 @@ export default class EtlProcessor {
             
             // Step 1: Fetch the commander data
             const commanderFetchStart = Date.now();
-            const { data: existingCommander } = await supabaseServer
+            const { data: existingCommander } = await supabaseServiceRole
                 .from('commanders')
                 .select('*')
                 .eq('id', commanderId)
@@ -523,7 +523,7 @@ export default class EtlProcessor {
             
             // Step 3: Fetch all existing statistics in one query
             const statsFetchStart = Date.now();
-            const { data: existingStatistics } = await supabaseServer
+            const { data: existingStatistics } = await supabaseServiceRole
                 .from('statistics')
                 .select('*')
                 .eq('commander_id', commanderId)
@@ -568,7 +568,7 @@ export default class EtlProcessor {
             const batchUpsertStart = Date.now();
             
             // Use a transaction to ensure data consistency
-            const { error } = await supabaseServer.rpc('batch_upsert_deck_data', {
+            const { error } = await supabaseServiceRole.rpc('batch_upsert_deck_data', {
                 commander_data: newCommanderValues,
                 cards_data: allCards,
                 stats_data: allStatistics
@@ -579,7 +579,7 @@ export default class EtlProcessor {
                 console.warn(`RPC batch operation failed: ${error.message}. Falling back to standard batch operations.`);
                 
                 // Perform batch operations in sequence
-                const commanderResult = await supabaseServer
+                const commanderResult = await supabaseServiceRole
                     .from('commanders')
                     .upsert(newCommanderValues, { onConflict: 'id' });
                     
@@ -587,7 +587,7 @@ export default class EtlProcessor {
                     console.error(`Error upserting commander: ${commanderResult.error.message}`);
                 }
                 
-                const cardsResult = await supabaseServer
+                const cardsResult = await supabaseServiceRole
                     .from('cards')
                     .upsert(allCards, { onConflict: 'unique_card_id' });
                     
@@ -595,7 +595,7 @@ export default class EtlProcessor {
                     console.error(`Error upserting cards: ${cardsResult.error.message}`);
                 }
                 
-                const statsResult = await supabaseServer
+                const statsResult = await supabaseServiceRole
                     .from('statistics')
                     .upsert(allStatistics, { onConflict: 'commander_id,card_id' });
                     
@@ -645,7 +645,7 @@ export default class EtlProcessor {
     }
 
     private async createEtlStatus(status: 'RUNNING' | 'COMPLETED' | 'FAILED'): Promise<number | null> {
-        const { data, error } = await supabaseServer
+        const { data, error } = await supabaseServiceRole
             .from('etl_status')
             .insert({
                 start_date: new Date().toISOString(),
@@ -678,7 +678,7 @@ export default class EtlProcessor {
 
         try {
             if (id) {
-                const { error } = await supabaseServer
+                const { error } = await supabaseServiceRole
                     .from('etl_status')
                     .update({
                         status: updates?.status,
@@ -693,7 +693,7 @@ export default class EtlProcessor {
                 }
             } else {
                 // If no ID provided, update the most recent ETL status with the given status
-                const { error } = await supabaseServer
+                const { error } = await supabaseServiceRole
                     .from('etl_status')
                     .update({
                         status: updates?.status,
@@ -712,7 +712,7 @@ export default class EtlProcessor {
     }
 
     private async getLastCompletedEtlStatus(): Promise<EtlStatus | null> {
-        const { data, error } = await supabaseServer
+        const { data, error } = await supabaseServiceRole
             .from('etl_status')
             .select('*')
             .eq('status', 'COMPLETED')

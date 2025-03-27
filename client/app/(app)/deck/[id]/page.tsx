@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { fetchWithAuth } from "@/app/utils/api";
+import { columns } from "@/components/deck-analysis/deck-card-columns";
+import {
+  OtherCardData,
+  otherCardsColumns,
+} from "@/components/deck-analysis/other-cards-columns";
+import { DataTable } from "@/components/shared/data-table/data-table";
 import {
   Card,
   CardContent,
@@ -9,26 +14,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable } from "@/components/shared/data-table/data-table";
-import { columns } from "@/components/deck-analysis/deck-card-columns";
-import {
-  otherCardsColumns,
-  OtherCardData,
-} from "@/components/deck-analysis/other-cards-columns";
-import { PercentIcon, Trophy, XCircle, Handshake, Ticket } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { fetchWithAuth, redirectToLogin } from "@/app/utils/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Handshake, PercentIcon, Ticket, Trophy, XCircle } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 // Type mapping for display purposes
 const TYPE_NAMES: Record<string, string> = {
@@ -87,11 +77,9 @@ interface DeckData {
 
 export default function DeckPage() {
   const params = useParams();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deckData, setDeckData] = useState<DeckData | null>(null);
-  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   useEffect(() => {
     const fetchDeck = async () => {
@@ -104,12 +92,8 @@ export default function DeckPage() {
         } catch (err) {
           // Error is already handled by fetchWithAuth
           if (err instanceof Error) {
-            if (err.message.includes('UPGRADE_REQUIRED')) {
-              setShowUpgradeDialog(true);
-            } else {
-              // For other errors, show the error message
-              setError(err.message);
-            }
+            // For other errors, show the error message
+            setError(err.message);
           } else {
             setError("An unexpected error occurred");
           }
@@ -124,10 +108,6 @@ export default function DeckPage() {
       fetchDeck();
     }
   }, [params.id]);
-
-  const handleUpgrade = () => {
-    router.push('/pricing');
-  };
 
   // Sort card types by numeric order
   const cardTypes = deckData?.cardsByType
@@ -176,7 +156,7 @@ export default function DeckPage() {
         {loading ? (
           <DeckPageSkeleton />
         ) : error ? (
-          error.toLowerCase().includes('authentication required') ? (
+          error.toLowerCase().includes("authentication required") ? (
             // If it's an auth error, immediately redirect to login
             <RedirectToLogin />
           ) : (
@@ -208,7 +188,7 @@ export default function DeckPage() {
                   <Card className="mb-8">
                     <CardHeader>
                       <CardTitle className="text-xl text-muted-foreground">
-                        <a 
+                        <a
                           href={`https://moxfield.com/decks/${deckData.deck.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -285,12 +265,21 @@ export default function DeckPage() {
                       ) : (
                         <div className="bg-muted/80 p-6 rounded-lg border border-border/50 shadow-sm">
                           <p className="text-lg text-muted-foreground">
-                            No tournament data available for this commander yet. This could be because:
+                            No tournament data available for this commander yet.
+                            This could be because:
                           </p>
                           <ul className="list-disc list-inside mt-2 text-muted-foreground">
-                            <li>The commander hasn&apos;t appeared in any tournaments yet</li>
-                            <li>The commander is too new to have tournament data</li>
-                            <li>The commander is not commonly played in tournaments</li>
+                            <li>
+                              The commander hasn&apos;t appeared in any
+                              tournaments yet
+                            </li>
+                            <li>
+                              The commander is too new to have tournament data
+                            </li>
+                            <li>
+                              The commander is not commonly played in
+                              tournaments
+                            </li>
                           </ul>
                         </div>
                       )}
@@ -298,58 +287,61 @@ export default function DeckPage() {
                   </Card>
 
                   {/* Cards in Deck section */}
-                  {deckData.cardsByType && Object.keys(deckData.cardsByType).length > 0 && (
-                    <Card className="mt-8">
-                      <CardHeader>
-                        <CardTitle>Cards in Deck</CardTitle>
-                        <CardDescription>
-                          Cards from your decklist with statistics
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Tabs defaultValue="all">
-                          <TabsList
-                            className="grid mb-4"
-                            style={{
-                              gridTemplateColumns: `repeat(${
-                                cardTypes.length + 1
-                              }, minmax(0, 1fr))`,
-                            }}
-                          >
-                            <TabsTrigger value="all">All Cards</TabsTrigger>
-                            {cardTypes.map((typeId) => (
-                              <TabsTrigger key={typeId} value={typeId}>
-                                {TYPE_NAMES[typeId] || `Type ${typeId}`}
-                              </TabsTrigger>
-                            ))}
-                          </TabsList>
+                  {deckData.cardsByType &&
+                    Object.keys(deckData.cardsByType).length > 0 && (
+                      <Card className="mt-8">
+                        <CardHeader>
+                          <CardTitle>Cards in Deck</CardTitle>
+                          <CardDescription>
+                            Cards from your decklist with statistics
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Tabs defaultValue="all">
+                            <TabsList
+                              className="grid mb-4"
+                              style={{
+                                gridTemplateColumns: `repeat(${
+                                  cardTypes.length + 1
+                                }, minmax(0, 1fr))`,
+                              }}
+                            >
+                              <TabsTrigger value="all">All Cards</TabsTrigger>
+                              {cardTypes.map((typeId) => (
+                                <TabsTrigger key={typeId} value={typeId}>
+                                  {TYPE_NAMES[typeId] || `Type ${typeId}`}
+                                </TabsTrigger>
+                              ))}
+                            </TabsList>
 
-                          {/* "All" tab content - contains all cards */}
-                          <TabsContent value="all">
-                            <DataTable
-                              columns={deckColumns}
-                              data={Object.values(deckData.cardsByType).flat()}
-                              enableFiltering={true}
-                              globalFilter={true}
-                              filterableColumns={[]}
-                            />
-                          </TabsContent>
-
-                          {cardTypes.map((typeId) => (
-                            <TabsContent key={typeId} value={typeId}>
+                            {/* "All" tab content - contains all cards */}
+                            <TabsContent value="all">
                               <DataTable
                                 columns={deckColumns}
-                                data={deckData.cardsByType[typeId]}
+                                data={Object.values(
+                                  deckData.cardsByType
+                                ).flat()}
                                 enableFiltering={true}
                                 globalFilter={true}
                                 filterableColumns={[]}
                               />
                             </TabsContent>
-                          ))}
-                        </Tabs>
-                      </CardContent>
-                    </Card>
-                  )}
+
+                            {cardTypes.map((typeId) => (
+                              <TabsContent key={typeId} value={typeId}>
+                                <DataTable
+                                  columns={deckColumns}
+                                  data={deckData.cardsByType[typeId]}
+                                  enableFiltering={true}
+                                  globalFilter={true}
+                                  filterableColumns={[]}
+                                />
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        </CardContent>
+                      </Card>
+                    )}
 
                   {/* Other Cards Table with Tabs */}
                   {deckData.otherCards && deckData.otherCards.length > 0 && (
@@ -414,23 +406,6 @@ export default function DeckPage() {
           </>
         ) : null}
       </main>
-
-      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Upgrade to PRO</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have used all your free deck analyses. Upgrade to PRO to get unlimited analyses and access to advanced statistics.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUpgrade}>
-              Upgrade Now
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
@@ -476,23 +451,3 @@ function DeckPageSkeleton() {
     </div>
   );
 }
-function RedirectToLogin() {
-  useEffect(() => {
-    redirectToLogin();
-  }, []);
-  
-  // Show a loading state while redirecting
-  return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>Redirecting to login...</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex justify-center">
-          <Skeleton className="h-8 w-8 rounded-full" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
