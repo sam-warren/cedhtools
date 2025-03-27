@@ -79,19 +79,36 @@ export async function GET(
 
             // Create a new record if this is a new analysis and no errors checking existing ones
             if (!existingAnalysis && !existingAnalysisError) {
-                // Record the analysis in deck_analyses table
-                const { error: analysisError } = await supabase
-                    .from('deck_analyses')
-                    .insert({
-                        user_id: user.id,
-                        moxfield_url: moxfieldUrl,
-                        commander_id: commanderId,
-                        deck_name: deck.name
-                    });
+                // First check if the commander exists
+                const { data: commander, error: commanderError } = await supabase
+                    .from('commanders')
+                    .select('id')
+                    .eq('id', commanderId)
+                    .maybeSingle();
 
-                if (analysisError) {
-                    console.error('Error recording deck analysis:', analysisError);
-                    // Continue processing even if there's an error recording the analysis
+                if (commanderError) {
+                    console.error('Error checking commander existence:', commanderError);
+                    // Continue processing even if there's an error checking commander
+                }
+
+                // Only record the analysis if the commander exists
+                if (commander) {
+                    // Record the analysis in deck_analyses table
+                    const { error: analysisError } = await supabase
+                        .from('deck_analyses')
+                        .insert({
+                            user_id: user.id,
+                            moxfield_url: moxfieldUrl,
+                            commander_id: commanderId,
+                            deck_name: deck.name
+                        });
+
+                    if (analysisError) {
+                        console.error('Error recording deck analysis:', analysisError);
+                        // Continue processing even if there's an error recording the analysis
+                    }
+                } else {
+                    console.log(`[API] Commander ${commanderId} not found in database, skipping analysis recording`);
                 }
             } else {
                 console.log(`[API] User ${user.id} has already analyzed deck ${deckId}`);
@@ -109,18 +126,42 @@ export async function GET(
             // Commander not found in our database
             return NextResponse.json({
                 deck: {
+                    id: deckId,
                     name: deck.name,
                     commanders: commanderCards.map(c => ({
                         name: c.card.name,
                         id: c.card.uniqueCardId
                     })),
                 },
-                error: 'Commander statistics not found in database',
-                cards: Object.values(deck.boards.mainboard.cards || {}).map(c => ({
-                    name: c.card.name,
-                    id: c.card.uniqueCardId,
-                    quantity: c.quantity
-                }))
+                error: 'Commander statistics not found in database for this commander',
+                cardsByType: Object.values(deck.boards.mainboard.cards || {}).reduce((acc, card) => {
+                    const typeNumber = 0;
+                    const category = typeNumber.toString();
+                    
+                    if (!acc[category]) {
+                        acc[category] = [];
+                    }
+                    
+                    acc[category].push({
+                        id: card.card.uniqueCardId || '',
+                        name: card.card.name,
+                        scryfallId: card.card.scryfall_id || '',
+                        quantity: card.quantity,
+                        type: typeNumber,
+                        type_line: null,
+                        stats: null
+                    });                    
+                    return acc;
+                }, {} as Record<string, Array<{
+                    id: string;
+                    name: string;
+                    scryfallId: string;
+                    quantity: number;
+                    type: number;
+                    type_line: string | null;
+                    stats: null;
+                }>>),
+                otherCards: []
             });
         }
 

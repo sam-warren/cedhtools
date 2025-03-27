@@ -153,6 +153,23 @@ export default function DeckPage() {
     ? Object.keys(otherCardsByType).sort((a, b) => parseInt(a) - parseInt(b))
     : [];
 
+  // If there's an error in the response, show the error message
+  if (deckData?.error) {
+    return (
+      <Card className="mb-8 mt-6">
+        <CardHeader>
+          <CardTitle className="text-red-500">Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>{deckData.error}</p>
+          <p className="mt-4">
+            Please check the Moxfield deck ID and try again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <main className="flex-1 mt-6">
@@ -266,64 +283,73 @@ export default function DeckPage() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-yellow-500">
-                          No tournament statistics available for this commander.
-                        </p>
+                        <div className="bg-muted/80 p-6 rounded-lg border border-border/50 shadow-sm">
+                          <p className="text-lg text-muted-foreground">
+                            No tournament data available for this commander yet. This could be because:
+                          </p>
+                          <ul className="list-disc list-inside mt-2 text-muted-foreground">
+                            <li>The commander hasn&apos;t appeared in any tournaments yet</li>
+                            <li>The commander is too new to have tournament data</li>
+                            <li>The commander is not commonly played in tournaments</li>
+                          </ul>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
 
                   {/* Cards in Deck section */}
-                  <Card className="mt-8">
-                    <CardHeader>
-                      <CardTitle>Cards in Deck</CardTitle>
-                      <CardDescription>
-                        Cards from your decklist with statistics
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Tabs defaultValue="all">
-                        <TabsList
-                          className="grid mb-4"
-                          style={{
-                            gridTemplateColumns: `repeat(${
-                              cardTypes.length + 1
-                            }, minmax(0, 1fr))`,
-                          }}
-                        >
-                          <TabsTrigger value="all">All Cards</TabsTrigger>
-                          {cardTypes.map((typeId) => (
-                            <TabsTrigger key={typeId} value={typeId}>
-                              {TYPE_NAMES[typeId] || `Type ${typeId}`}
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
+                  {deckData.cardsByType && Object.keys(deckData.cardsByType).length > 0 && (
+                    <Card className="mt-8">
+                      <CardHeader>
+                        <CardTitle>Cards in Deck</CardTitle>
+                        <CardDescription>
+                          Cards from your decklist with statistics
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Tabs defaultValue="all">
+                          <TabsList
+                            className="grid mb-4"
+                            style={{
+                              gridTemplateColumns: `repeat(${
+                                cardTypes.length + 1
+                              }, minmax(0, 1fr))`,
+                            }}
+                          >
+                            <TabsTrigger value="all">All Cards</TabsTrigger>
+                            {cardTypes.map((typeId) => (
+                              <TabsTrigger key={typeId} value={typeId}>
+                                {TYPE_NAMES[typeId] || `Type ${typeId}`}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
 
-                        {/* "All" tab content - contains all cards */}
-                        <TabsContent value="all">
-                          <DataTable
-                            columns={deckColumns}
-                            data={Object.values(deckData.cardsByType).flat()}
-                            enableFiltering={true}
-                            globalFilter={true}
-                            filterableColumns={[]}
-                          />
-                        </TabsContent>
-
-                        {cardTypes.map((typeId) => (
-                          <TabsContent key={typeId} value={typeId}>
+                          {/* "All" tab content - contains all cards */}
+                          <TabsContent value="all">
                             <DataTable
                               columns={deckColumns}
-                              data={deckData.cardsByType[typeId]}
+                              data={Object.values(deckData.cardsByType).flat()}
                               enableFiltering={true}
                               globalFilter={true}
                               filterableColumns={[]}
                             />
                           </TabsContent>
-                        ))}
-                      </Tabs>
-                    </CardContent>
-                  </Card>
+
+                          {cardTypes.map((typeId) => (
+                            <TabsContent key={typeId} value={typeId}>
+                              <DataTable
+                                columns={deckColumns}
+                                data={deckData.cardsByType[typeId]}
+                                enableFiltering={true}
+                                globalFilter={true}
+                                filterableColumns={[]}
+                              />
+                            </TabsContent>
+                          ))}
+                        </Tabs>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Other Cards Table with Tabs */}
                   {deckData.otherCards && deckData.otherCards.length > 0 && (
