@@ -196,11 +196,7 @@ export default function AboutPage() {
         <p>
           We&apos;re constantly improving cedhtools based on user feedback. If
           you have suggestions, questions about our data, or need help
-          interpreting specific metrics, please reach out through our{" "}
-          <Link href="/contact" className="underline">
-            contact form
-          </Link>{" "}
-          or join our community{" "}
+          interpreting specific metrics, please join our community{" "}
           <Link
             href={process.env.NEXT_PUBLIC_DISCORD_URL || ""}
             className="underline"
@@ -215,7 +211,7 @@ export default function AboutPage() {
           Acknowledgements and Thanks
         </h2>
         <p>
-          We would like to thank the following people for their help and support
+          We would like to thank the following parties for their help and support
           in the development of cedhtools:
         </p>
         <ul>
@@ -224,7 +220,7 @@ export default function AboutPage() {
             <Link href="https://topdeck.gg/" className="underline">
               Topdeck.gg
             </Link>{" "}
-            for providing the data that powers cedhtools.
+            for providing tournament data that powers cedhtools.
           </li>
           <li>
             -{" "}
