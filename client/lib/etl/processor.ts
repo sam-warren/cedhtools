@@ -53,10 +53,18 @@ export default class EtlProcessor {
                 currentTournamentIndex = indexStr ? parseInt(indexStr, 10) : 0;
             } else {
                 // If no cursor, get the last processed date or default to 7 days ago
-                const lastEtlStatus = await this.getLastCompletedEtlStatus();
-                currentDate = lastEtlStatus?.lastProcessedDate
-                    ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
-                    : format(subDays(new Date(), 7), 'yyyy-MM-dd');
+                // Prefer actual tournament date over ETL status
+                const lastTournamentDate = await this.getLastProcessedTournamentDate();
+                if (lastTournamentDate) {
+                    currentDate = format(addDays(parseISO(lastTournamentDate), 1), 'yyyy-MM-dd');
+                    console.log(`[Batch] Using last processed tournament date: ${lastTournamentDate}, starting from: ${currentDate}`);
+                } else {
+                    const lastEtlStatus = await this.getLastCompletedEtlStatus();
+                    currentDate = lastEtlStatus?.lastProcessedDate
+                        ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
+                        : format(subDays(new Date(), 7), 'yyyy-MM-dd');
+                    console.log(`[Batch] Using ETL status date, starting from: ${currentDate}`);
+                }
             }
 
             // Default end date is today
@@ -171,11 +179,16 @@ export default class EtlProcessor {
 
                     // Mark tournament as processed if we completed all its standings
                     if (batchComplete && tournamentRecordsProcessed > 0) {
+                        // Convert Unix timestamp (seconds) to milliseconds for Date constructor
+                        const tournamentDate = typeof tournament.startDate === 'string' 
+                            ? new Date(parseInt(tournament.startDate) * 1000).toISOString()
+                            : new Date(tournament.startDate * 1000).toISOString();
+                        
                         await supabaseServiceRole
                             .from('processed_tournaments')
                             .insert({
                                 tournament_id: tournament.TID,
-                                tournament_date: new Date(tournament.startDate).toISOString(),
+                                tournament_date: tournamentDate,
                                 name: tournament.tournamentName,
                                 record_count: tournamentRecordsProcessed,
                                 processed_at: new Date().toISOString()
@@ -207,12 +220,20 @@ export default class EtlProcessor {
                 isComplete = true;
             }
 
-            // Update the ETL status record
+            // Update the ETL status record with actual last processed date if records were processed
+            let lastProcessedDate = currentDate;
+            if (recordsProcessed > 0) {
+                const actualLastDate = await this.getLastProcessedTournamentDate();
+                if (actualLastDate) {
+                    lastProcessedDate = actualLastDate;
+                }
+            }
+
             await this.updateEtlStatus(etlStatusId, {
                 status: 'COMPLETED',
                 endDate: new Date().toISOString(),
                 recordsProcessed,
-                lastProcessedDate: currentDate
+                lastProcessedDate: recordsProcessed > 0 ? lastProcessedDate : undefined
             });
 
             return { nextCursor, recordsProcessed, isComplete };
@@ -245,10 +266,19 @@ export default class EtlProcessor {
 
             // If no dates provided, get the last processed date or default to 6 months ago
             if (!startDate) {
-                const lastEtlStatus = await this.getLastCompletedEtlStatus();
-                startDate = lastEtlStatus?.lastProcessedDate
-                    ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
-                    : format(subMonths(new Date(), 6), 'yyyy-MM-dd');
+                // First try to get the actual last processed tournament date (most reliable)
+                const lastTournamentDate = await this.getLastProcessedTournamentDate();
+                if (lastTournamentDate) {
+                    startDate = format(addDays(parseISO(lastTournamentDate), 1), 'yyyy-MM-dd');
+                    console.log(`[Processor] Using last processed tournament date: ${lastTournamentDate}, starting from: ${startDate}`);
+                } else {
+                    // Fallback to ETL status if no tournaments found
+                    const lastEtlStatus = await this.getLastCompletedEtlStatus();
+                    startDate = lastEtlStatus?.lastProcessedDate
+                        ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
+                        : format(subMonths(new Date(), 6), 'yyyy-MM-dd');
+                    console.log(`[Processor] Using ETL status date, starting from: ${startDate}`);
+                }
             }
 
             // If no end date, use today
@@ -290,10 +320,20 @@ export default class EtlProcessor {
 
                 console.log(`[Processor] Processed ${batchRecordsProcessed} records in this batch. Total: ${recordsProcessed}`);
 
+                // Only update last_processed_date if we actually processed records
+                // Use the actual last tournament date if available, otherwise use batchEndDate
+                let lastProcessedDate = batchEndDate;
+                if (batchRecordsProcessed > 0) {
+                    const actualLastDate = await this.getLastProcessedTournamentDate();
+                    if (actualLastDate) {
+                        lastProcessedDate = actualLastDate;
+                    }
+                }
+
                 // Update the ETL status record
                 await this.updateEtlStatus(etlStatusId, {
                     recordsProcessed,
-                    lastProcessedDate: batchEndDate
+                    lastProcessedDate: batchRecordsProcessed > 0 ? lastProcessedDate : undefined
                 });
 
                 // Move to the next batch
@@ -379,11 +419,16 @@ export default class EtlProcessor {
 
             // Mark tournament as processed
             if (tournamentRecordsProcessed > 0) {
+                // Convert Unix timestamp (seconds) to milliseconds for Date constructor
+                const tournamentDate = typeof tournament.startDate === 'string' 
+                    ? new Date(parseInt(tournament.startDate) * 1000).toISOString()
+                    : new Date(tournament.startDate * 1000).toISOString();
+                
                 await supabaseServiceRole
                     .from('processed_tournaments')
                     .insert({
                         tournament_id: tournament.TID,
-                        tournament_date: new Date(tournament.startDate).toISOString(),
+                        tournament_date: tournamentDate,
                         name: tournament.tournamentName,
                         record_count: tournamentRecordsProcessed,
                         processed_at: new Date().toISOString()
@@ -716,6 +761,7 @@ export default class EtlProcessor {
             .from('etl_status')
             .select('*')
             .eq('status', 'COMPLETED')
+            .gt('records_processed', 0) // Only get statuses that actually processed records
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
@@ -737,5 +783,56 @@ export default class EtlProcessor {
             recordsProcessed: data.records_processed,
             lastProcessedDate: data.last_processed_date
         };
+    }
+
+    /**
+     * Get the actual last processed tournament date from the processed_tournaments table
+     * This is more reliable than using etl_status.last_processed_date
+     * 
+     * Note: Uses processed_at to find the most recent tournament, then extracts its date.
+     * This handles cases where tournament_date might be corrupted (e.g., 1970 dates from the bug).
+     */
+    private async getLastProcessedTournamentDate(): Promise<string | null> {
+        // First, try to get a tournament with a valid date (not from 1970, which indicates corrupted data)
+        // Order by processed_at to get the most recently processed tournament
+        const { data, error } = await supabaseServiceRole
+            .from('processed_tournaments')
+            .select('tournament_date, processed_at')
+            .gt('tournament_date', '2000-01-01') // Filter out corrupted 1970 dates
+            .order('processed_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') {
+                // No valid tournament dates found - might be all corrupted
+                // Fall back to using processed_at to estimate the date
+                const { data: fallbackData } = await supabaseServiceRole
+                    .from('processed_tournaments')
+                    .select('processed_at')
+                    .order('processed_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                
+                if (fallbackData?.processed_at) {
+                    // Use the processed_at date as an approximation
+                    const processedDate = parseISO(fallbackData.processed_at);
+                    console.log(`[Processor] No valid tournament dates found, using processed_at date: ${format(processedDate, 'yyyy-MM-dd')}`);
+                    return format(processedDate, 'yyyy-MM-dd');
+                }
+                return null;
+            }
+            console.error(`Error fetching last processed tournament date:`, error);
+            return null;
+        }
+
+        if (!data || !data.tournament_date) {
+            return null;
+        }
+
+        // Return the date in YYYY-MM-DD format
+        const tournamentDate = format(parseISO(data.tournament_date), 'yyyy-MM-dd');
+        console.log(`[Processor] Found last processed tournament date: ${tournamentDate} (processed at: ${data.processed_at})`);
+        return tournamentDate;
     }
 }
