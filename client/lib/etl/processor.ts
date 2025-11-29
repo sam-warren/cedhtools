@@ -39,7 +39,6 @@ import { supabaseServiceRole } from '../supabase';
 import { MoxfieldClient, TopdeckClient } from './api-clients';
 import {
     EtlStatus,
-    MoxfieldCardEntry,
     MoxfieldDeck,
     Tournament,
     TournamentStanding
@@ -62,7 +61,7 @@ import {
     generateCommanderName,
 } from '../utils/commander';
 import { etlLogger } from '../logger';
-import { EtlProcessingError, RateLimitError } from '../errors';
+import { EtlProcessingError } from '../errors';
 
 /**
  * Main ETL processor class that orchestrates data extraction, transformation,
@@ -745,8 +744,6 @@ export default class EtlProcessor {
             const mainboardCards = Object.values(deck.boards.mainboard.cards);
             this.logger.debug('Processing mainboard cards', { count: mainboardCards.length });
             
-            const cardProcessingStart = Date.now();
-            
             // =================================================================
             // STEP 1: FETCH EXISTING COMMANDER DATA
             // Check if this commander already exists to accumulate statistics
@@ -798,10 +795,11 @@ export default class EtlProcessor {
             dbOperationsTime += statsFetchTime;
             
             // Build lookup map for O(1) access to existing stats
-            const statsMap: Record<string, typeof existingStatistics[0]> = (existingStatistics || []).reduce((acc, stat) => {
+            type StatRecord = { card_id: string; wins: number; losses: number; draws: number; entries: number };
+            const statsMap: Record<string, StatRecord> = (existingStatistics || []).reduce((acc, stat) => {
                 acc[stat.card_id] = stat;
                 return acc;
-            }, {} as Record<string, typeof existingStatistics[0]>);
+            }, {} as Record<string, StatRecord>);
             
             // =================================================================
             // STEP 4: CALCULATE NEW COMMANDER STATISTICS
@@ -1099,5 +1097,4 @@ export default class EtlProcessor {
         });
         return tournamentDate;
     }
-}
 }
