@@ -1,3 +1,39 @@
+/**
+ * ETL Processor
+ * 
+ * This module is responsible for extracting tournament data from Topdeck,
+ * fetching deck information from Moxfield, and aggregating statistics into
+ * the Supabase database.
+ * 
+ * ## Architecture Overview
+ * 
+ * The ETL process follows this flow:
+ * 1. **Extract**: Fetch tournaments from Topdeck API for a date range
+ * 2. **Filter**: Identify standings with Moxfield decklist URLs
+ * 3. **Extract**: Fetch deck details from Moxfield API (rate-limited)
+ * 4. **Transform**: Extract commanders, cards, and calculate statistics
+ * 5. **Load**: Upsert aggregated data into Supabase tables
+ * 
+ * ## Processing Modes
+ * 
+ * - **Full Processing** (`processData`): Processes all data in weekly batches.
+ *   Suitable for initial seeding or catching up on large date ranges.
+ * 
+ * - **Batch Processing** (`processBatch`): Processes data in smaller chunks
+ *   with cursor support. Designed for serverless environments with time limits.
+ * 
+ * ## Data Model
+ * 
+ * - **Commanders**: Identified by sorted concatenation of unique card IDs
+ *   (e.g., "cardA_cardB" for partner commanders). Statistics are aggregated
+ *   across all tournament entries.
+ * 
+ * - **Statistics**: Per-commander, per-card performance metrics including
+ *   wins, losses, draws, and entry counts.
+ * 
+ * @module EtlProcessor
+ */
+
 import { addDays, format, parseISO, subDays, subMonths } from 'date-fns';
 import { supabaseServiceRole } from '../supabase';
 import { MoxfieldClient, TopdeckClient } from './api-clients';
@@ -8,76 +44,153 @@ import {
     Tournament,
     TournamentStanding
 } from './types';
+import {
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_CONCURRENCY_LIMIT,
+    DEFAULT_LOOKBACK_DAYS,
+    DEFAULT_SEED_MONTHS,
+    WEEKLY_BATCH_DAYS,
+    RATE_LIMIT_PAUSE_MS,
+    MIN_VALID_TOURNAMENT_YEAR,
+    CURSOR_DELIMITER,
+    MOXFIELD_URL_PATTERN,
+    ETL_STATUS,
+    type EtlStatusType,
+} from './constants';
+import {
+    generateCommanderId,
+    generateCommanderName,
+} from '../utils/commander';
+import { etlLogger } from '../logger';
+import { EtlProcessingError, RateLimitError } from '../errors';
 
+/**
+ * Main ETL processor class that orchestrates data extraction, transformation,
+ * and loading from tournament APIs into the database.
+ * 
+ * @example
+ * ```typescript
+ * const processor = new EtlProcessor();
+ * 
+ * // Process all data from a date range
+ * await processor.processData('2024-01-01', '2024-06-01');
+ * 
+ * // Or process in smaller batches with cursor support
+ * let cursor = null;
+ * do {
+ *   const result = await processor.processBatch(cursor, 50);
+ *   cursor = result.nextCursor;
+ * } while (!result.isComplete);
+ * ```
+ */
 export default class EtlProcessor {
     private topdeckClient: TopdeckClient;
     private moxfieldClient: MoxfieldClient;
     private concurrencyLimit: number;
+    private logger = etlLogger.child({ module: 'processor' });
 
     constructor() {
         this.topdeckClient = new TopdeckClient();
         this.moxfieldClient = new MoxfieldClient();
-        this.concurrencyLimit = parseInt(process.env.ETL_CONCURRENCY_LIMIT || '5', 10);
+        // Allow runtime configuration of concurrency via environment variable
+        this.concurrencyLimit = parseInt(
+            process.env.ETL_CONCURRENCY_LIMIT || String(DEFAULT_CONCURRENCY_LIMIT), 
+            10
+        );
     }
 
     /**
-     * Process data in batches with cursor support
-     * This method is used by the worker to process data in smaller batches that fit within time constraints
+     * Process data in batches with cursor support for resumable processing.
      * 
-     * @param cursor Optional cursor to resume processing from (tournament id or date)
-     * @param batchSize Maximum number of records to process in this batch
-     * @returns Information about the processed batch and next cursor
+     * This method is designed for environments with time constraints (e.g., serverless
+     * functions with 10-60 second limits). It processes data incrementally and returns
+     * a cursor that can be used to resume processing in the next invocation.
+     * 
+     * ## Cursor Format
+     * The cursor encodes the current position: `{date}:{tournamentId}:{standingIndex}`
+     * - `date`: YYYY-MM-DD format, the date being processed
+     * - `tournamentId`: ID of the tournament being processed (empty if starting a new day)
+     * - `standingIndex`: Index into the standings array (for mid-tournament resume)
+     * 
+     * ## Processing Strategy
+     * 1. Process one day at a time for natural chunking
+     * 2. Within a day, process tournaments sequentially
+     * 3. Within a tournament, process standings up to batch size limit
+     * 4. On rate limit or batch limit, save cursor and return
+     * 
+     * @param cursor - Resume cursor from previous batch, or null to start fresh
+     * @param batchSize - Maximum records to process before returning (default: 50)
+     * @returns Object containing:
+     *   - `nextCursor`: Cursor for next batch, or null if complete
+     *   - `recordsProcessed`: Number of records processed in this batch
+     *   - `isComplete`: True if all data up to today has been processed
+     * 
+     * @example
+     * ```typescript
+     * // Process in a loop (e.g., from cron job or worker)
+     * let cursor = null;
+     * while (true) {
+     *   const { nextCursor, isComplete } = await processor.processBatch(cursor);
+     *   if (isComplete) break;
+     *   cursor = nextCursor;
+     * }
+     * ```
      */
     async processBatch(
         cursor: string | null,
-        batchSize: number = 50
+        batchSize: number = DEFAULT_BATCH_SIZE
     ): Promise<{ nextCursor: string | null; recordsProcessed: number; isComplete: boolean }> {
         try {
-            // Create a new ETL status record
-            const etlStatusId = await this.createEtlStatus('RUNNING');
+            // Create a new ETL status record to track this batch
+            const etlStatusId = await this.createEtlStatus(ETL_STATUS.RUNNING);
 
             if (!etlStatusId) {
                 throw new Error('Failed to create ETL status record');
             }
 
-            // Parse the cursor if provided
+            // Parse the cursor to determine where to resume processing
             let currentDate: string;
             let currentTournamentIndex = 0;
             let tournamentIdToSkipTo: string | null = null;
 
             if (cursor) {
                 // Cursor format: YYYY-MM-DD:tournamentId:index
-                const [date, tournamentId, indexStr] = cursor.split(':');
+                // Example: "2024-01-15:abc123:5" means resume at 5th standing in tournament abc123 on Jan 15
+                const [date, tournamentId, indexStr] = cursor.split(CURSOR_DELIMITER);
                 currentDate = date;
                 tournamentIdToSkipTo = tournamentId || null;
                 currentTournamentIndex = indexStr ? parseInt(indexStr, 10) : 0;
             } else {
-                // If no cursor, get the last processed date or default to 7 days ago
-                // Prefer actual tournament date over ETL status
+                // No cursor provided - determine start date automatically
+                // Priority: 1) Last processed tournament date, 2) Last ETL status, 3) Default lookback
                 const lastTournamentDate = await this.getLastProcessedTournamentDate();
                 if (lastTournamentDate) {
+                    // Start from the day after the last processed tournament
                     currentDate = format(addDays(parseISO(lastTournamentDate), 1), 'yyyy-MM-dd');
-                    console.log(`[Batch] Using last processed tournament date: ${lastTournamentDate}, starting from: ${currentDate}`);
+                    this.logger.info('Using last processed tournament date', { lastTournamentDate, startingFrom: currentDate });
                 } else {
+                    // Fallback: check ETL status table or use default lookback
                     const lastEtlStatus = await this.getLastCompletedEtlStatus();
                     currentDate = lastEtlStatus?.lastProcessedDate
                         ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
-                        : format(subDays(new Date(), 7), 'yyyy-MM-dd');
-                    console.log(`[Batch] Using ETL status date, starting from: ${currentDate}`);
+                        : format(subDays(new Date(), DEFAULT_LOOKBACK_DAYS), 'yyyy-MM-dd');
+                    this.logger.info('Using ETL status date', { startingFrom: currentDate });
                 }
             }
 
-            // Default end date is today
+            // End date is always today - we process up to current date
             const endDate = format(new Date(), 'yyyy-MM-dd');
             
             let recordsProcessed = 0;
             let nextCursor: string | null = null;
             let isComplete = false;
 
-            // Process just one day's worth of data per batch
-            // This provides natural chunking for the batches
+            // =================================================================
+            // MAIN PROCESSING LOOP
+            // Process one day at a time for predictable batch sizes
+            // =================================================================
             if (currentDate <= endDate) {
-                console.log(`Processing batch for date ${currentDate}`);
+                this.logger.info('Processing batch', { date: currentDate });
 
                 // Fetch tournaments for the current date
                 const tournaments = await this.topdeckClient.fetchTournaments(
@@ -85,7 +198,7 @@ export default class EtlProcessor {
                     currentDate
                 );
 
-                console.log(`Found ${tournaments.length} tournaments for ${currentDate}`);
+                this.logger.info('Found tournaments', { date: currentDate, count: tournaments.length });
 
                 // Apply tournament filtering based on cursor
                 let tournamentsToProcess = tournaments;
@@ -105,7 +218,7 @@ export default class EtlProcessor {
                 for (let i = 0; i < tournamentsToProcess.length; i++) {
                     const tournament = tournamentsToProcess[i];
                     
-                    console.log(`Processing tournament: ${tournament.tournamentName} (ID: ${tournament.TID})`);
+                    this.logger.debug('Processing tournament', { name: tournament.tournamentName, id: tournament.TID });
 
                     // Check if tournament has already been processed
                     const { data: existingTournament } = await supabaseServiceRole
@@ -115,7 +228,7 @@ export default class EtlProcessor {
                         .single();
 
                     if (existingTournament) {
-                        console.log(`Skipping already processed tournament: ${tournament.tournamentName}`);
+                        this.logger.debug('Skipping already processed tournament', { name: tournament.tournamentName });
                         continue;
                     }
 
@@ -124,7 +237,7 @@ export default class EtlProcessor {
                         standing => standing.decklist && standing.decklist.includes('moxfield.com/decks/')
                     );
 
-                    console.log(`Found ${moxfieldStandings.length} Moxfield decklists in tournament ${tournament.tournamentName}`);
+                    this.logger.debug('Found Moxfield decklists', { tournament: tournament.tournamentName, count: moxfieldStandings.length });
 
                     let tournamentRecordsProcessed = 0;
                     
@@ -156,7 +269,7 @@ export default class EtlProcessor {
                                 if (error instanceof Error &&
                                     (error.message.includes('429') || error.message.includes('Too Many Requests'))) {
                                     // For rate limiting errors, we need to pause and retry the same standing
-                                    console.log(`Rate limited, setting cursor and pausing...`);
+                                    this.logger.warn('Rate limited, setting cursor and pausing', { standingIndex });
                                     
                                     // Set cursor to current position
                                     nextCursor = `${currentDate}:${tournament.TID}:${standingIndex}`;
@@ -164,7 +277,7 @@ export default class EtlProcessor {
                                     break;
                                 } else {
                                     // For other errors, just log and continue with next item
-                                    console.error(`Error processing standing, skipping:`, error);
+                                    this.logger.logError('Error processing standing, skipping', error);
                                 }
                             }
                         }
@@ -194,7 +307,10 @@ export default class EtlProcessor {
                                 processed_at: new Date().toISOString()
                             });
 
-                        console.log(`Marked tournament ${tournament.tournamentName} as processed with ${tournamentRecordsProcessed} records`);
+                        this.logger.info('Marked tournament as processed', { 
+                            tournament: tournament.tournamentName, 
+                            records: tournamentRecordsProcessed 
+                        });
                     }
                     
                     // If we've hit the batch size limit, stop processing
@@ -238,7 +354,7 @@ export default class EtlProcessor {
 
             return { nextCursor, recordsProcessed, isComplete };
         } catch (error) {
-            console.error('Error in batch processing:', error);
+            this.logger.logError('Error in batch processing', error);
 
             // Update any ETL status to failed
             await this.updateEtlStatus(undefined, {
@@ -250,75 +366,104 @@ export default class EtlProcessor {
         }
     }
 
+    /**
+     * Process all tournament data within a date range.
+     * 
+     * This method is suitable for:
+     * - Initial database seeding (6 months of historical data)
+     * - Catching up after extended downtime
+     * - Running in environments without strict time limits
+     * 
+     * Data is processed in weekly batches to balance API load with efficiency.
+     * Each batch is committed independently, so partial progress is preserved
+     * if the process is interrupted.
+     * 
+     * @param startDate - Start date in YYYY-MM-DD format (optional, defaults to last processed or 6 months ago)
+     * @param endDate - End date in YYYY-MM-DD format (optional, defaults to today)
+     * 
+     * @example
+     * ```typescript
+     * // Process last 6 months (for seeding)
+     * await processor.processData();
+     * 
+     * // Process specific date range
+     * await processor.processData('2024-01-01', '2024-03-31');
+     * ```
+     */
     async processData(
         startDate?: string,
         endDate?: string,
     ): Promise<void> {
         try {
-            console.log('[Processor] Starting ETL process...');
+            this.logger.info('Starting ETL process');
             
-            // Create a new ETL status record
-            const etlStatusId = await this.createEtlStatus('RUNNING');
+            // Create ETL status record to track this run
+            const etlStatusId = await this.createEtlStatus(ETL_STATUS.RUNNING);
 
             if (!etlStatusId) {
-                throw new Error('Failed to create ETL status record');
+                throw new EtlProcessingError('Failed to create ETL status record', 'initialization');
             }
 
-            // If no dates provided, get the last processed date or default to 6 months ago
+            // =================================================================
+            // DETERMINE DATE RANGE
+            // Priority: 1) Provided dates, 2) Last tournament, 3) ETL status, 4) Default
+            // =================================================================
             if (!startDate) {
-                // First try to get the actual last processed tournament date (most reliable)
+                // Try to get the actual last processed tournament date (most reliable)
                 const lastTournamentDate = await this.getLastProcessedTournamentDate();
                 if (lastTournamentDate) {
                     startDate = format(addDays(parseISO(lastTournamentDate), 1), 'yyyy-MM-dd');
-                    console.log(`[Processor] Using last processed tournament date: ${lastTournamentDate}, starting from: ${startDate}`);
+                    this.logger.info('Using last processed tournament date', { lastTournamentDate, startingFrom: startDate });
                 } else {
                     // Fallback to ETL status if no tournaments found
                     const lastEtlStatus = await this.getLastCompletedEtlStatus();
                     startDate = lastEtlStatus?.lastProcessedDate
                         ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
-                        : format(subMonths(new Date(), 6), 'yyyy-MM-dd');
-                    console.log(`[Processor] Using ETL status date, starting from: ${startDate}`);
+                        : format(subMonths(new Date(), DEFAULT_SEED_MONTHS), 'yyyy-MM-dd');
+                    this.logger.info('Using ETL status date', { startingFrom: startDate });
                 }
             }
 
-            // If no end date, use today
+            // Default end date is today
             if (!endDate) {
                 endDate = format(new Date(), 'yyyy-MM-dd');
             }
 
-            console.log(`[Processor] Processing data from ${startDate} to ${endDate}`);
+            this.logger.info('Processing data', { startDate, endDate });
 
             let currentStartDate = startDate;
             let recordsProcessed = 0;
 
-            // Process data in weekly batches to avoid overwhelming the API
+            // =================================================================
+            // WEEKLY BATCH PROCESSING LOOP
+            // Process data in weekly chunks to avoid overwhelming APIs
+            // and to allow for partial progress if interrupted
+            // =================================================================
             while (currentStartDate <= endDate) {
-                // Calculate the end of the current batch (7 days later or the overall end date)
+                // Calculate batch end: min(current + 7 days, overall end date)
                 const batchEndDate = format(
                     new Date(Math.min(
-                        addDays(parseISO(currentStartDate), 7).getTime(),
+                        addDays(parseISO(currentStartDate), WEEKLY_BATCH_DAYS).getTime(),
                         parseISO(endDate).getTime()
                     )),
                     'yyyy-MM-dd'
                 );
 
-                console.log(`[Processor] Processing batch from ${currentStartDate} to ${batchEndDate}`);
+                this.logger.info('Processing weekly batch', { startDate: currentStartDate, endDate: batchEndDate });
 
                 // Fetch tournaments for the current batch
-                console.log(`[Processor] Fetching tournaments from Topdeck...`);
                 const tournaments = await this.topdeckClient.fetchTournaments(
                     currentStartDate,
                     batchEndDate
                 );
 
-                console.log(`[Processor] Found ${tournaments.length} tournaments`);
+                this.logger.info('Found tournaments', { count: tournaments.length });
 
                 // Process the tournaments and their decklists
-                console.log(`[Processor] Starting to process tournaments...`);
                 const batchRecordsProcessed = await this.processTournaments(tournaments);
                 recordsProcessed += batchRecordsProcessed;
 
-                console.log(`[Processor] Processed ${batchRecordsProcessed} records in this batch. Total: ${recordsProcessed}`);
+                this.logger.info('Batch complete', { batchRecords: batchRecordsProcessed, totalRecords: recordsProcessed });
 
                 // Only update last_processed_date if we actually processed records
                 // Use the actual last tournament date if available, otherwise use batchEndDate
@@ -346,27 +491,37 @@ export default class EtlProcessor {
                 endDate: new Date().toISOString()
             });
 
-            console.log(`[Processor] ETL process completed successfully. Processed ${recordsProcessed} records.`);
+            this.logger.info('ETL process completed successfully', { recordsProcessed });
         } catch (error) {
-            console.error('[Processor] Error in ETL process:', error);
+            this.logger.logError('Error in ETL process', error);
 
             // Update the ETL status to failed
-            if (error instanceof Error) {
-                await this.updateEtlStatus(undefined, {
-                    status: 'FAILED',
-                    endDate: new Date().toISOString()
-                });
-            }
+            await this.updateEtlStatus(undefined, {
+                status: 'FAILED',
+                endDate: new Date().toISOString()
+            });
 
             throw error;
         }
     }
 
+    /**
+     * Process a list of tournaments, extracting and storing deck data.
+     * 
+     * For each tournament:
+     * 1. Check if already processed (skip if yes)
+     * 2. Filter standings to only those with Moxfield URLs
+     * 3. Process each standing's deck data
+     * 4. Mark tournament as processed when complete
+     * 
+     * @param tournaments - Array of tournaments from Topdeck API
+     * @returns Total number of records (standings) processed
+     */
     private async processTournaments(tournaments: Tournament[]): Promise<number> {
         let recordsProcessed = 0;
 
         for (const tournament of tournaments) {
-            console.log(`Processing tournament: ${tournament.tournamentName} (ID: ${tournament.TID})`);
+            this.logger.debug('Processing tournament', { name: tournament.tournamentName, id: tournament.TID });
 
             // Check if tournament has already been processed
             const { data: existingTournament } = await supabaseServiceRole
@@ -376,7 +531,11 @@ export default class EtlProcessor {
                 .single();
 
             if (existingTournament) {
-                console.log(`Skipping already processed tournament: ${tournament.tournamentName} (ID: ${tournament.TID}) with ${existingTournament.record_count} records`);
+                this.logger.debug('Skipping already processed tournament', { 
+                    name: tournament.tournamentName, 
+                    id: tournament.TID, 
+                    records: existingTournament.record_count 
+                });
                 continue;
             }
 
@@ -385,7 +544,7 @@ export default class EtlProcessor {
                 standing => standing.decklist && standing.decklist.includes('moxfield.com/decks/')
             );
 
-            console.log(`Found ${moxfieldStandings.length} Moxfield decklists in tournament ${tournament.tournamentName}`);
+            this.logger.debug('Found Moxfield decklists', { tournament: tournament.tournamentName, count: moxfieldStandings.length });
 
             let tournamentRecordsProcessed = 0;
 
@@ -402,16 +561,19 @@ export default class EtlProcessor {
                     } catch (error) {
                         if (error instanceof Error &&
                             (error.message.includes('429') || error.message.includes('Too Many Requests'))) {
-                            // For rate limiting errors, we need to pause and retry the same standing
-                            console.log(`Rate limited, retrying standing after backoff...`);
+                            // Rate limit detected - pause and retry this batch
+                            // Note: This should rarely trigger since MoxfieldClient has its own retry logic
+                            // This is a safety net for cases where the client's retries are exhausted
+                            this.logger.warn('Rate limited, retrying standing after backoff');
                             i -= this.concurrencyLimit; // Move back to retry this batch
 
-                            // Wait a bit before retrying (this should rarely happen since fetchDeck has its own retry logic)
-                            await new Promise(resolve => setTimeout(resolve, 30000)); // 30s additional pause
+                            // Additional pause on top of client's exponential backoff
+                            await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_PAUSE_MS));
                             break; // Exit the batch loop to retry
                         } else {
-                            // For other errors, just log and continue with next item
-                            console.error(`Error processing standing, skipping:`, error);
+                            // Non-rate-limit errors: log and continue with next standing
+                            // This prevents one bad deck from blocking the entire tournament
+                            this.logger.logError('Error processing standing, skipping', error);
                         }
                     }
                 }
@@ -434,13 +596,29 @@ export default class EtlProcessor {
                         processed_at: new Date().toISOString()
                     });
 
-                console.log(`Marked tournament ${tournament.tournamentName} as processed with ${tournamentRecordsProcessed} records`);
+                this.logger.info('Marked tournament as processed', { 
+                    tournament: tournament.tournamentName, 
+                    records: tournamentRecordsProcessed 
+                });
             }
         }
 
         return recordsProcessed;
     }
 
+    /**
+     * Process a single tournament standing (one player's deck entry).
+     * 
+     * Steps:
+     * 1. Extract Moxfield deck ID from the decklist URL
+     * 2. Fetch deck data from Moxfield API (with rate limiting)
+     * 3. Delegate to processDeck() for data extraction and storage
+     * 
+     * Rate limit errors (429) are re-thrown to allow retry logic at higher levels.
+     * Other errors are caught and logged, allowing processing to continue.
+     * 
+     * @param standing - Tournament standing with decklist URL and results
+     */
     private async processStanding(standing: TournamentStanding): Promise<void> {
         try {
             const startTime = Date.now();
@@ -449,42 +627,72 @@ export default class EtlProcessor {
             const deckId = this.extractDeckId(standing.decklist);
 
             if (!deckId) {
-                console.warn(`Invalid Moxfield URL: ${standing.decklist}`);
+                this.logger.warn('Invalid Moxfield URL', { url: standing.decklist });
                 return;
             }
 
-            // Fetch the deck from Moxfield - let rate limit errors propagate to retry logic
-            console.log(`[PERF] Starting fetch for deck ${deckId}...`);
+            // Fetch the deck from Moxfield
+            // Rate limit errors will propagate up for retry handling
             const fetchStartTime = Date.now();
             const deck = await this.moxfieldClient.fetchDeck(deckId);
             const fetchEndTime = Date.now();
-            console.log(`[PERF] Fetch for deck ${deckId} took ${fetchEndTime - fetchStartTime}ms`);
 
             if (!deck) {
-                console.warn(`Deck not found: ${deckId}`);
+                // Deck may have been deleted or made private
+                this.logger.warn('Deck not found', { deckId });
                 return;
             }
 
-            // Process the deck data
-            console.log(`[PERF] Starting processing for deck ${deckId}...`);
+            // Process the deck data and store in database
             const processStartTime = Date.now();
             await this.processDeck(deck, standing);
             const processEndTime = Date.now();
             
+            // Performance logging for monitoring
             const totalTime = processEndTime - startTime;
-            console.log(`[PERF] Processing deck ${deckId} took ${processEndTime - processStartTime}ms`);
-            console.log(`[PERF] Total time for deck ${deckId}: ${totalTime}ms (Fetch: ${fetchEndTime - fetchStartTime}ms, Process: ${processEndTime - processStartTime}ms)`);
+            this.logger.debug('Deck processing complete', { 
+                deckId, 
+                totalMs: totalTime, 
+                fetchMs: fetchEndTime - fetchStartTime, 
+                processMs: processEndTime - processStartTime 
+            });
         } catch (error) {
-            console.error(`Error processing standing:`, error);
-            // Re-throw rate limit errors so they can be properly handled
+            this.logger.logError('Error processing standing', error);
+            
+            // Re-throw rate limit errors for upstream retry handling
             if (error instanceof Error &&
                 (error.message.includes('429') || error.message.includes('Too Many Requests'))) {
                 throw error;
             }
-            // For other errors, continue processing
+            // Swallow other errors to allow processing to continue
         }
     }
 
+    /**
+     * Process a Moxfield deck and update database statistics.
+     * 
+     * This is the core transformation logic that:
+     * 1. Extracts commander(s) and generates a consistent commander ID
+     * 2. Extracts all mainboard cards
+     * 3. Fetches existing statistics from the database
+     * 4. Calculates new aggregated statistics
+     * 5. Batch upserts all data (commander, cards, statistics)
+     * 
+     * ## Commander ID Generation
+     * For partner commanders, the ID is a sorted concatenation of unique card IDs
+     * (e.g., "cardA_cardB"). This ensures consistent identification regardless of
+     * the order commanders appear in the deck.
+     * 
+     * ## Database Operations
+     * Uses a batched approach to minimize round trips:
+     * 1. Single query to fetch existing commander data
+     * 2. Single query to fetch all existing card statistics
+     * 3. Single RPC call to upsert all data atomically
+     * 4. Fallback to individual upserts if RPC fails
+     * 
+     * @param deck - Moxfield deck data
+     * @param standing - Tournament standing with win/loss/draw counts
+     */
     private async processDeck(
         deck: MoxfieldDeck,
         standing: TournamentStanding
@@ -493,50 +701,56 @@ export default class EtlProcessor {
             const startTime = Date.now();
             let dbOperationsTime = 0;
             
-            // First check if deck exists
+            // =================================================================
+            // VALIDATION - Ensure deck has required structure
+            // =================================================================
             if (!deck) {
-                console.warn(`Deck is null or undefined`);
+                this.logger.warn('Deck is null or undefined');
                 return;
             }
 
-            // Check if deck has boards property
             if (!deck.boards) {
-                console.warn(`Deck has no boards property`);
+                this.logger.warn('Deck has no boards property');
                 return;
             }
 
-            // Check if commanders board exists
             if (!deck.boards.commanders) {
-                console.warn(`Deck has no commanders board`);
+                this.logger.warn('Deck has no commanders board');
                 return;
             }
 
-            // Extract commanders - in the API, cards is an object map not an array
+            // Extract commanders - Moxfield API uses object map, not array
             const commanderCardsObj = deck.boards.commanders.cards || {};
             const commanderCards = Object.values(commanderCardsObj);
             
             if (commanderCards.length === 0) {
-                console.warn(`Deck has no commanders`);
+                this.logger.warn('Deck has no commanders');
                 return;
             }
 
-            // Identify the commander or commander pair
-            const commanderId = this.generateCommanderId(commanderCards);
-            const commanderName = this.generateCommanderName(commanderCards);
+            // =================================================================
+            // COMMANDER IDENTIFICATION
+            // Generate consistent ID for commander/partner pairs using shared utility
+            // =================================================================
+            const commanderId = generateCommanderId(commanderCards);
+            const commanderName = generateCommanderName(commanderCards);
 
-            // Prepare to batch process all cards
+            // Validate mainboard exists
             if (!deck.boards.mainboard || !deck.boards.mainboard.cards) {
-                console.warn(`Deck has no mainboard cards`);
+                this.logger.warn('Deck has no mainboard cards');
                 return;
             }
 
-            // Process all cards in the mainboard at once
+            // Extract all mainboard cards for batch processing
             const mainboardCards = Object.values(deck.boards.mainboard.cards);
-            console.log(`[PERF] Processing ${mainboardCards.length} cards in mainboard`);
+            this.logger.debug('Processing mainboard cards', { count: mainboardCards.length });
             
             const cardProcessingStart = Date.now();
             
-            // Step 1: Fetch the commander data
+            // =================================================================
+            // STEP 1: FETCH EXISTING COMMANDER DATA
+            // Check if this commander already exists to accumulate statistics
+            // =================================================================
             const commanderFetchStart = Date.now();
             const { data: existingCommander } = await supabaseServiceRole
                 .from('commanders')
@@ -547,7 +761,10 @@ export default class EtlProcessor {
             const commanderFetchTime = Date.now() - commanderFetchStart;
             dbOperationsTime += commanderFetchTime;
             
-            // Step 2: Prepare all cards data for batch operations
+            // =================================================================
+            // STEP 2: PREPARE CARD DATA FOR BATCH OPERATIONS
+            // Transform Moxfield card data to database schema format
+            // =================================================================
             const allCards = mainboardCards.map(cardEntry => {
                 if (!cardEntry || !cardEntry.card) {
                     return null;
@@ -563,10 +780,13 @@ export default class EtlProcessor {
                 };
             }).filter(Boolean);
             
-            // Get all card IDs for fetching existing statistics
+            // Extract card IDs for statistics query
             const allCardIds = allCards.map(card => card!.unique_card_id);
             
-            // Step 3: Fetch all existing statistics in one query
+            // =================================================================
+            // STEP 3: FETCH EXISTING STATISTICS (BATCH)
+            // Get all card statistics for this commander in one query
+            // =================================================================
             const statsFetchStart = Date.now();
             const { data: existingStatistics } = await supabaseServiceRole
                 .from('statistics')
@@ -577,13 +797,16 @@ export default class EtlProcessor {
             const statsFetchTime = Date.now() - statsFetchStart;
             dbOperationsTime += statsFetchTime;
             
-            // Create a map for faster lookups
-            const statsMap = (existingStatistics || []).reduce((acc, stat) => {
+            // Build lookup map for O(1) access to existing stats
+            const statsMap: Record<string, typeof existingStatistics[0]> = (existingStatistics || []).reduce((acc, stat) => {
                 acc[stat.card_id] = stat;
                 return acc;
-            }, {});
+            }, {} as Record<string, typeof existingStatistics[0]>);
             
-            // Step 4: Calculate new commander values
+            // =================================================================
+            // STEP 4: CALCULATE NEW COMMANDER STATISTICS
+            // Accumulate this tournament's results with existing data
+            // =================================================================
             const newCommanderValues = {
                 id: commanderId,
                 name: commanderName,
@@ -594,7 +817,10 @@ export default class EtlProcessor {
                 updated_at: new Date().toISOString()
             };
             
-            // Step 5: Prepare all statistics records
+            // =================================================================
+            // STEP 5: PREPARE STATISTICS RECORDS
+            // Accumulate card statistics for this commander
+            // =================================================================
             const allStatistics = allCardIds.map(cardId => {
                 const existingStat = statsMap[cardId];
                 
@@ -609,10 +835,13 @@ export default class EtlProcessor {
                 };
             });
             
-            // Step 6: Execute batch operations
+            // =================================================================
+            // STEP 6: BATCH UPSERT ALL DATA
+            // Prefer RPC for atomicity, fallback to sequential upserts
+            // =================================================================
             const batchUpsertStart = Date.now();
             
-            // Use a transaction to ensure data consistency
+            // Try RPC function for atomic batch operation
             const { error } = await supabaseServiceRole.rpc('batch_upsert_deck_data', {
                 commander_data: newCommanderValues,
                 cards_data: allCards,
@@ -620,16 +849,17 @@ export default class EtlProcessor {
             });
             
             if (error) {
-                // If RPC fails, fall back to standard batch operations
-                console.warn(`RPC batch operation failed: ${error.message}. Falling back to standard batch operations.`);
+                // RPC may not exist or may fail - fall back to standard batch operations
+                // This maintains compatibility and allows the ETL to work without the RPC function
+                this.logger.debug('RPC batch operation failed, using fallback', { error: error.message });
                 
-                // Perform batch operations in sequence
+                // Perform batch operations sequentially (order matters for foreign keys)
                 const commanderResult = await supabaseServiceRole
                     .from('commanders')
                     .upsert(newCommanderValues, { onConflict: 'id' });
                     
                 if (commanderResult.error) {
-                    console.error(`Error upserting commander: ${commanderResult.error.message}`);
+                    this.logger.warn('Error upserting commander', { error: commanderResult.error.message });
                 }
                 
                 const cardsResult = await supabaseServiceRole
@@ -637,7 +867,7 @@ export default class EtlProcessor {
                     .upsert(allCards, { onConflict: 'unique_card_id' });
                     
                 if (cardsResult.error) {
-                    console.error(`Error upserting cards: ${cardsResult.error.message}`);
+                    this.logger.warn('Error upserting cards', { error: cardsResult.error.message });
                 }
                 
                 const statsResult = await supabaseServiceRole
@@ -645,7 +875,7 @@ export default class EtlProcessor {
                     .upsert(allStatistics, { onConflict: 'commander_id,card_id' });
                     
                 if (statsResult.error) {
-                    console.error(`Error upserting statistics: ${statsResult.error.message}`);
+                    this.logger.warn('Error upserting statistics', { error: statsResult.error.message });
                 }
             }
             
@@ -656,40 +886,40 @@ export default class EtlProcessor {
             const totalProcessingTime = cardProcessingEnd - startTime;
             const nonDbTime = totalProcessingTime - dbOperationsTime;
             
-            console.log(`[PERF] Card processing complete in ${cardProcessingEnd - cardProcessingStart}ms`);
-            console.log(`[PERF] Deck processing summary:
-            - Total time: ${totalProcessingTime}ms
-            - DB operations: ${dbOperationsTime}ms (${Math.round(dbOperationsTime/totalProcessingTime*100)}%)
-            - Command fetch: ${commanderFetchTime}ms
-            - Stats fetch: ${statsFetchTime}ms
-            - Batch upsert: ${batchUpsertTime}ms
-            - Other processing: ${nonDbTime}ms (${Math.round(nonDbTime/totalProcessingTime*100)}%)
-            - Cards processed: ${allCards.length}
-            - Avg time per card: ${allCards.length > 0 ? Math.round(dbOperationsTime/allCards.length) : 0}ms`);
+            this.logger.debug('Deck processing summary', {
+                totalMs: totalProcessingTime,
+                dbOpsMs: dbOperationsTime,
+                dbPercent: Math.round(dbOperationsTime / totalProcessingTime * 100),
+                commanderFetchMs: commanderFetchTime,
+                statsFetchMs: statsFetchTime,
+                batchUpsertMs: batchUpsertTime,
+                otherMs: nonDbTime,
+                cardsCount: allCards.length,
+                avgMsPerCard: allCards.length > 0 ? Math.round(dbOperationsTime / allCards.length) : 0
+            });
         } catch (error) {
-            console.error(`Error processing deck:`, error);
+            this.logger.logError('Error processing deck', error);
         }
     }
 
-    private generateCommanderId(commanderCards: MoxfieldCardEntry[]): string {
-        // Sort by uniqueCardId to ensure consistent ordering
-        const sortedCards = [...commanderCards].sort((a, b) =>
-            (a.card.uniqueCardId || '').localeCompare(b.card.uniqueCardId || '')
-        );
-
-        return sortedCards.map(card => card.card.uniqueCardId || '').join('_');
-    }
-
-    private generateCommanderName(commanderCards: MoxfieldCardEntry[]): string {
-        return commanderCards.map(card => card.card.name || 'Unknown Commander').join(' + ');
-    }
-
+    /**
+     * Extract the Moxfield deck ID from a full decklist URL.
+     * 
+     * @param decklistUrl - Full Moxfield URL (e.g., "https://www.moxfield.com/decks/abc123")
+     * @returns The deck ID portion, or null if URL doesn't match expected pattern
+     */
     private extractDeckId(decklistUrl: string): string | null {
-        const match = decklistUrl.match(/moxfield\.com\/decks\/([a-zA-Z0-9_-]+)/);
+        const match = decklistUrl.match(MOXFIELD_URL_PATTERN);
         return match ? match[1] : null;
     }
 
-    private async createEtlStatus(status: 'RUNNING' | 'COMPLETED' | 'FAILED'): Promise<number | null> {
+    /**
+     * Create a new ETL status record to track the current run.
+     * 
+     * @param status - Initial status (typically 'RUNNING')
+     * @returns The ID of the created record, or null on error
+     */
+    private async createEtlStatus(status: EtlStatusType): Promise<number | null> {
         const { data, error } = await supabaseServiceRole
             .from('etl_status')
             .insert({
@@ -701,28 +931,39 @@ export default class EtlProcessor {
             .single();
 
         if (error) {
-            console.error(`Error creating ETL status:`, error);
+            this.logger.warn('Error creating ETL status', { error: error.message });
             return null;
         }
 
         return data.id;
     }
 
+    /**
+     * Update an ETL status record with progress or completion information.
+     * 
+     * If no ID is provided, attempts to update the most recent status record
+     * (useful for error handling when the ID may not be available).
+     * 
+     * @param id - ETL status record ID (optional)
+     * @param updates - Fields to update
+     */
     private async updateEtlStatus(
         id?: number,
         updates?: Partial<{
-            status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+            status: EtlStatusType;
             endDate: string;
             recordsProcessed: number;
             lastProcessedDate: string;
         }>
     ): Promise<void> {
+        // Nothing to do if no ID and no status update
         if (!id && !updates?.status) {
             return;
         }
 
         try {
             if (id) {
+                // Update specific record by ID
                 const { error } = await supabaseServiceRole
                     .from('etl_status')
                     .update({
@@ -734,10 +975,10 @@ export default class EtlProcessor {
                     .eq('id', id);
 
                 if (error) {
-                    console.error(`Error updating ETL status:`, error);
+                    this.logger.warn('Error updating ETL status', { id, error: error.message });
                 }
             } else {
-                // If no ID provided, update the most recent ETL status with the given status
+                // Fallback: update most recent record (for error handling)
                 const { error } = await supabaseServiceRole
                     .from('etl_status')
                     .update({
@@ -748,19 +989,28 @@ export default class EtlProcessor {
                     .limit(1);
 
                 if (error) {
-                    console.error(`Error updating ETL status:`, error);
+                    this.logger.warn('Error updating ETL status', { error: error.message });
                 }
             }
         } catch (error) {
-            console.error(`Error updating ETL status:`, error);
+            this.logger.logError('Error updating ETL status', error);
         }
     }
 
+    /**
+     * Get the most recent completed ETL status that processed records.
+     * 
+     * This is used to determine the start date for incremental processing.
+     * Only considers runs that actually processed records (records_processed > 0)
+     * to avoid false positives from empty runs.
+     * 
+     * @returns Last completed ETL status, or null if none found
+     */
     private async getLastCompletedEtlStatus(): Promise<EtlStatus | null> {
         const { data, error } = await supabaseServiceRole
             .from('etl_status')
             .select('*')
-            .eq('status', 'COMPLETED')
+            .eq('status', ETL_STATUS.COMPLETED)
             .gt('records_processed', 0) // Only get statuses that actually processed records
             .order('created_at', { ascending: false })
             .limit(1)
@@ -768,45 +1018,55 @@ export default class EtlProcessor {
 
         if (error) {
             if (error.code === 'PGRST116') {
-                // No data found
+                // PGRST116 = no rows returned - this is expected for first run
                 return null;
             }
-            console.error(`Error fetching last ETL status:`, error);
+            this.logger.warn('Error fetching last ETL status', { error: error.message });
             return null;
         }
 
+        // Map database columns to EtlStatus interface
         return {
             id: data.id,
             startDate: data.start_date,
             endDate: data.end_date,
-            status: data.status,
+            status: data.status as EtlStatusType,
             recordsProcessed: data.records_processed,
             lastProcessedDate: data.last_processed_date
         };
     }
 
     /**
-     * Get the actual last processed tournament date from the processed_tournaments table
-     * This is more reliable than using etl_status.last_processed_date
+     * Get the actual last processed tournament date from the processed_tournaments table.
      * 
-     * Note: Uses processed_at to find the most recent tournament, then extracts its date.
-     * This handles cases where tournament_date might be corrupted (e.g., 1970 dates from the bug).
+     * This is more reliable than using etl_status.last_processed_date because it
+     * reflects actual tournament data that was processed, not just ETL run metadata.
+     * 
+     * ## Handling Corrupted Dates
+     * A previous bug caused some tournament_date values to be stored as 1970-01-01
+     * (Unix epoch). This method filters out those corrupted dates by requiring
+     * tournament_date > MIN_VALID_TOURNAMENT_YEAR.
+     * 
+     * If all tournament dates are corrupted, falls back to using processed_at
+     * as an approximation of when tournaments occurred.
+     * 
+     * @returns Last processed tournament date in YYYY-MM-DD format, or null if none found
      */
     private async getLastProcessedTournamentDate(): Promise<string | null> {
-        // First, try to get a tournament with a valid date (not from 1970, which indicates corrupted data)
-        // Order by processed_at to get the most recently processed tournament
+        // Query for most recently processed tournament with a valid date
+        // Uses processed_at ordering to get the most recent, then validates tournament_date
         const { data, error } = await supabaseServiceRole
             .from('processed_tournaments')
             .select('tournament_date, processed_at')
-            .gt('tournament_date', '2000-01-01') // Filter out corrupted 1970 dates
+            .gt('tournament_date', MIN_VALID_TOURNAMENT_YEAR) // Filter out corrupted epoch dates
             .order('processed_at', { ascending: false })
             .limit(1)
             .single();
 
         if (error) {
             if (error.code === 'PGRST116') {
-                // No valid tournament dates found - might be all corrupted
-                // Fall back to using processed_at to estimate the date
+                // No valid tournament dates found - might all be corrupted
+                // Fall back to processed_at as an approximation
                 const { data: fallbackData } = await supabaseServiceRole
                     .from('processed_tournaments')
                     .select('processed_at')
@@ -815,14 +1075,15 @@ export default class EtlProcessor {
                     .single();
                 
                 if (fallbackData?.processed_at) {
-                    // Use the processed_at date as an approximation
                     const processedDate = parseISO(fallbackData.processed_at);
-                    console.log(`[Processor] No valid tournament dates found, using processed_at date: ${format(processedDate, 'yyyy-MM-dd')}`);
+                    this.logger.info('No valid tournament dates found, using processed_at', { 
+                        date: format(processedDate, 'yyyy-MM-dd') 
+                    });
                     return format(processedDate, 'yyyy-MM-dd');
                 }
                 return null;
             }
-            console.error(`Error fetching last processed tournament date:`, error);
+            this.logger.warn('Error fetching last processed tournament date', { error: error.message });
             return null;
         }
 
@@ -830,9 +1091,13 @@ export default class EtlProcessor {
             return null;
         }
 
-        // Return the date in YYYY-MM-DD format
+        // Format and return the date
         const tournamentDate = format(parseISO(data.tournament_date), 'yyyy-MM-dd');
-        console.log(`[Processor] Found last processed tournament date: ${tournamentDate} (processed at: ${data.processed_at})`);
+        this.logger.info('Found last processed tournament date', { 
+            tournamentDate, 
+            processedAt: data.processed_at 
+        });
         return tournamentDate;
     }
+}
 }

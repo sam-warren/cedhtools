@@ -1,26 +1,72 @@
-import { MoxfieldDeck, Tournament } from './types';
+/**
+ * API Clients for External Data Sources
+ * 
+ * This module provides clients for fetching data from:
+ * - **Topdeck**: Tournament results and standings
+ * - **Moxfield**: Deck lists and card data
+ * 
+ * Both clients include proper error handling and the Moxfield client
+ * implements sophisticated rate limiting with exponential backoff.
+ */
 
+import { MoxfieldDeck, Tournament } from './types';
+import {
+    DEFAULT_TOPDECK_API_URL,
+    DEFAULT_REQUESTS_PER_SECOND,
+    MAX_RETRY_ATTEMPTS,
+    RETRY_BASE_DELAY_MS,
+    MAX_BACKOFF_MS,
+    JITTER_RANGE_MS,
+} from './constants';
+import { etlLogger } from '../logger';
+import { ExternalServiceError, RateLimitError } from '../errors';
+
+/**
+ * Client for fetching tournament data from the Topdeck API.
+ * 
+ * Topdeck.gg is a platform for organizing and tracking Magic: The Gathering
+ * tournaments. This client fetches EDH (Commander) tournament results including
+ * player standings and decklist URLs.
+ * 
+ * @example
+ * ```typescript
+ * const client = new TopdeckClient();
+ * const tournaments = await client.fetchTournaments('2024-01-01', '2024-01-31');
+ * ```
+ */
 export class TopdeckClient {
     private baseUrl: string;
     private apiKey: string;
+    private logger = etlLogger.child({ client: 'topdeck' });
 
     constructor() {
-        this.baseUrl = process.env.TOPDECK_API_BASE_URL || 'https://topdeck.gg/api/v2';
+        this.baseUrl = process.env.TOPDECK_API_BASE_URL || DEFAULT_TOPDECK_API_URL;
         this.apiKey = process.env.TOPDECK_API_KEY || '';
 
         if (!this.apiKey) {
-            console.warn('TOPDECK_API_KEY not set in environment variables');
+            this.logger.warn('TOPDECK_API_KEY not set in environment variables');
         }
     }
 
+    /**
+     * Fetch all EDH tournaments within a date range.
+     * 
+     * @param startDate - Start date in YYYY-MM-DD format
+     * @param endDate - End date in YYYY-MM-DD format
+     * @returns Array of tournaments with standings including decklist URLs
+     * @throws Error if the API request fails
+     */
     async fetchTournaments(startDate: string, endDate: string): Promise<Tournament[]> {
-        console.log(`Fetching tournaments from ${startDate} to ${endDate}`);
-
-        // Convert ISO date strings to Unix timestamps in seconds
+        // Topdeck API expects Unix timestamps (seconds since epoch)
         const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
         const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
 
-        console.log(`Converted to timestamps: ${startTimestamp} to ${endTimestamp}`);
+        this.logger.debug('Fetching tournaments', { 
+            startDate, 
+            endDate, 
+            startTimestamp, 
+            endTimestamp 
+        });
 
         try {
             const response = await fetch(`${this.baseUrl}/tournaments`, {
@@ -34,6 +80,7 @@ export class TopdeckClient {
                     format: "EDH",
                     start: startTimestamp,
                     end: endTimestamp,
+                    // Request specific columns to minimize payload size
                     columns: [
                         "decklist",
                         "wins",
@@ -45,146 +92,241 @@ export class TopdeckClient {
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch tournaments: ${response.status} ${response.statusText}`);
+                throw new ExternalServiceError(
+                    'Topdeck',
+                    `Failed to fetch tournaments: ${response.status} ${response.statusText}`
+                );
             }
 
             const data = await response.json();
             return data as Tournament[];
         } catch (error) {
-            console.error('Error fetching tournaments:', error);
+            this.logger.logError('Error fetching tournaments', error);
             throw error;
         }
     }
 }
 
+/**
+ * Client for fetching deck data from the Moxfield API.
+ * 
+ * Moxfield is a popular deck-building website for Magic: The Gathering.
+ * This client fetches detailed deck information including:
+ * - Commander(s) in the command zone
+ * - Mainboard cards with quantities
+ * - Card metadata (name, type, Scryfall ID)
+ * 
+ * ## Rate Limiting Strategy
+ * 
+ * Moxfield has strict rate limits. This client implements a multi-layer
+ * rate limiting strategy:
+ * 
+ * 1. **Delay Between Requests**: Enforces a minimum delay between requests
+ *    (default: 5 seconds = 0.2 requests/second). This prevents hitting rate
+ *    limits under normal operation.
+ * 
+ * 2. **Exponential Backoff**: When a 429 (Too Many Requests) response is
+ *    received, the client implements exponential backoff:
+ *    - Base delay: 5 seconds
+ *    - Multiplier: 2^(consecutive_errors - 1)
+ *    - Maximum: 2 minutes
+ *    - Random jitter: 0-1000ms (prevents thundering herd)
+ * 
+ * 3. **Retry Logic**: Automatically retries rate-limited requests up to
+ *    5 times with increasing delays.
+ * 
+ * @example
+ * ```typescript
+ * const client = new MoxfieldClient();
+ * const deck = await client.fetchDeck('abc123');
+ * if (deck) {
+ *   console.log('Commanders:', deck.boards.commanders);
+ *   console.log('Cards:', deck.boards.mainboard.cards);
+ * }
+ * ```
+ */
 export class MoxfieldClient {
     private baseUrl: string;
     private userAgent: string;
+    /** Minimum milliseconds to wait between requests */
     private requestDelay: number;
+    /** Timestamp of last request (for rate limiting) */
     private lastRequestTime: number = 0;
+    /** Count of consecutive rate limit errors (for backoff calculation) */
     private consecutiveErrors: number = 0;
+    private logger = etlLogger.child({ client: 'moxfield' });
 
     constructor() {
-        this.baseUrl = process.env.MOXFIELD_API_BASE_URL || ''
+        this.baseUrl = process.env.MOXFIELD_API_BASE_URL || '';
         this.userAgent = process.env.MOXFIELD_USER_AGENT || '';
 
-        // Super conservative - one request every 5 seconds (configurable)
-        const requestsPerSecond = parseFloat(process.env.ETL_REQUESTS_PER_SECOND || '0.2');
+        // Calculate delay from requests per second (default: 0.2 = 5 second delay)
+        const requestsPerSecond = parseFloat(
+            process.env.ETL_REQUESTS_PER_SECOND || String(DEFAULT_REQUESTS_PER_SECOND)
+        );
         this.requestDelay = Math.ceil(1000 / requestsPerSecond);
 
-        console.log(`Moxfield client initialized with ${this.requestDelay}ms delay between requests`);
+        this.logger.debug('Moxfield client initialized', { 
+            delayMs: this.requestDelay,
+            requestsPerSecond 
+        });
 
         if (!this.userAgent) {
-            console.warn('MOXFIELD_USER_AGENT not set in environment variables');
+            this.logger.warn('MOXFIELD_USER_AGENT not set in environment variables');
         }
     }
 
+    /**
+     * Fetch deck data from Moxfield by deck ID.
+     * 
+     * @param deckId - The Moxfield deck ID (from URL: moxfield.com/decks/{deckId})
+     * @returns Deck data including commanders and mainboard, or null if not found
+     * @throws Error if the request fails (except 404 which returns null)
+     */
     async fetchDeck(deckId: string): Promise<MoxfieldDeck | null> {
-        // Use fetchWithRetry to benefit from rate limiting and retry logic
+        // Wrap the actual fetch in retry logic for rate limit handling
         return this.fetchWithRetry(async () => {
             const requestStartTime = Date.now();
-            console.log(`[PERF] Moxfield API request starting for deck ${deckId}...`);
             
-            const response = await fetch(`${this.baseUrl}/decks/all/${deckId}`);
+            // Moxfield requires a User-Agent header to identify the client
+            // Without it, requests return 403 Forbidden
+            const response = await fetch(`${this.baseUrl}/decks/all/${deckId}`, {
+                headers: {
+                    'User-Agent': this.userAgent,
+                },
+            });
             const responseTime = Date.now() - requestStartTime;
-            
-            console.log(`[PERF] Moxfield API response received in ${responseTime}ms for deck ${deckId}`);
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log(`[PERF] Deck ${deckId} not found (404) in ${responseTime}ms`);
+                    // Deck not found (deleted or private) - return null, don't retry
+                    this.logger.debug('Deck not found', { deckId, responseTimeMs: responseTime });
                     return null;
                 }
-                console.error(`[PERF] Failed fetch for ${deckId}: ${response.status} ${response.statusText} in ${responseTime}ms`);
-                throw new Error(`Failed to fetch deck: ${response.statusText}`);
+                if (response.status === 429) {
+                    throw new RateLimitError('Moxfield rate limit exceeded');
+                }
+                // Other errors will be handled by retry logic
+                throw new ExternalServiceError(
+                    'Moxfield',
+                    `${response.status} ${response.statusText}`
+                );
             }
             
+            // Parse JSON response
             const jsonStartTime = Date.now();
             const data = await response.json();
             const jsonTime = Date.now() - jsonStartTime;
             
-            const totalTime = Date.now() - requestStartTime;
-            console.log(`[PERF] Moxfield API complete for deck ${deckId}: ${totalTime}ms (Network: ${responseTime}ms, JSON parse: ${jsonTime}ms)`);
+            this.logger.debug('Deck fetched successfully', { 
+                deckId, 
+                totalMs: Date.now() - requestStartTime, 
+                networkMs: responseTime, 
+                parseMs: jsonTime 
+            });
             
             return data as MoxfieldDeck;
         });
     }
 
-    private async fetchWithRetry<T>(fetchFn: () => Promise<T>, maxRetries = 5): Promise<T> {
-        // Track retry attempt number for logging
-        const attempt = 5 - maxRetries + 1;
+    /**
+     * Execute a fetch function with automatic retry on rate limiting.
+     * 
+     * Implements exponential backoff with jitter:
+     * - Base delay: 5 seconds
+     * - Each consecutive error doubles the delay
+     * - Maximum delay: 2 minutes
+     * - Random jitter (0-1000ms) prevents thundering herd
+     * 
+     * @param fetchFn - The async function to execute
+     * @param maxRetries - Maximum retry attempts (default: 5)
+     * @returns The result of fetchFn
+     * @throws Error if max retries exceeded or non-rate-limit error occurs
+     */
+    private async fetchWithRetry<T>(
+        fetchFn: () => Promise<T>, 
+        maxRetries: number = MAX_RETRY_ATTEMPTS
+    ): Promise<T> {
+        // Calculate current attempt number for logging
+        const attempt = MAX_RETRY_ATTEMPTS - maxRetries + 1;
         
-        console.log(`[RETRY] Starting attempt ${attempt}/${5}`);
-        
-        // Wait for the minimum delay since last request
+        // Enforce minimum delay between requests
         await this.enforceDelay();
 
         try {
-            const requestStartTime = Date.now();
             const result = await fetchFn();
-            const requestTime = Date.now() - requestStartTime;
             
-            // Success - reset error count
+            // Success - reset consecutive error count
             this.consecutiveErrors = 0;
-            console.log(`[RETRY] Attempt ${attempt} succeeded in ${requestTime}ms`);
             return result;
         } catch (error) {
-            // Handle rate limiting
-            if (error instanceof Error &&
-                (error.message.includes('429') || error.message.includes('Too Many Requests'))) {
+            // Check if this is a rate limit error
+            const isRateLimit = error instanceof RateLimitError ||
+                (error instanceof Error &&
+                    (error.message.includes('429') || error.message.includes('Too Many Requests')));
 
+            if (isRateLimit) {
                 this.consecutiveErrors++;
 
+                // Check if we've exhausted retries
                 if (maxRetries <= 0) {
-                    console.error('[RETRY] Max retries exceeded:', error);
+                    this.logger.warn('Max retries exceeded');
                     throw error;
                 }
 
-                // Calculate backoff - start with 5s, then increase exponentially with jitter
-                const baseDelay = 5000;
+                // Calculate exponential backoff with cap
+                // Formula: min(base * 2^(errors-1), max)
                 const backoff = Math.min(
-                    baseDelay * Math.pow(2, this.consecutiveErrors - 1),
-                    120000 // max 2 minutes
+                    RETRY_BASE_DELAY_MS * Math.pow(2, this.consecutiveErrors - 1),
+                    MAX_BACKOFF_MS
                 );
 
-                // Add random jitter (0-1000ms)
-                const jitter = Math.floor(Math.random() * 1000);
+                // Add random jitter to prevent thundering herd problem
+                // When multiple requests are rate limited simultaneously, jitter
+                // spreads out the retry attempts to avoid hitting the limit again
+                const jitter = Math.floor(Math.random() * JITTER_RANGE_MS);
                 const totalDelay = backoff + jitter;
 
-                console.warn(`[RETRY] Attempt ${attempt} rate limited (429) by Moxfield. Consecutive errors: ${this.consecutiveErrors}`);
-                console.warn(`[RETRY] Backoff calculation: base=${baseDelay}ms, multiplier=${Math.pow(2, this.consecutiveErrors - 1)}, jitter=${jitter}ms`);
-                console.warn(`[RETRY] Will retry in ${Math.round(totalDelay / 1000)}s. Retries left: ${maxRetries}`);
+                this.logger.warn('Rate limited, backing off', { 
+                    attempt,
+                    consecutiveErrors: this.consecutiveErrors,
+                    backoffMs: backoff,
+                    jitterMs: jitter,
+                    totalDelayMs: totalDelay,
+                    retriesLeft: maxRetries 
+                });
 
-                // Wait for the backoff period
+                // Wait for the calculated backoff period
                 await new Promise(resolve => setTimeout(resolve, totalDelay));
-                console.log(`[RETRY] Backoff complete, attempting retry ${attempt + 1}`);
 
-                // Try again with one fewer retry
+                // Recursive retry with decremented counter
                 return this.fetchWithRetry(fetchFn, maxRetries - 1);
             }
 
-            // For non-rate-limit errors, just throw
-            console.error(`[RETRY] Non-rate-limit error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // Non-rate-limit errors are not retried - throw immediately
+            this.logger.logError('Non-rate-limit error', error);
             throw error;
         }
     }
 
+    /**
+     * Enforce minimum delay between requests to avoid hitting rate limits.
+     * 
+     * This method calculates how long ago the last request was made and
+     * waits if necessary to maintain the configured request rate.
+     */
     private async enforceDelay(): Promise<void> {
         const now = Date.now();
         const timeSinceLastRequest = now - this.lastRequestTime;
         
-        console.log(`[RATE-LIMIT] Config: ${this.requestDelay}ms between requests`);
-        console.log(`[RATE-LIMIT] Time since last request: ${timeSinceLastRequest}ms`);
-        
         if (timeSinceLastRequest < this.requestDelay) {
+            // Need to wait to maintain rate limit
             const waitTime = this.requestDelay - timeSinceLastRequest;
-            console.log(`[RATE-LIMIT] Waiting ${waitTime}ms before next Moxfield request (${new Date().toISOString()})`);
+            this.logger.debug('Rate limit delay', { waitMs: waitTime });
             await new Promise(resolve => setTimeout(resolve, waitTime));
-            console.log(`[RATE-LIMIT] Done waiting, proceeding with request at ${new Date().toISOString()}`);
-        } else {
-            console.log(`[RATE-LIMIT] No delay needed, proceeding immediately (${timeSinceLastRequest}ms since last request)`);
         }
 
+        // Update last request timestamp
         this.lastRequestTime = Date.now();
     }
-} 
+}

@@ -1,167 +1,40 @@
+/**
+ * Deck Analysis API Route
+ * 
+ * GET /api/decks/[id] - Analyze a Moxfield deck against tournament statistics
+ */
+
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { MoxfieldClient } from '@/lib/etl/api-clients';
-
-// Add these helper functions before the GET handler
-function calculateEffectSize(
-    cardWins: number,
-    cardLosses: number,
-    commanderWins: number,
-    commanderLosses: number
-): { effectSize: number; lowerCI: number; upperCI: number } {
-    // Calculate proportions
-    const cardTotal = cardWins + cardLosses;
-    const commanderTotal = commanderWins + commanderLosses;
-
-    if (cardTotal === 0 || commanderTotal === 0) return { effectSize: 0, lowerCI: 0, upperCI: 0 };
-
-    const cardProportion = cardWins / cardTotal;
-    const commanderProportion = commanderWins / commanderTotal;
-
-    // Calculate Cohen's h for proportions
-    const effectSize = 2 * Math.asin(Math.sqrt(cardProportion)) - 2 * Math.asin(Math.sqrt(commanderProportion));
-
-    // Calculate standard error for confidence intervals
-    const cardSE = 1 / Math.sqrt(cardTotal);
-    const commanderSE = 1 / Math.sqrt(commanderTotal);
-    const combinedSE = Math.sqrt(cardSE * cardSE + commanderSE * commanderSE);
-
-    // 95% confidence intervals
-    const z = 1.96; // 95% confidence level
-    const lowerCI = effectSize - z * combinedSE;
-    const upperCI = effectSize + z * combinedSE;
-
-    return { effectSize, lowerCI, upperCI };
-}
-
-function calculateChiSquare(
-    cardWins: number,
-    cardLosses: number,
-    commanderWins: number,
-    commanderLosses: number
-): { chiSquare: number; pValue: number } {
-    const cardTotal = cardWins + cardLosses;
-    const commanderTotal = commanderWins + commanderLosses;
-    const total = cardTotal + commanderTotal;
-
-    if (cardTotal === 0 || commanderTotal === 0) return { chiSquare: 0, pValue: 1 };
-
-    // Use Fisher's Exact Test for small samples
-    if (cardWins < 5 || cardLosses < 5 || commanderWins < 5 || commanderLosses < 5) {
-        // Fisher's Exact Test approximation for 2x2 contingency table
-        const n = total;
-        const a = cardWins;
-        const b = cardLosses;
-        const c = commanderWins;
-        const d = commanderLosses;
-        
-        // Calculate Fisher's Exact Test statistic
-        const numerator = Math.log(
-            (factorial(a + b) * factorial(c + d) * factorial(a + c) * factorial(b + d)) /
-            (factorial(a) * factorial(b) * factorial(c) * factorial(d) * factorial(n))
-        );
-        
-        // Convert to chi-square approximation
-        const chiSquare = -2 * numerator;
-        const pValue = Math.exp(-chiSquare / 2);
-        
-        return { chiSquare, pValue };
-    }
-
-    // Create contingency table with continuity correction
-    const expectedWins = (cardTotal * (commanderWins + cardWins)) / total;
-    const expectedLosses = (cardTotal * (commanderLosses + cardLosses)) / total;
-
-    // Calculate chi-square statistic with continuity correction
-    const chiSquare =
-        Math.pow(Math.abs(cardWins - expectedWins) - 0.5, 2) / expectedWins +
-        Math.pow(Math.abs(cardLosses - expectedLosses) - 0.5, 2) / expectedLosses;
-
-    // Calculate p-value using chi-square distribution with 1 degree of freedom
-    const pValue = Math.exp(-chiSquare / 2);
-
-    return { chiSquare, pValue };
-}
-
-function factorial(n: number): number {
-    if (n < 0) return 0;
-    if (n === 0 || n === 1) return 1;
-    let result = 1;
-    for (let i = 2; i <= n; i++) {
-        result *= i;
-    }
-    return result;
-}
-
-function calculateConfidence(
-    cardWins: number,
-    cardLosses: number,
-    cardDraws: number,
-    cardEntries: number,
-    commanderWins: number,
-    commanderLosses: number,
-    commanderDraws: number,
-    commanderEntries: number
-): number {
-    // Calculate total games for both card and commander
-    const cardTotalGames = cardWins + cardLosses + cardDraws;
-    const commanderTotalGames = commanderWins + commanderLosses + commanderDraws;
-
-    // If we have no games or entries, return 0 instead of null
-    if (cardTotalGames === 0 || commanderTotalGames === 0 || cardEntries === 0 || commanderEntries === 0) {
-        return 0;
-    }
-
-    // Ensure we have valid numbers for all inputs
-    if (isNaN(cardWins) || isNaN(cardLosses) || isNaN(cardDraws) || 
-        isNaN(cardEntries) || isNaN(commanderWins) || isNaN(commanderLosses) || 
-        isNaN(commanderDraws) || isNaN(commanderEntries)) {
-        return 0;
-    }
-
-    // 1. Sample Size Score (0-40 points)
-    // Using power analysis for binary outcomes
-    // For α = 0.05, power = 0.8, and medium effect size (h = 0.5):
-    // Required sample size ≈ 64 per group
-    // We'll use 100 as our target for a more conservative estimate
-    // Using sigmoid function for smoother scaling
-    const targetSampleSize = 100;
-    const sampleSizeScore = 40 * (1 / (1 + Math.exp(-(cardTotalGames - targetSampleSize/2) / (targetSampleSize/4))));
-
-    // 2. Statistical Significance Score (0-30 points)
-    const { pValue } = calculateChiSquare(cardWins, cardLosses, commanderWins, commanderLosses);
-    // Convert p-value to score using -log10(p) to get a continuous scale
-    // p = 0.001 → 3 points
-    // p = 0.01 → 2 points
-    // p = 0.05 → 1.3 points
-    const significanceScore = Math.min(30, -Math.log10(Math.max(pValue, 1e-10)) * 10);
-
-    // 3. Effect Size Score (0-30 points)
-    const { effectSize, lowerCI, upperCI } = calculateEffectSize(cardWins, cardLosses, commanderWins, commanderLosses);
-    // Convert Cohen's h to score using absolute value and confidence interval width
-    // h = 0.8 → 30 points
-    // h = 0.5 → 18.75 points
-    // h = 0.2 → 7.5 points
-    const ciWidth = Math.max(0, upperCI - lowerCI);
-    const effectSizeScore = Math.min(30, Math.abs(effectSize) * 37.5 * (1 - ciWidth/2));
-
-    // Combine all scores for final confidence (0-100)
-    const finalScore = Math.round(sampleSizeScore + significanceScore + effectSizeScore);
-    
-    // Ensure we return a valid number between 0 and 100
-    return Math.max(0, Math.min(100, finalScore));
-}
+import { calculateConfidence, calculateWinRate, calculateInclusionRate } from '@/lib/utils/statistics';
+import { generateCommanderId } from '@/lib/utils/commander';
+import { apiLogger } from '@/lib/logger';
+import { 
+    ValidationError, 
+    NotFoundError, 
+    createErrorResponse,
+    isAppError 
+} from '@/lib/errors';
+import { deckIdSchema, validate } from '@/lib/validations/schemas';
 
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const logger = apiLogger.child({ route: 'decks/[id]' });
+    
     try {
         const { id: deckId } = await params;
 
-        if (!deckId) {
-            return NextResponse.json({ error: 'Deck ID is required' }, { status: 400 });
+        // Validate deck ID format
+        const validation = validate(deckIdSchema, deckId);
+        if (!validation.success) {
+            throw new ValidationError('Invalid deck ID format', { 
+                deckId, 
+                error: validation.error 
+            });
         }
 
         // Create Supabase client with cookie handling
@@ -171,9 +44,7 @@ export async function GET(
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    getAll: () => {
-                        return [...cookieStore.getAll()];
-                    },
+                    getAll: () => [...cookieStore.getAll()],
                     setAll: (cookies) => {
                         cookies.map((cookie) => {
                             cookieStore.set(cookie.name, cookie.value, cookie.options);
@@ -183,89 +54,34 @@ export async function GET(
             }
         );
 
-        // Instantiate the Moxfield client
+        // Fetch deck from Moxfield
         const moxfieldClient = new MoxfieldClient();
-
-        // Fetch the deck data from Moxfield
         const deck = await moxfieldClient.fetchDeck(deckId);
 
         if (!deck) {
-            return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
+            throw new NotFoundError('Deck', deckId);
         }
 
-        // Extract the commander ID
+        // Extract commander cards
         const commanderCardsObj = deck.boards.commanders.cards || {};
         const commanderCards = Object.values(commanderCardsObj);
+        
         if (!commanderCards || commanderCards.length === 0) {
-            return NextResponse.json({ error: 'No commanders found in deck' }, { status: 400 });
+            throw new ValidationError('No commanders found in deck', { deckId });
         }
 
-        // Generate commander ID (using the same logic as in EtlProcessor)
-        const sortedCommanders = [...commanderCards].sort((a, b) =>
-            (a.card.uniqueCardId || '').localeCompare(b.card.uniqueCardId || '')
-        );
+        // Generate consistent commander ID
+        const commanderId = generateCommanderId(commanderCards);
 
-        const commanderId = sortedCommanders.map(card => card.card.uniqueCardId || '').join('_');
-
-        // Get the current user - authentication is optional
+        // Track analysis for authenticated users
         const { data: { user } } = await supabase.auth.getUser();
-        console.log('[API] User authenticated:', !!user);
+        logger.debug('User authentication status', { authenticated: !!user });
 
-        // If user is authenticated, track this deck analysis
         if (user) {
-            // Check if this deck has already been analyzed by this user
-            const moxfieldUrl = `https://www.moxfield.com/decks/${deckId}`;
-            const { data: existingAnalysis, error: existingAnalysisError } = await supabase
-                .from('deck_analyses')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('moxfield_url', moxfieldUrl)
-                .maybeSingle();
-
-            if (existingAnalysisError) {
-                console.error('Error checking for existing analysis:', existingAnalysisError);
-                // Continue processing even if there's an error checking for existing analysis
-            }
-
-            // Create a new record if this is a new analysis and no errors checking existing ones
-            if (!existingAnalysis && !existingAnalysisError) {
-                // First check if the commander exists
-                const { data: commander, error: commanderError } = await supabase
-                    .from('commanders')
-                    .select('id')
-                    .eq('id', commanderId)
-                    .maybeSingle();
-
-                if (commanderError) {
-                    console.error('Error checking commander existence:', commanderError);
-                    // Continue processing even if there's an error checking commander
-                }
-
-                // Only record the analysis if the commander exists
-                if (commander) {
-                    // Record the analysis in deck_analyses table
-                    const { error: analysisError } = await supabase
-                        .from('deck_analyses')
-                        .insert({
-                            user_id: user.id,
-                            moxfield_url: moxfieldUrl,
-                            commander_id: commanderId,
-                            deck_name: deck.name
-                        });
-
-                    if (analysisError) {
-                        console.error('Error recording deck analysis:', analysisError);
-                        // Continue processing even if there's an error recording the analysis
-                    }
-                } else {
-                    console.log(`[API] Commander ${commanderId} not found in database, skipping analysis recording`);
-                }
-            } else {
-                console.log(`[API] User ${user.id} has already analyzed deck ${deckId}`);
-            }
+            await trackDeckAnalysis(supabase, user.id, deckId, commanderId, deck.name, logger);
         }
 
-        // Fetch commander data
+        // Fetch commander statistics
         const { data: commanderData } = await supabase
             .from('commanders')
             .select('*')
@@ -273,211 +89,58 @@ export async function GET(
             .single();
 
         if (!commanderData) {
-            // Commander not found in our database
-            return NextResponse.json({
-                deck: {
-                    id: deckId,
-                    name: deck.name,
-                    commanders: commanderCards.map(c => ({
-                        name: c.card.name,
-                        id: c.card.uniqueCardId
-                    })),
-                },
-                error: 'Commander statistics not found in database for this commander',
-                cardsByType: Object.values(deck.boards.mainboard.cards || {}).reduce((acc, card) => {
-                    const typeNumber = 0;
-                    const category = typeNumber.toString();
-
-                    if (!acc[category]) {
-                        acc[category] = [];
-                    }
-
-                    acc[category].push({
-                        id: card.card.uniqueCardId || '',
-                        name: card.card.name,
-                        scryfallId: card.card.scryfall_id || '',
-                        quantity: card.quantity,
-                        type: typeNumber,
-                        type_line: null,
-                        stats: null
-                    });
-                    return acc;
-                }, {} as Record<string, Array<{
-                    id: string;
-                    name: string;
-                    scryfallId: string;
-                    quantity: number;
-                    type: number;
-                    type_line: string | null;
-                    stats: null;
-                }>>),
-                otherCards: []
-            });
+            // Return partial response with deck info but no stats
+            logger.info('Commander not found in database', { commanderId });
+            return NextResponse.json(buildPartialResponse(deckId, deck, commanderCards));
         }
 
-        // Calculate commander win rate
-        const totalGames = commanderData.wins + commanderData.losses + commanderData.draws;
-        const winRate = totalGames > 0 ? (commanderData.wins / totalGames) * 100 : 0;
-
-        // Fetch card statistics for this commander
+        // Fetch card statistics
         const { data: cardStats } = await supabase
             .from('statistics')
-            .select(`
-        *,
-        cards:card_id(
-          unique_card_id,
-          name,
-          scryfall_id,
-          type,
-          type_line
-        )
-      `)
+            .select(`*, cards:card_id(unique_card_id, name, scryfall_id, type, type_line)`)
             .eq('commander_id', commanderId);
 
-        // Get unique card IDs from the deck mainboard
-        const deckCardIds = Object.values(deck.boards.mainboard.cards || {}).map(card => card.card.uniqueCardId || '');
-
-        // Fetch card data for any cards that might not have statistics
+        // Fetch card data for cards without statistics
+        const deckCardIds = Object.values(deck.boards.mainboard.cards || {})
+            .map(card => card.card.uniqueCardId || '');
+        
         const { data: cardData } = await supabase
             .from('cards')
             .select('*')
             .in('unique_card_id', deckCardIds);
 
-        // Prepare the card data with statistics
-        const deckCards = Object.values(deck.boards.mainboard.cards || {}).map(deckCard => {
-            const cardStat = cardStats?.find(stat => stat.card_id === deckCard.card.uniqueCardId);
-            // Find card data in our database
-            const card = cardData?.find(c => c.unique_card_id === deckCard.card.uniqueCardId);
+        // Calculate commander win rate
+        const commanderWinRate = calculateWinRate(
+            commanderData.wins, 
+            commanderData.losses, 
+            commanderData.draws
+        );
 
-            let statData = null;
-            if (cardStat) {
-                const cardTotalGames = cardStat.wins + cardStat.losses + cardStat.draws;
-                const cardWinRate = cardTotalGames > 0 ? (cardStat.wins / cardTotalGames) * 100 : 0;
-                const inclusionRate = (cardStat.entries / commanderData.entries) * 100;
-                const winRateDiff = cardWinRate - winRate;
-                const confidence = calculateConfidence(
-                    cardStat.wins,
-                    cardStat.losses,
-                    cardStat.draws,
-                    cardStat.entries,
-                    commanderData.wins,
-                    commanderData.losses,
-                    commanderData.draws,
-                    commanderData.entries
-                );
-                console.log(`[API] Calculating confidence for ${deckCard.card.name}:`, {
-                    cardWins: cardStat.wins,
-                    cardLosses: cardStat.losses,
-                    cardDraws: cardStat.draws,
-                    cardEntries: cardStat.entries,
-                    commanderWins: commanderData.wins,
-                    commanderLosses: commanderData.losses,
-                    commanderDraws: commanderData.draws,
-                    commanderEntries: commanderData.entries,
-                    confidence
-                });
-
-                statData = {
-                    wins: cardStat.wins,
-                    losses: cardStat.losses,
-                    draws: cardStat.draws,
-                    entries: cardStat.entries,
-                    winRate: parseFloat(cardWinRate.toFixed(2)),
-                    inclusionRate: parseFloat(inclusionRate.toFixed(2)),
-                    winRateDiff: parseFloat(winRateDiff.toFixed(2)),
-                    confidence: confidence || 0 // Ensure we never return null
-                };
-            }
-
-            // Get type from our database instead of Moxfield
-            // First try card stats (which includes the cards join), then fall back to direct card data
-            const typeNumber =
-                (cardStat?.cards?.type) ||
-                (card?.type) ||
-                0; // Default to 0 (unknown) if not found
-
-            // Get type_line from our database
-            const typeLine =
-                (cardStat?.cards?.type_line) ||
-                (card?.type_line) ||
-                null;
-
-            return {
-                id: deckCard.card.uniqueCardId || '',
-                name: deckCard.card.name,
-                scryfallId: deckCard.card.scryfall_id || '',
-                quantity: deckCard.quantity,
-                type: typeNumber,
-                type_line: typeLine,
-                stats: statData
-            };
-        });
+        // Process deck cards with statistics
+        const deckCards = processMainboardCards(
+            deck.boards.mainboard.cards || {},
+            cardStats,
+            cardData,
+            commanderData,
+            commanderWinRate
+        );
 
         // Group cards by type
-        const cardsByType = deckCards.reduce((acc, card) => {
-            const category = card.type.toString();
+        const cardsByType = groupCardsByType(deckCards);
 
-            if (!acc[category]) {
-                acc[category] = [];
-            }
+        // Get cards not in the current deck
+        const otherCards = getOtherCards(
+            cardStats,
+            deckCards.map(c => c.id),
+            commanderData,
+            commanderWinRate
+        );
 
-            acc[category].push(card);
-            return acc;
-        }, {} as Record<string, typeof deckCards>);
-
-        // Get IDs of cards in the current deck
-        const currentDeckCardIds = deckCards.map(card => card.id);
-
-        // Filter card stats to only include cards NOT in the current deck
-        const otherCardStats = cardStats
-            ?.filter(stat => !currentDeckCardIds.includes(stat.card_id))
-            // Sort by entries (popularity) in descending order
-            .sort((a, b) => b.entries - a.entries)
-            .map(stat => {
-                const cardTotalGames = stat.wins + stat.losses + stat.draws;
-                const cardWinRate = cardTotalGames > 0 ? (stat.wins / cardTotalGames) * 100 : 0;
-                const inclusionRate = (stat.entries / commanderData.entries) * 100;
-                const winRateDiff = cardWinRate - winRate;
-                const confidence = calculateConfidence(
-                    stat.wins,
-                    stat.losses,
-                    stat.draws,
-                    stat.entries,
-                    commanderData.wins,
-                    commanderData.losses,
-                    commanderData.draws,
-                    commanderData.entries
-                );
-                console.log(`[API] Calculating confidence for other card ${stat.cards?.name}:`, {
-                    cardWins: stat.wins,
-                    cardLosses: stat.losses,
-                    cardDraws: stat.draws,
-                    cardEntries: stat.entries,
-                    commanderWins: commanderData.wins,
-                    commanderLosses: commanderData.losses,
-                    commanderDraws: commanderData.draws,
-                    commanderEntries: commanderData.entries,
-                    confidence
-                });
-
-                return {
-                    id: stat.card_id,
-                    name: stat.cards?.name || 'Unknown',
-                    scryfallId: stat.cards?.scryfall_id || '',
-                    type: stat.cards?.type || 0,
-                    type_line: stat.cards?.type_line || null,
-                    stats: {
-                        wins: stat.wins,
-                        losses: stat.losses,
-                        draws: stat.draws,
-                        entries: stat.entries,
-                        winRate: parseFloat(cardWinRate.toFixed(2)),
-                        inclusionRate: parseFloat(inclusionRate.toFixed(2)),
-                        winRateDiff: parseFloat(winRateDiff.toFixed(2)),
-                        confidence: confidence || 0 // Ensure we never return null
-                    }
-                };
-            }) || [];
+        logger.info('Deck analysis completed', { 
+            deckId, 
+            commanderId, 
+            cardsAnalyzed: deckCards.length 
+        });
 
         return NextResponse.json({
             deck: {
@@ -495,16 +158,243 @@ export async function GET(
                 losses: commanderData.losses,
                 draws: commanderData.draws,
                 entries: commanderData.entries,
-                winRate: parseFloat(winRate.toFixed(2))
+                winRate: parseFloat(commanderWinRate.toFixed(2))
             },
             cardsByType,
-            otherCards: otherCardStats
+            otherCards
         });
+
     } catch (error) {
-        console.error('Error analyzing deck:', error);
-        return NextResponse.json(
-            { error: 'An error occurred while analyzing the deck' },
-            { status: 500 }
-        );
+        // Use custom error handling
+        if (isAppError(error)) {
+            logger.warn('Request failed', { 
+                code: error.code, 
+                message: error.message 
+            });
+        } else {
+            logger.logError('Unexpected error analyzing deck', error);
+        }
+        return createErrorResponse(error);
     }
-} 
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Track deck analysis for authenticated users
+ */
+async function trackDeckAnalysis(
+    supabase: ReturnType<typeof createServerClient>,
+    userId: string,
+    deckId: string,
+    commanderId: string,
+    deckName: string,
+    logger: ReturnType<typeof apiLogger.child>
+): Promise<void> {
+    const moxfieldUrl = `https://www.moxfield.com/decks/${deckId}`;
+    
+    // Check if already analyzed
+    const { data: existing, error: existingError } = await supabase
+        .from('deck_analyses')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('moxfield_url', moxfieldUrl)
+        .maybeSingle();
+
+    if (existingError) {
+        logger.warn('Error checking existing analysis', { error: existingError.message });
+        return;
+    }
+
+    if (existing) {
+        logger.debug('User already analyzed this deck', { userId, deckId });
+        return;
+    }
+
+    // Check if commander exists
+    const { data: commander, error: commanderError } = await supabase
+        .from('commanders')
+        .select('id')
+        .eq('id', commanderId)
+        .maybeSingle();
+
+    if (commanderError) {
+        logger.warn('Error checking commander', { error: commanderError.message });
+        return;
+    }
+
+    if (!commander) {
+        logger.debug('Commander not in database, skipping analysis tracking', { commanderId });
+        return;
+    }
+
+    // Record the analysis
+    const { error: insertError } = await supabase
+        .from('deck_analyses')
+        .insert({
+            user_id: userId,
+            moxfield_url: moxfieldUrl,
+            commander_id: commanderId,
+            deck_name: deckName
+        });
+
+    if (insertError) {
+        logger.warn('Error recording analysis', { error: insertError.message });
+    }
+}
+
+interface PartialCardResponse {
+    id: string;
+    name: string;
+    scryfallId: string;
+    quantity: number;
+    type: number;
+    type_line: null;
+    stats: null;
+}
+
+/**
+ * Build partial response when commander not found
+ */
+function buildPartialResponse(
+    deckId: string, 
+    deck: { name: string; boards: { mainboard: { cards: Record<string, { card: { uniqueCardId?: string; name: string; scryfall_id?: string }; quantity: number }> }; commanders: { cards: Record<string, { card: { name: string; uniqueCardId: string } }> } } },
+    commanderCards: Array<{ card: { name: string; uniqueCardId: string } }>
+) {
+    const mainboardCards = deck.boards.mainboard.cards || {};
+    
+    const cardsByType: Record<string, PartialCardResponse[]> = {};
+    
+    Object.values(mainboardCards).forEach(card => {
+        const category = '0';
+        if (!cardsByType[category]) cardsByType[category] = [];
+        cardsByType[category].push({
+            id: card.card.uniqueCardId || '',
+            name: card.card.name,
+            scryfallId: card.card.scryfall_id || '',
+            quantity: card.quantity,
+            type: 0,
+            type_line: null,
+            stats: null
+        });
+    });
+
+    return {
+        deck: {
+            id: deckId,
+            name: deck.name,
+            commanders: commanderCards.map(c => ({
+                name: c.card.name,
+                id: c.card.uniqueCardId
+            })),
+        },
+        error: 'Commander statistics not found in database for this commander',
+        cardsByType,
+        otherCards: []
+    };
+}
+
+/**
+ * Process mainboard cards with statistics
+ */
+function processMainboardCards(
+    mainboardCards: Record<string, { card: { uniqueCardId?: string; name: string; scryfall_id?: string }; quantity: number }>,
+    cardStats: Array<{ card_id: string; wins: number; losses: number; draws: number; entries: number; cards?: { type?: number; type_line?: string } }> | null,
+    cardData: Array<{ unique_card_id: string; type?: number | null; type_line?: string | null }> | null,
+    commanderData: { wins: number; losses: number; draws: number; entries: number },
+    commanderWinRate: number
+) {
+    return Object.values(mainboardCards).map(deckCard => {
+        const cardStat = cardStats?.find(stat => stat.card_id === deckCard.card.uniqueCardId);
+        const card = cardData?.find(c => c.unique_card_id === deckCard.card.uniqueCardId);
+
+        let statData = null;
+        if (cardStat) {
+            const cardWinRate = calculateWinRate(cardStat.wins, cardStat.losses, cardStat.draws);
+            const inclusionRate = calculateInclusionRate(cardStat.entries, commanderData.entries);
+            const winRateDiff = cardWinRate - commanderWinRate;
+            const confidence = calculateConfidence(
+                cardStat.wins, cardStat.losses, cardStat.draws, cardStat.entries,
+                commanderData.wins, commanderData.losses, commanderData.draws, commanderData.entries
+            );
+
+            statData = {
+                wins: cardStat.wins,
+                losses: cardStat.losses,
+                draws: cardStat.draws,
+                entries: cardStat.entries,
+                winRate: parseFloat(cardWinRate.toFixed(2)),
+                inclusionRate: parseFloat(inclusionRate.toFixed(2)),
+                winRateDiff: parseFloat(winRateDiff.toFixed(2)),
+                confidence: confidence || 0
+            };
+        }
+
+        return {
+            id: deckCard.card.uniqueCardId || '',
+            name: deckCard.card.name,
+            scryfallId: deckCard.card.scryfall_id || '',
+            quantity: deckCard.quantity,
+            type: cardStat?.cards?.type || card?.type || 0,
+            type_line: cardStat?.cards?.type_line || card?.type_line || null,
+            stats: statData
+        };
+    });
+}
+
+/**
+ * Group cards by type number
+ */
+function groupCardsByType<T extends { type: number }>(cards: T[]): Record<string, T[]> {
+    return cards.reduce((acc, card) => {
+        const category = card.type.toString();
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(card);
+        return acc;
+    }, {} as Record<string, T[]>);
+}
+
+/**
+ * Get cards not in the current deck
+ */
+function getOtherCards(
+    cardStats: Array<{ card_id: string; wins: number; losses: number; draws: number; entries: number; cards?: { name?: string; scryfall_id?: string; type?: number; type_line?: string } }> | null,
+    currentDeckCardIds: string[],
+    commanderData: { wins: number; losses: number; draws: number; entries: number },
+    commanderWinRate: number
+) {
+    if (!cardStats) return [];
+
+    return cardStats
+        .filter(stat => !currentDeckCardIds.includes(stat.card_id))
+        .sort((a, b) => b.entries - a.entries)
+        .map(stat => {
+            const cardWinRate = calculateWinRate(stat.wins, stat.losses, stat.draws);
+            const inclusionRate = calculateInclusionRate(stat.entries, commanderData.entries);
+            const winRateDiff = cardWinRate - commanderWinRate;
+            const confidence = calculateConfidence(
+                stat.wins, stat.losses, stat.draws, stat.entries,
+                commanderData.wins, commanderData.losses, commanderData.draws, commanderData.entries
+            );
+
+            return {
+                id: stat.card_id,
+                name: stat.cards?.name || 'Unknown',
+                scryfallId: stat.cards?.scryfall_id || '',
+                type: stat.cards?.type || 0,
+                type_line: stat.cards?.type_line || null,
+                stats: {
+                    wins: stat.wins,
+                    losses: stat.losses,
+                    draws: stat.draws,
+                    entries: stat.entries,
+                    winRate: parseFloat(cardWinRate.toFixed(2)),
+                    inclusionRate: parseFloat(inclusionRate.toFixed(2)),
+                    winRateDiff: parseFloat(winRateDiff.toFixed(2)),
+                    confidence: confidence || 0
+                }
+            };
+        });
+}

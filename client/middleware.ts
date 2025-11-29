@@ -1,13 +1,25 @@
+/**
+ * Next.js Middleware for Authentication
+ * 
+ * This middleware handles Supabase session management by refreshing auth tokens
+ * on each request. It does NOT enforce authentication - all routes are publicly
+ * accessible, but authenticated users will have their sessions maintained.
+ * 
+ * ## Why the Empty Matcher?
+ * The matcher is intentionally empty, which means this middleware runs on ALL routes.
+ * This ensures auth session cookies are refreshed regardless of which page is visited.
+ * 
+ * ## Future Considerations
+ * If you need to add protected routes in the future, you can:
+ * 1. Add routes to the matcher array (e.g., matcher: ['/dashboard/:path*'])
+ * 2. Check `user` and redirect unauthenticated users to /login
+ */
+
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Public routes that don't require authentication
-const publicRoutes = ['/', '/login', '/auth/callback']
-
 export async function middleware(request: NextRequest) {
-  console.log(`[Middleware] Handling request to: ${request.nextUrl.pathname}`)
-
-  // Skip middleware for static files
+  // Skip middleware for static assets to improve performance
   if (
     request.nextUrl.pathname.includes('_next') || 
     request.nextUrl.pathname.includes('static') ||
@@ -16,14 +28,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Create response to modify
+  // Create response object that will be modified with updated cookies
   const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  // Create Supabase client
+  // Initialize Supabase client with cookie handlers
+  // This pattern is required by @supabase/ssr for proper session management
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -42,15 +55,16 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get user - but don't require authentication
+  // Refresh the auth session if it exists
+  // This call ensures session cookies are updated with fresh tokens
+  // Note: We don't enforce authentication here - all routes are accessible
   await supabase.auth.getUser()
   
-  // Allow access to all routes regardless of authentication status
   return response
 }
 
-// Update config to only run middleware on specific paths
+// Middleware runs on all routes (empty matcher = match all)
+// This is intentional for session cookie refresh on every request
 export const config = {
-  matcher: [
-  ]
+  matcher: []
 } 

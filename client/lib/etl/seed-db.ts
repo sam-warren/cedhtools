@@ -1,41 +1,49 @@
+/**
+ * Database Seeding Script
+ * 
+ * Seeds the database with tournament data from the last 6 months.
+ * 
+ * Run with: npm run etl:seed (local database)
+ * Run with: npm run etl:seed:prod (production database)
+ */
+
 import EtlProcessor from './processor';
 import { format, subMonths } from 'date-fns';
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { cliLogger } from '../logger';
 
 // Determine which env file to load
 const envFile = process.env.ENV_FILE || '.env.local';
-console.log(`Loading environment from: ${envFile}`);
+const logger = cliLogger.child({ script: 'seed-db' });
+
+logger.info('Loading environment', { envFile });
 config({ path: resolve(__dirname, `../../${envFile}`) });
 
-/**
- * This script seeds the database with data from the last 6 months
- * Run with: npm run etl:seed (local database)
- * Run with: npm run etl:seed:prod (production database)
- */
 async function seedDatabase() {
-    console.log('┌────────────────────────────────────────┐');
-    console.log('│ CEDH Tools - Database Seeding Utility  │');
-    console.log('└────────────────────────────────────────┘');
-    console.log('');
+    logger.info('┌────────────────────────────────────────┐');
+    logger.info('│ CEDH Tools - Database Seeding Utility  │');
+    logger.info('└────────────────────────────────────────┘');
 
     const startDate = format(subMonths(new Date(), 6), 'yyyy-MM-dd');
     const endDate = format(new Date(), 'yyyy-MM-dd');
 
-    console.log(`Starting ETL process to seed database with 6 months of data:`);
-    console.log(`From: ${startDate} To: ${endDate}`);
-    console.log('');
-    console.log('This operation may take a long time depending on the amount of data.');
-    console.log('Progress will be logged to the console.');
-    console.log('');
-    console.log('Initializing ETL processor...');
+    logger.info('Starting ETL process to seed database', {
+        startDate,
+        endDate,
+        months: 6
+    });
+    
+    logger.info('This operation may take a long time depending on the amount of data.');
+    logger.info('Progress will be logged to the console.');
+    logger.info('Initializing ETL processor...');
 
     const processor = new EtlProcessor();
 
     try {
         // Log start time
         const startTime = new Date();
-        console.log(`Started at: ${startTime.toLocaleTimeString()}`);
+        logger.info('ETL process started', { startTime: startTime.toLocaleTimeString() });
 
         // Start the ETL process
         await processor.processData(startDate, endDate);
@@ -46,19 +54,23 @@ async function seedDatabase() {
         const durationMinutes = Math.floor(durationMs / 60000);
         const durationSeconds = Math.floor((durationMs % 60000) / 1000);
 
-        console.log('');
-        console.log('┌────────────────────────────────────────┐');
-        console.log('│ Database seeding completed successfully │');
-        console.log('└────────────────────────────────────────┘');
-        console.log(`Total duration: ${durationMinutes} minutes, ${durationSeconds} seconds`);
-        console.log(`Started: ${startTime.toLocaleString()}`);
-        console.log(`Finished: ${endTime.toLocaleString()}`);
+        logger.info('┌────────────────────────────────────────┐');
+        logger.info('│ Database seeding completed successfully │');
+        logger.info('└────────────────────────────────────────┘');
+        logger.info('Seeding complete', {
+            durationMinutes,
+            durationSeconds,
+            startTime: startTime.toLocaleString(),
+            endTime: endTime.toLocaleString()
+        });
     } catch (error) {
-        console.error('Error during database seeding:');
-        console.error(error);
+        logger.logError('Error during database seeding', error);
         process.exit(1);
     }
 }
 
 // Run the function
-seedDatabase().catch(console.error); 
+seedDatabase().catch(error => {
+    logger.logError('Unhandled error', error);
+    process.exit(1);
+});

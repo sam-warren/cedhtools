@@ -8,6 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
     "etl:test": "dotenv -e .env.development -- tsx scripts/test-etl.ts",
     "etl:reset": "dotenv -e .env.local -- tsx lib/etl/reset-etl.ts",
     "etl:seed": "ENV_FILE=.env.local dotenv -e .env.local -- tsx lib/etl/seed-db.ts",
@@ -83,9 +87,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^2.1.0",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.0"
   }
 }

@@ -1,11 +1,17 @@
-import { supabaseServer } from '../supabase';
-
 /**
- * This script clears all ETL data from the database
+ * ETL Data Reset Script
+ * 
+ * Clears all ETL data from the database for a fresh start.
  * Run with: npx tsx lib/etl/reset-etl.ts
  */
+
+import { supabaseServer } from '../supabase';
+import { cliLogger } from '../logger';
+
+const logger = cliLogger.child({ script: 'reset-etl' });
+
 async function resetEtlData() {
-    console.log('Resetting all ETL data...');
+    logger.info('Resetting all ETL data...');
 
     try {
         // Call our SQL function to clear data
@@ -15,13 +21,13 @@ async function resetEtlData() {
             throw error;
         }
 
-        console.log('Successfully cleared all ETL data');
-        console.log('Ready for a fresh ETL run');
+        logger.info('Successfully cleared all ETL data');
+        logger.info('Ready for a fresh ETL run');
     } catch (error) {
-        console.error('Error resetting ETL data:', error);
+        logger.logError('Error resetting ETL data', error);
 
         // Fallback method if the function doesn't work
-        console.log('Attempting manual data reset...');
+        logger.info('Attempting manual data reset...');
 
         try {
             await supabaseServer.from('statistics').delete().neq('id', 0);
@@ -30,17 +36,19 @@ async function resetEtlData() {
             await supabaseServer.from('etl_status').delete().neq('id', 0);
             await supabaseServer.from('processed_tournaments').delete().neq('tournament_id', '');
 
-            console.log('Manual reset complete');
+            logger.info('Manual reset complete');
         } catch (fallbackError) {
-            console.error('Failed to reset data manually:', fallbackError);
+            logger.logError('Failed to reset data manually', fallbackError);
         }
     }
 }
 
 // Run the function
 resetEtlData()
-    .catch(console.error)
+    .catch(error => {
+        logger.logError('Unhandled error', error);
+    })
     .finally(() => {
-        console.log('Reset script complete');
+        logger.info('Reset script complete');
         process.exit(0);
-    }); 
+    });

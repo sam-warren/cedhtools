@@ -11,10 +11,13 @@
  */
 
 import { runWorker } from './worker';
+import { cliLogger } from '../logger';
 
-console.log('Starting ETL worker...');
+const logger = cliLogger.child({ script: 'run-worker' });
+
+logger.info('Starting ETL worker...');
 
 runWorker().catch(error => {
-  console.error('Fatal error in ETL worker:', error);
+  logger.logError('Fatal error in ETL worker', error);
   process.exit(1);
-}); 
+});
