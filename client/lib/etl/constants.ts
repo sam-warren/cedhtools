@@ -16,7 +16,7 @@
 export const DEFAULT_BATCH_SIZE = 50;
 
 /**
- * Default concurrency limit for parallel API requests.
+ * Default concurrency limit for parallel processing.
  * Can be overridden by ETL_CONCURRENCY_LIMIT env var.
  */
 export const DEFAULT_CONCURRENCY_LIMIT = 5;
@@ -38,43 +38,6 @@ export const DEFAULT_LOOKBACK_DAYS = 7;
  * Used in `processData()` when no start date is provided.
  */
 export const DEFAULT_SEED_MONTHS = 6;
-
-// =============================================================================
-// RATE LIMITING CONFIGURATION
-// =============================================================================
-
-/**
- * Default requests per second for Moxfield API.
- * Conservative default: 0.2 = 1 request per 5 seconds.
- * Can be overridden by ETL_REQUESTS_PER_SECOND env var.
- */
-export const DEFAULT_REQUESTS_PER_SECOND = 0.2;
-
-/**
- * Additional pause time (in ms) when encountering rate limit during batch processing.
- * This is on top of the exponential backoff in the API client.
- */
-export const RATE_LIMIT_PAUSE_MS = 30000;
-
-/**
- * Maximum retry attempts for rate-limited requests.
- */
-export const MAX_RETRY_ATTEMPTS = 5;
-
-/**
- * Base delay (in ms) for exponential backoff on rate limits.
- */
-export const RETRY_BASE_DELAY_MS = 5000;
-
-/**
- * Maximum backoff delay (in ms) - caps at 2 minutes.
- */
-export const MAX_BACKOFF_MS = 120000;
-
-/**
- * Random jitter range (in ms) added to backoff to prevent thundering herd.
- */
-export const JITTER_RANGE_MS = 1000;
 
 // =============================================================================
 // DATA VALIDATION THRESHOLDS
@@ -105,12 +68,6 @@ export const CURSOR_DELIMITER = ':';
  * Can be overridden by TOPDECK_API_BASE_URL env var.
  */
 export const DEFAULT_TOPDECK_API_URL = 'https://topdeck.gg/api/v2';
-
-/**
- * Moxfield URL pattern for extracting deck IDs.
- * Matches: moxfield.com/decks/{deckId}
- */
-export const MOXFIELD_URL_PATTERN = /moxfield\.com\/decks\/([a-zA-Z0-9_-]+)/;
 
 // =============================================================================
 // DATABASE TABLE NAMES (for reference)
@@ -165,4 +122,3 @@ export const SEED_JOB_MAX_RUNTIME_SECONDS = 28800;
  * Interval (in months) between seed jobs.
  */
 export const SEED_JOB_INTERVAL_MONTHS = 6;
-

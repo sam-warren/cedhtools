@@ -1,14 +1,16 @@
 /**
  * Database Seeding Script
  * 
- * Seeds the database with tournament data from the last 6 months.
+ * Seeds the database with tournament data from January 1, 2025 onwards.
+ * This date corresponds to when Topdeck started including deckObj data
+ * with Scryfall UUIDs via their Scrollrack integration.
  * 
  * Run with: npm run etl:seed (local database)
  * Run with: npm run etl:seed:prod (production database)
  */
 
 import EtlProcessor from './processor';
-import { format, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 import { cliLogger } from '../logger';
@@ -25,13 +27,14 @@ async function seedDatabase() {
     logger.info('│ CEDH Tools - Database Seeding Utility  │');
     logger.info('└────────────────────────────────────────┘');
 
-    const startDate = format(subMonths(new Date(), 6), 'yyyy-MM-dd');
+    // Start from January 1, 2025 - when Topdeck started including deckObj data
+    const startDate = '2025-01-01';
     const endDate = format(new Date(), 'yyyy-MM-dd');
 
     logger.info('Starting ETL process to seed database', {
         startDate,
         endDate,
-        months: 6
+        note: 'Using Topdeck deckObj data (available from 2025)'
     });
     
     logger.info('This operation may take a long time depending on the amount of data.');

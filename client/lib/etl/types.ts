@@ -2,11 +2,14 @@
  * ETL Type Definitions
  * 
  * This module contains TypeScript interfaces for:
- * - **External API responses**: Data from Topdeck and Moxfield APIs
+ * - **External API responses**: Data from Topdeck API (including deckObj from Scrollrack)
  * - **Internal data models**: Database entities and ETL status tracking
  * 
  * These types ensure type safety throughout the ETL pipeline and provide
  * documentation for the expected data structures.
+ * 
+ * Note: As of 2024, Topdeck includes deck data directly via their Scrollrack
+ * integration, providing Scryfall UUIDs for card identification.
  */
 
 // =============================================================================
@@ -21,12 +24,12 @@
  * its standings (player results and decklists).
  */
 export interface Tournament {
-    /** Topdeck's unique tournament identifier */
+    /** Topdeck's unique tournament identifier (slug format) */
     TID: string;
     /** Human-readable tournament name */
     tournamentName: string;
     /** Tournament start date as Unix timestamp (seconds) */
-    startDate: string;
+    startDate: number | string;
     /** Array of player standings with their results */
     standings: TournamentStanding[];
 }
@@ -34,12 +37,19 @@ export interface Tournament {
 /**
  * A player's standing/result in a tournament.
  * 
- * Contains the player's win/loss record and their decklist URL.
- * We only process standings with Moxfield decklist URLs.
+ * Contains the player's win/loss record and their deck data.
+ * As of 2024, Topdeck provides deck data directly via `deckObj`
+ * with Scryfall UUIDs for card identification.
  */
 export interface TournamentStanding {
-    /** URL to the player's decklist (may be Moxfield, Archidekt, etc.) */
-    decklist: string;
+    /** Player display name */
+    name: string;
+    /** Player's Topdeck user ID */
+    id: string;
+    /** Raw decklist text (legacy format, may be null) */
+    decklist: string | null;
+    /** Parsed deck object with Scryfall IDs (from Scrollrack) */
+    deckObj: TopdeckDeckObj | null;
     /** Number of match wins */
     wins: number;
     /** Number of match losses */
@@ -49,72 +59,40 @@ export interface TournamentStanding {
 }
 
 // =============================================================================
-// MOXFIELD API TYPES
-// Types for data received from the Moxfield deck API
+// TOPDECK DECK OBJECT TYPES
+// Types for the deckObj structure provided by Topdeck's Scrollrack integration
 // =============================================================================
 
 /**
- * Deck data from the Moxfield API.
+ * Deck object from Topdeck's Scrollrack integration.
  * 
- * Contains the deck's name and its various card zones (boards).
- * For cEDH analysis, we primarily care about:
- * - `commanders`: The command zone (1-2 cards)
- * - `mainboard`: The 99 cards in the deck
+ * Contains commanders and mainboard cards with Scryfall UUIDs.
+ * This replaces the need to call Moxfield API separately.
  */
-export interface MoxfieldDeck {
-    /** User-defined deck name */
-    name: string;
-    /** Card zones (mainboard, commanders, sideboard, etc.) */
-    boards: {
-        /** The main 99-card deck */
-        mainboard: MoxfieldBoard;
-        /** Commander(s) in the command zone (1-2 cards) */
-        commanders: MoxfieldBoard;
+export interface TopdeckDeckObj {
+    /** Commander(s) in the command zone, keyed by card name */
+    Commanders: Record<string, TopdeckCardEntry>;
+    /** Mainboard cards (the 99), keyed by card name */
+    Mainboard: Record<string, TopdeckCardEntry>;
+    /** Optional metadata about the deck */
+    metadata?: {
+        game?: string;
+        format?: string;
+        /** Original deck source URL (e.g., Moxfield, Archidekt) */
+        importedFrom?: string;
     };
 }
 
 /**
- * A card zone/board in a Moxfield deck.
+ * A single card entry in a Topdeck deck object.
  * 
- * Moxfield represents cards as an object map keyed by a unique identifier,
- * NOT as an array. Use `Object.values(cards)` to iterate.
+ * Contains the Scryfall UUID and card count.
  */
-export interface MoxfieldBoard {
-    /** Total number of cards in this zone */
-    count: number;
-    /** Cards in this zone, keyed by internal Moxfield ID */
-    cards: Record<string, MoxfieldCardEntry>;
-}
-
-/**
- * A single card entry in a Moxfield deck zone.
- * 
- * Contains the quantity (usually 1 in Commander) and card metadata.
- */
-export interface MoxfieldCardEntry {
+export interface TopdeckCardEntry {
+    /** Scryfall UUID for the card (e.g., "584cee10-f18c-4633-95cc-f2e7a11841ac") */
+    id: string;
     /** Number of copies (typically 1 for Commander format) */
-    quantity: number;
-    /** Card metadata */
-    card: MoxfieldCardData;
-}
-
-/**
- * Card metadata from Moxfield.
- * 
- * The `uniqueCardId` is the primary identifier used for statistics tracking.
- * It remains consistent across reprints/editions of the same card.
- */
-export interface MoxfieldCardData {
-    /** Card name (e.g., "Sol Ring") */
-    name: string;
-    /** Moxfield's unique card identifier (consistent across printings) */
-    uniqueCardId: string;
-    /** Scryfall UUID for linking to external card data */
-    scryfall_id?: string;
-    /** Numeric type code (for categorization) */
-    type?: number;
-    /** Full type line (e.g., "Artifact") */
-    type_line?: string;
+    count: number;
 }
 
 // =============================================================================
@@ -126,11 +104,11 @@ export interface MoxfieldCardData {
  * Commander entity stored in the `commanders` table.
  * 
  * A commander is uniquely identified by its ID, which is:
- * - Single commander: The card's `uniqueCardId`
- * - Partner pair: Sorted concatenation of both IDs (e.g., "id1_id2")
+ * - Single commander: The card's Scryfall UUID
+ * - Partner pair: Sorted concatenation of both UUIDs (e.g., "uuid1_uuid2")
  */
 export interface Commander {
-    /** Unique identifier (single ID or sorted pair, e.g., "id1_id2") */
+    /** Scryfall UUID (single) or sorted pair (e.g., "uuid1_uuid2") */
     id: string;
     /** Display name (single name or "Name1 + Name2") */
     name: string;
@@ -148,17 +126,16 @@ export interface Commander {
  * Card entity stored in the `cards` table.
  * 
  * Contains card metadata for display and external linking.
+ * The `unique_card_id` is now a Scryfall UUID.
  */
 export interface Card {
-    /** Moxfield's unique card identifier */
-    uniqueCardId: string;
+    /** Scryfall UUID for the card */
+    unique_card_id: string;
     /** Card name */
     name: string;
-    /** Scryfall UUID for external linking */
-    scryfallId: string;
-    /** Numeric type code */
-    type?: number;
-    /** Full type line text */
+    /** Deprecated: Previously separate, now same as unique_card_id */
+    scryfall_id?: string;
+    /** Full type line text (e.g., "Legendary Creature — Human Wizard") */
     type_line?: string;
 }
 
@@ -170,10 +147,10 @@ export interface Card {
  * deck analysis feature.
  */
 export interface Statistic {
-    /** Commander ID this statistic belongs to */
-    commanderId: string;
-    /** Card ID this statistic tracks */
-    cardId: string;
+    /** Commander ID (Scryfall UUID or partner pair) */
+    commander_id: string;
+    /** Card ID (Scryfall UUID) */
+    card_id: string;
     /** Wins in tournaments where this card was in the deck */
     wins: number;
     /** Losses in tournaments where this card was in the deck */
@@ -207,4 +184,4 @@ export interface EtlStatus {
     recordsProcessed: number;
     /** Last tournament date that was processed */
     lastProcessedDate?: string;
-} 
+}

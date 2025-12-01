@@ -2,7 +2,6 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import { Layers } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
@@ -16,9 +15,12 @@ import {
 
 interface DeckAnalysis {
   id: number;
-  moxfield_url: string;
-  created_at: string;
+  deck_list: string | null;
   deck_name: string | null;
+  created_at: string;
+  commanders: {
+    name: string;
+  } | null;
 }
 
 interface NavRecentDecksProps {
@@ -56,21 +58,22 @@ export function NavRecentDecks({ className }: NavRecentDecksProps) {
     
     async function fetchRecentDecks() {
       try {
-        // Get recent deck analyses with deck_name
+        // Get recent deck analyses with deck_name and commander info
         const { data } = await supabase
           .from("deck_analyses")
           .select(`
             id, 
-            moxfield_url, 
+            deck_list,
+            deck_name,
             created_at,
-            deck_name
+            commanders:commander_id(name)
           `)
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(5);
 
         if (data) {
-          setRecentDecks(data);
+          setRecentDecks(data as DeckAnalysis[]);
         }
       } catch (error) {
         console.error("Error fetching recent decks:", error);
@@ -92,8 +95,7 @@ export function NavRecentDecks({ className }: NavRecentDecksProps) {
           table: 'deck_analyses',
           filter: `user_id=eq.${userId}`, // Only listen for changes to this user's records
         },
-        (payload) => {
-          console.log('Realtime update received:', payload);
+        () => {
           // Refresh the deck list when changes occur without setting loading state
           fetchRecentDecks();
         }
@@ -117,21 +119,27 @@ export function NavRecentDecks({ className }: NavRecentDecksProps) {
 
   return (
     <SidebarGroup className={className}>
-      <SidebarGroupLabel>Recent Decks</SidebarGroupLabel>
+      <SidebarGroupLabel>Recent Analyses</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {recentDecks.map((deck) => {
-            const deckId = deck.moxfield_url.split('/').pop();
-            // Use deck_name or fallback to the deck ID if not available
-            const displayName = deck.deck_name || `Deck ${deckId}`;
+            // Use deck_name, then commander name, then fallback
+            const displayName = deck.deck_name || 
+              deck.commanders?.name || 
+              `Analysis ${deck.id}`;
+            
+            const createdDate = new Date(deck.created_at).toLocaleDateString();
             
             return (
               <SidebarMenuItem key={deck.id}>
-                <SidebarMenuButton asChild>
-                  <Link href={`/deck/${deckId}`}>
-                    <Layers className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{displayName}</span>
-                  </Link>
+                <SidebarMenuButton className="cursor-default">
+                  <Layers className="h-4 w-4 shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate text-sm">{displayName}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {createdDate}
+                    </span>
+                  </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
@@ -140,4 +148,4 @@ export function NavRecentDecks({ className }: NavRecentDecksProps) {
       </SidebarGroupContent>
     </SidebarGroup>
   );
-} 
+}

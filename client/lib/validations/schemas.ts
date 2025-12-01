@@ -6,16 +6,16 @@
  * 
  * ## Usage
  * ```typescript
- * import { deckIdSchema, dateRangeSchema } from '@/lib/validations/schemas';
+ * import { commanderIdSchema, dateRangeSchema } from '@/lib/validations/schemas';
  * 
- * // Validate deck ID
- * const result = deckIdSchema.safeParse(params.id);
+ * // Validate commander ID
+ * const result = commanderIdSchema.safeParse(params.id);
  * if (!result.success) {
  *   return Response.json({ error: result.error.message }, { status: 400 });
  * }
  * 
  * // Use validated data
- * const deckId = result.data;
+ * const commanderId = result.data;
  * ```
  */
 
@@ -26,28 +26,38 @@ import { z } from 'zod';
 // =============================================================================
 
 /**
- * Moxfield deck ID validation.
- * Format: alphanumeric with hyphens and underscores
+ * Scryfall UUID validation.
+ * Format: UUID or underscore-separated pair for partner commanders
  */
-export const deckIdSchema = z
+export const scryfallIdSchema = z
   .string()
-  .min(1, 'Deck ID is required')
-  .max(100, 'Deck ID is too long')
+  .min(1, 'ID is required')
   .regex(
-    /^[a-zA-Z0-9_-]+$/,
-    'Deck ID must contain only letters, numbers, hyphens, and underscores'
+    /^[a-f0-9-]+(_[a-f0-9-]+)?$/i,
+    'ID must be a valid Scryfall UUID or partner pair'
   );
 
 /**
  * Commander ID validation.
- * Single ID or underscore-separated pair for partners
+ * Single UUID or underscore-separated pair for partners
  */
 export const commanderIdSchema = z
   .string()
   .min(1, 'Commander ID is required')
   .regex(
-    /^[a-zA-Z0-9_-]+$/,
-    'Commander ID must contain only letters, numbers, hyphens, and underscores'
+    /^[a-f0-9-]+(_[a-f0-9-]+)?$/i,
+    'Commander ID must be a valid Scryfall UUID or partner pair'
+  );
+
+/**
+ * Card ID validation (Scryfall UUID)
+ */
+export const cardIdSchema = z
+  .string()
+  .min(1, 'Card ID is required')
+  .regex(
+    /^[a-f0-9-]+$/i,
+    'Card ID must be a valid Scryfall UUID'
   );
 
 /**
@@ -93,25 +103,24 @@ export const urlSchema = z
   .url('Must be a valid URL');
 
 /**
- * Moxfield URL validation
+ * Deck list text validation
  */
-export const moxfieldUrlSchema = z
+export const deckListSchema = z
   .string()
-  .url('Must be a valid URL')
-  .regex(
-    /moxfield\.com\/decks\/[a-zA-Z0-9_-]+/,
-    'Must be a valid Moxfield deck URL'
-  );
+  .min(10, 'Deck list is too short')
+  .max(50000, 'Deck list is too long');
 
 // =============================================================================
 // API REQUEST SCHEMAS
 // =============================================================================
 
 /**
- * Deck analysis request parameters
+ * Deck analysis request body
  */
-export const deckAnalysisParamsSchema = z.object({
-  id: deckIdSchema,
+export const deckAnalysisRequestSchema = z.object({
+  commanderId: commanderIdSchema,
+  deckList: deckListSchema,
+  deckName: z.string().max(200).optional(),
 });
 
 /**
@@ -119,6 +128,15 @@ export const deckAnalysisParamsSchema = z.object({
  */
 export const commanderParamsSchema = z.object({
   id: commanderIdSchema,
+});
+
+/**
+ * Commander list query parameters
+ */
+export const commanderListQuerySchema = z.object({
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(100).default(100),
+  minEntries: z.coerce.number().int().nonnegative().default(1),
 });
 
 /**
@@ -172,10 +190,22 @@ export const etlBatchParamsSchema = z.object({
 // =============================================================================
 
 /**
- * Tournament standing data
+ * Tournament standing data (with deckObj)
  */
 export const tournamentStandingSchema = z.object({
-  decklist: z.string(),
+  name: z.string(),
+  id: z.string(),
+  decklist: z.string().nullable(),
+  deckObj: z.object({
+    Commanders: z.record(z.object({
+      id: z.string(),
+      count: z.number(),
+    })),
+    Mainboard: z.record(z.object({
+      id: z.string(),
+      count: z.number(),
+    })),
+  }).nullable(),
   wins: nonNegativeIntSchema,
   losses: nonNegativeIntSchema,
   draws: nonNegativeIntSchema,
@@ -250,30 +280,15 @@ export function validate<T>(
 }
 
 /**
- * Extract deck ID from a Moxfield URL
+ * Check if a string is a valid Scryfall UUID
  */
-export function extractDeckIdFromUrl(url: string): string | null {
-  const match = url.match(/moxfield\.com\/decks\/([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : null;
+export function isValidScryfallId(id: string): boolean {
+  return /^[a-f0-9-]+$/i.test(id);
 }
 
 /**
- * Validate and extract deck ID from URL or direct ID
+ * Check if a commander ID is a partner pair
  */
-export function validateDeckInput(input: string): ValidationResult<string> {
-  // If it looks like a URL, extract the ID
-  if (input.includes('moxfield.com')) {
-    const extracted = extractDeckIdFromUrl(input);
-    if (!extracted) {
-      return {
-        success: false,
-        error: 'Could not extract deck ID from Moxfield URL',
-        issues: [],
-      };
-    }
-    input = extracted;
-  }
-  
-  return validate(deckIdSchema, input);
+export function isPartnerPair(commanderId: string): boolean {
+  return commanderId.includes('_');
 }
-

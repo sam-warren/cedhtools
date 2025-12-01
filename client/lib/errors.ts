@@ -180,7 +180,7 @@ export class DatabaseError extends AppError {
 /**
  * Thrown when an external API call fails.
  * 
- * Use for: Moxfield API errors, Topdeck API errors, third-party failures
+ * Use for: Topdeck API errors, Scryfall API errors, third-party failures
  */
 export class ExternalServiceError extends AppError {
   readonly code = 'EXTERNAL_SERVICE_ERROR';

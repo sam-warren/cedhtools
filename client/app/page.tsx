@@ -1,6 +1,6 @@
 import { ScrollToTopButton } from "@/components/shared/buttons/scroll-to-top-button";
 import { Header } from "@/components/shared/layout/header";
-import { MoxfieldSearch } from "@/components/shared/search/moxfield-search";
+import { DeckAnalysisForm } from "@/components/shared/search/deck-analysis-form";
 import { BarChart3, Database, Users } from "lucide-react";
 import { createClient } from "./utils/supabase/server";
 
@@ -49,7 +49,7 @@ export default async function Home() {
               <div className="w-full max-w-xl mx-auto relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-indigo-500/20 rounded-xl blur-xl opacity-75 group-hover:opacity-100 transition duration-200"></div>
                 <div className="relative p-1 bg-background border rounded-lg shadow-lg">
-                  <MoxfieldSearch />
+                  <DeckAnalysisForm />
                 </div>
               </div>
 
@@ -141,12 +141,12 @@ export default async function Home() {
                 Ready to optimize your deck?
               </h2>
               <p className="text-xl text-muted-foreground mb-8">
-                Import your Moxfield deck and get instant insights based on
-                tournament data.
+                Select your commander and paste your deck list to get instant
+                insights based on tournament data.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <ScrollToTopButton size="lg" variant="outline">
-                  Search Decks
+                  Analyze Deck
                 </ScrollToTopButton>
               </div>
             </div>

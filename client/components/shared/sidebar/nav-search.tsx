@@ -1,6 +1,6 @@
 "use client";
 
-import { MoxfieldSearch } from "@/components/shared/search/moxfield-search";
+import { DeckAnalysisForm } from "@/components/shared/search/deck-analysis-form";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -11,9 +11,9 @@ export function NavSearch() {
     <SidebarGroup>
       <SidebarGroupContent>
         <div className="relative">
-          <MoxfieldSearch variant="sidebar" />
+          <DeckAnalysisForm variant="sidebar" />
         </div>
       </SidebarGroupContent> 
     </SidebarGroup>
   );
-} 
+}
