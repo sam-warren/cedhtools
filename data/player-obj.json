@@ -1,0 +1,416 @@
+{
+    "name": "Benni Horrig",
+    "id": "hfbfEUKO3QaB59wliZUoRReImuE2",
+    "decklist": "~~Commanders~~\\n1 Ral, Monsoon Mage // Ral, Leyline Prodigy\\n\\n~~Mainboard~~\\n1 _____ Goblin\\n1 An Offer You Can\\'t Refuse\\n1 Ancient Tomb\\n1 Arid Mesa\\n1 Birgi, God of Storytelling // Harnfel, Horn of Bounty\\n1 Bloodstained Mire\\n1 Bonus Round\\n1 Brain Freeze\\n1 Chain of Vapor\\n1 Chrome Mox\\n1 Command Tower\\n1 Daze\\n1 Deflecting Swat\\n1 Demand Answers\\n1 Desperate Ritual\\n1 Echo of Eons\\n1 Electro, Assaulting Battery\\n1 Faithless Looting\\n1 Fierce Guardianship\\n1 Fiery Islet\\n1 Finale of Promise\\n1 Flare of Duplication\\n1 Flooded Strand\\n1 Flusterstorm\\n1 Frantic Search\\n1 Gamble\\n1 Gemstone Caverns\\n1 Gitaxian Probe\\n1 Grapeshot\\n1 Great Furnace\\n1 Gut Shot\\n1 Hidden Strings\\n1 Highway Robbery\\n1 Inspired Tinkering\\n1 Invoke Calamity\\n1 Jeska\\'s Will\\n1 Lava Dart\\n1 Lightning Bolt\\n1 Lion\\'s Eye Diamond\\n1 Lotus Petal\\n1 Mana Vault\\n1 Mental Misstep\\n1 Mind\\'s Desire\\n1 Misty Rainforest\\n1 Mountain\\n1 Mox Amber\\n1 Mox Diamond\\n1 Mox Opal\\n1 Mystic Remora\\n1 Mystical Tutor\\n1 Opera Love Song\\n1 Overmaster\\n1 Pact of Negation\\n1 Past in Flames\\n1 Polluted Delta\\n1 Pyretic Ritual\\n1 Pyroblast\\n1 Quiet Speculation\\n1 Ragavan, Nimble Pilferer\\n1 Reckless Impulse\\n1 Recoup\\n1 Red Elemental Blast\\n1 Reiterate\\n1 Remand\\n1 Rhystic Study\\n1 Rite of Flame\\n1 Rob the Archives\\n1 Scalding Tarn\\n1 Sea Gate Restoration // Sea Gate, Reborn\\n1 Seething Song\\n1 Shatterskull Smashing // Shatterskull, the Hammer Pass\\n1 Shivan Reef\\n1 Simian Spirit Guide\\n1 Sink into Stupor // Soporific Springs\\n1 Snap\\n1 Sol Ring\\n1 Solve the Equation\\n1 Springleaf Drum\\n1 Steam Vents\\n1 Storm-Kiln Artist\\n1 Strike It Rich\\n1 Sundering Eruption // Volcanic Fissure\\n1 Swan Song\\n1 Tavern Scoundrel\\n1 Thundering Falls\\n1 Tibalt\\'s Trickery\\n1 Timetwister\\n1 Training Center\\n1 Treasonous Ogre\\n1 Underworld Breach\\n1 Vexing Bauble\\n1 Volcanic Island\\n1 Wheel of Fortune\\n1 Wheel of Misfortune\\n1 Will of the Jeskai\\n1 Windfall\\n1 Witch\\'s Mark\\n1 Wooded Foothills\\n1 Wrenn\\'s Resolve\\n\\n",
+    "deckObj": {
+        "Commanders": {
+            "Ral, Monsoon Mage // Ral, Leyline Prodigy": {
+                "id": "16d40f56-691b-42a7-a5ab-157568921e03",
+                "count": 1
+            }
+        },
+        "Mainboard": {
+            "_____ Goblin": {
+                "id": "88222fd2-8316-426c-8218-64f6be5ca0f8",
+                "count": 1
+            },
+            "An Offer You Can't Refuse": {
+                "id": "234a734b-ba28-4f1b-9d01-3c3e7d516590",
+                "count": 1
+            },
+            "Ancient Tomb": {
+                "id": "23467047-6dba-4498-b783-1ebc4f74b8c2",
+                "count": 1
+            },
+            "Arid Mesa": {
+                "id": "c5acf2a5-40f4-433d-a74d-1cb56c521464",
+                "count": 1
+            },
+            "Birgi, God of Storytelling // Harnfel, Horn of Bounty": {
+                "id": "fb81e4d3-1d8c-4779-be62-87cf49277e51",
+                "count": 1
+            },
+            "Bloodstained Mire": {
+                "id": "fc0707c7-d504-4ccf-a0d2-3eb6e26e7a57",
+                "count": 1
+            },
+            "Bonus Round": {
+                "id": "40ab2b22-9cf6-4a73-a05f-6ce496d10bf7",
+                "count": 1
+            },
+            "Brain Freeze": {
+                "id": "464c0150-3dbc-403b-9ada-fef25ab1f29d",
+                "count": 1
+            },
+            "Chain of Vapor": {
+                "id": "2167ac25-d042-4b48-b770-8b94acc1a965",
+                "count": 1
+            },
+            "Chrome Mox": {
+                "id": "ec3d4466-547c-4e02-b1b5-a156ec4637e9",
+                "count": 1
+            },
+            "Command Tower": {
+                "id": "0895c9b7-ae7d-4bb3-af17-3b75deb50a25",
+                "count": 1
+            },
+            "Daze": {
+                "id": "70486bee-6ee7-41ea-b834-8caf4699302b",
+                "count": 1
+            },
+            "Deflecting Swat": {
+                "id": "ae120613-97d6-4393-b39d-c3e6c076f5d6",
+                "count": 1
+            },
+            "Demand Answers": {
+                "id": "c11e84a1-dbda-429b-8cd6-fd0deaefc689",
+                "count": 1
+            },
+            "Desperate Ritual": {
+                "id": "3620ab8f-b693-4225-bb96-5ca3cb3fa465",
+                "count": 1
+            },
+            "Echo of Eons": {
+                "id": "23d3e5fe-3f82-44cf-91a1-6646a12a0255",
+                "count": 1
+            },
+            "Electro, Assaulting Battery": {
+                "id": "3db16fb8-5650-4568-b975-42ad3d44ebcd",
+                "count": 1
+            },
+            "Faithless Looting": {
+                "id": "3d6fa57a-aa53-4b5c-b8af-a7612c823117",
+                "count": 1
+            },
+            "Fierce Guardianship": {
+                "id": "d09c9cba-fdd2-479b-ad5d-d05181c3e3f9",
+                "count": 1
+            },
+            "Fiery Islet": {
+                "id": "026f4a4b-eedd-44e1-9d37-ca4fb8d6db98",
+                "count": 1
+            },
+            "Finale of Promise": {
+                "id": "d6fafb50-9531-4fbf-bb1e-ebb4dd39281c",
+                "count": 1
+            },
+            "Flare of Duplication": {
+                "id": "f586ecb8-310c-4f40-a766-6a7ca46a254d",
+                "count": 1
+            },
+            "Flooded Strand": {
+                "id": "f3c7af78-a77d-4134-82a2-a5ce84285a84",
+                "count": 1
+            },
+            "Flusterstorm": {
+                "id": "86bf58f2-7f25-4e10-b797-25e0e8e67769",
+                "count": 1
+            },
+            "Frantic Search": {
+                "id": "16e015b2-f8a3-4b1a-80be-58a8f5fb5e8c",
+                "count": 1
+            },
+            "Gamble": {
+                "id": "a54f0869-94c8-42af-9080-166efb9486a4",
+                "count": 1
+            },
+            "Gemstone Caverns": {
+                "id": "c0adbddc-b070-4c5f-afe0-0474c72a9251",
+                "count": 1
+            },
+            "Gitaxian Probe": {
+                "id": "1d67f5ff-1fce-45e5-b6a1-416c569351e2",
+                "count": 1
+            },
+            "Grapeshot": {
+                "id": "ebd2d760-5ad8-4027-b124-171822f3edfe",
+                "count": 1
+            },
+            "Great Furnace": {
+                "id": "f4819061-b0b5-48ab-af7b-6525c3d2eab7",
+                "count": 1
+            },
+            "Gut Shot": {
+                "id": "9afb3b6e-4909-4efa-aa79-81c0229411c9",
+                "count": 1
+            },
+            "Hidden Strings": {
+                "id": "a50737d7-dd2d-40da-817c-f913f76b5011",
+                "count": 1
+            },
+            "Highway Robbery": {
+                "id": "df020a47-1784-479b-9882-be77b7f30950",
+                "count": 1
+            },
+            "Inspired Tinkering": {
+                "id": "3088b09b-1dce-4fc9-99de-2ca9c752eb12",
+                "count": 1
+            },
+            "Invoke Calamity": {
+                "id": "5b3f041e-ad4a-47ea-bdc4-1be2353f2e18",
+                "count": 1
+            },
+            "Jeska's Will": {
+                "id": "0fd114c4-092b-4e28-b0dc-ef529f3bc73e",
+                "count": 1
+            },
+            "Lava Dart": {
+                "id": "e48891e3-30a2-4fc8-a858-cec33c6e4ab5",
+                "count": 1
+            },
+            "Lightning Bolt": {
+                "id": "4457ed35-7c10-48c8-9776-456485fdf070",
+                "count": 1
+            },
+            "Lion's Eye Diamond": {
+                "id": "ee6099b0-fb1f-42f1-b862-7708c6e36d05",
+                "count": 1
+            },
+            "Lotus Petal": {
+                "id": "32e5339e-9e4f-46f8-b305-f9d6d3ba8bb5",
+                "count": 1
+            },
+            "Mana Vault": {
+                "id": "736892cb-a34b-4bb9-b56c-e26e3db207a2",
+                "count": 1
+            },
+            "Mental Misstep": {
+                "id": "1a0770e6-b093-4439-baff-6889a50ba12e",
+                "count": 1
+            },
+            "Mind's Desire": {
+                "id": "b3739b5a-5731-4c64-a244-815a363b0d5c",
+                "count": 1
+            },
+            "Misty Rainforest": {
+                "id": "09dd85aa-47bc-4713-a9b9-8b52ff2285ed",
+                "count": 1
+            },
+            "Mountain": {
+                "id": "a3fb7228-e76b-4e96-a40e-20b5fed75685",
+                "count": 1
+            },
+            "Mox Amber": {
+                "id": "7a43bd27-fdd8-41f0-9bc4-92568f3408f1",
+                "count": 1
+            },
+            "Mox Diamond": {
+                "id": "f3c5978a-70fa-431f-933b-b954bd0db0ea",
+                "count": 1
+            },
+            "Mox Opal": {
+                "id": "de2440de-e948-4811-903c-0bbe376ff64d",
+                "count": 1
+            },
+            "Mystic Remora": {
+                "id": "8a52f3c0-2552-4425-b2e3-5496eb2232a7",
+                "count": 1
+            },
+            "Mystical Tutor": {
+                "id": "fb81f95c-70f8-4eb7-8d15-15d0ae23ec03",
+                "count": 1
+            },
+            "Opera Love Song": {
+                "id": "22f259b3-9de1-44a1-a89d-f2f1b1249d4d",
+                "count": 1
+            },
+            "Overmaster": {
+                "id": "acc842a4-26e8-435a-b717-c1043b581ff8",
+                "count": 1
+            },
+            "Pact of Negation": {
+                "id": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+                "count": 1
+            },
+            "Past in Flames": {
+                "id": "37a18736-5fe2-4897-809b-013497bdd890",
+                "count": 1
+            },
+            "Polluted Delta": {
+                "id": "ef86989d-ce80-4e55-aece-7d11710eeffa",
+                "count": 1
+            },
+            "Pyretic Ritual": {
+                "id": "86ef6474-613f-41fb-931c-d4279b03ed99",
+                "count": 1
+            },
+            "Pyroblast": {
+                "id": "ecc435e2-deb1-420a-a79f-01dd08747314",
+                "count": 1
+            },
+            "Quiet Speculation": {
+                "id": "938f48a9-766e-41d3-a425-9c3a6adf675b",
+                "count": 1
+            },
+            "Ragavan, Nimble Pilferer": {
+                "id": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+                "count": 1
+            },
+            "Reckless Impulse": {
+                "id": "584cf0fd-112a-4ca6-9c0e-1f3228a7d325",
+                "count": 1
+            },
+            "Recoup": {
+                "id": "f80d151c-7489-4189-8c5b-6d2a730d238e",
+                "count": 1
+            },
+            "Red Elemental Blast": {
+                "id": "bb329a5c-b9f9-4973-a53f-090024146325",
+                "count": 1
+            },
+            "Reiterate": {
+                "id": "38394ee3-6726-4f91-bc25-36bce0c6aab9",
+                "count": 1
+            },
+            "Remand": {
+                "id": "d71cd08e-3e84-41ff-b9db-9e343c0af6b4",
+                "count": 1
+            },
+            "Rhystic Study": {
+                "id": "53236dd7-845a-444c-96d5-f41ed7325d8f",
+                "count": 1
+            },
+            "Rite of Flame": {
+                "id": "8a2e53f9-8100-488f-8504-b59e9bd1cc29",
+                "count": 1
+            },
+            "Rob the Archives": {
+                "id": "df45a344-5937-4a3f-a80f-581ea456ea05",
+                "count": 1
+            },
+            "Scalding Tarn": {
+                "id": "cb027150-848c-4a66-88ad-e20222304dd8",
+                "count": 1
+            },
+            "Sea Gate Restoration // Sea Gate, Reborn": {
+                "id": "4a8d41fe-e04d-484b-a7d1-19be311e6ca7",
+                "count": 1
+            },
+            "Seething Song": {
+                "id": "64bf8929-f5f2-4d50-8667-13b1d007bcfc",
+                "count": 1
+            },
+            "Shatterskull Smashing // Shatterskull, the Hammer Pass": {
+                "id": "78301998-fd9b-4cd5-afad-dbcb43cac2a7",
+                "count": 1
+            },
+            "Shivan Reef": {
+                "id": "0fe16212-66c3-4e45-a641-7391e9b2e304",
+                "count": 1
+            },
+            "Simian Spirit Guide": {
+                "id": "44e0ffa3-8915-4c1f-8f1a-4aeea1365f07",
+                "count": 1
+            },
+            "Sink into Stupor // Soporific Springs": {
+                "id": "bcc6eece-75ea-494c-b33a-d4477d504e0b",
+                "count": 1
+            },
+            "Snap": {
+                "id": "ac914d98-221e-426c-8a50-342896b15f9e",
+                "count": 1
+            },
+            "Sol Ring": {
+                "id": "6ad8011d-3471-4369-9d68-b264cc027487",
+                "count": 1
+            },
+            "Solve the Equation": {
+                "id": "f02682f0-26c0-4032-9df3-273b6a45d0a8",
+                "count": 1
+            },
+            "Springleaf Drum": {
+                "id": "bdeb440d-a714-40e8-9038-f651e6ae45fb",
+                "count": 1
+            },
+            "Steam Vents": {
+                "id": "17039058-822d-409f-938c-b727a366ba63",
+                "count": 1
+            },
+            "Storm-Kiln Artist": {
+                "id": "a145ff8c-5812-4bcb-bd16-9839dc25121d",
+                "count": 1
+            },
+            "Strike It Rich": {
+                "id": "c34c17c7-3827-49a2-be25-67f44fdfe150",
+                "count": 1
+            },
+            "Sundering Eruption // Volcanic Fissure": {
+                "id": "c95309e9-5c2f-4518-b2fd-825d3d0a4ae0",
+                "count": 1
+            },
+            "Swan Song": {
+                "id": "8ddfc283-c9b4-41a5-af88-cf0068e986cc",
+                "count": 1
+            },
+            "Tavern Scoundrel": {
+                "id": "68c4f86f-ff12-44a6-8f18-f2ee9753b2cd",
+                "count": 1
+            },
+            "Thundering Falls": {
+                "id": "d2bcff58-7a8a-46ef-b6b3-39501d4c8e6e",
+                "count": 1
+            },
+            "Tibalt's Trickery": {
+                "id": "6623cb85-fb1e-4561-8b21-0977c25096c2",
+                "count": 1
+            },
+            "Timetwister": {
+                "id": "c823e687-6311-4c99-974b-fd77d204141a",
+                "count": 1
+            },
+            "Training Center": {
+                "id": "e3570ac7-c593-40e3-bbd6-ec3da6d8158d",
+                "count": 1
+            },
+            "Treasonous Ogre": {
+                "id": "826d4279-1576-4898-a1c2-26fd547fb0d0",
+                "count": 1
+            },
+            "Underworld Breach": {
+                "id": "27e0948b-9916-473b-8d8c-a51bdfbc7457",
+                "count": 1
+            },
+            "Vexing Bauble": {
+                "id": "4514777d-0589-4631-978b-ff244167c176",
+                "count": 1
+            },
+            "Volcanic Island": {
+                "id": "c718911c-c955-4eb9-9e16-be4bd49a4e4e",
+                "count": 1
+            },
+            "Wheel of Fortune": {
+                "id": "a8abd966-de7b-46a3-8ac7-8747ab35653a",
+                "count": 1
+            },
+            "Wheel of Misfortune": {
+                "id": "10aff3f6-8347-4e1b-b8e7-c204c9e46657",
+                "count": 1
+            },
+            "Will of the Jeskai": {
+                "id": "2c3e6377-d09c-46b6-8a83-ada4a2930b14",
+                "count": 1
+            },
+            "Windfall": {
+                "id": "08becc07-28bc-4a2f-a6b0-28a2998d2f50",
+                "count": 1
+            },
+            "Witch's Mark": {
+                "id": "00807825-88e5-4b88-8527-a49f553a91be",
+                "count": 1
+            },
+            "Wooded Foothills": {
+                "id": "6587a463-a108-4854-b6d1-944e89b8c8a4",
+                "count": 1
+            },
+            "Wrenn's Resolve": {
+                "id": "a7d8c99c-cd44-4bad-82e6-7c7cff9bd89f",
+                "count": 1
+            }
+        },
+        "metadata": {
+            "game": "Magic: The Gathering",
+            "format": "EDH",
+            "importedFrom": "https://moxfield.com/decks/YzYw04_ONE2bg-Rk7Wvwug"
+        }
+    }
+}

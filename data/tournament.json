@@ -1,0 +1,1194 @@
+{
+    "TID": "unaltered-precon-1-587",
+    "tournamentName": "Unaltered Precon",
+    "swissNum": 4,
+    "startDate": 1763279100,
+    "game": "Magic: The Gathering",
+    "format": "EDH",
+    "averageElo": 1500,
+    "modeElo": 1500,
+    "medianElo": 1500,
+    "topElo": 1500,
+    "eventData": {},
+    "rounds": [
+        {
+            "round": 1,
+            "tables": [
+                {
+                    "table": 1,
+                    "players": [
+                        {
+                            "name": "Dennis",
+                            "id": "imfjP5MyIcpjniU7DR3Y",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Amber",
+                            "id": "HKXkpn96Klzz7lH52q8U",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Hannah",
+                            "id": "gg54SznjX1nfQZrZ0aYM",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Cameron",
+                            "id": "sFMLJKvbhq5LBq7x21tX",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cameron",
+                    "status": "Completed"
+                },
+                {
+                    "table": 2,
+                    "players": [
+                        {
+                            "name": "bryan",
+                            "id": "6YekEfUd8mvwxVdEWyCZ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Ronan",
+                            "id": "Y6O4NVvyCAoCZnmLFiQO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Cesar",
+                            "id": "R2S7c4Wg7zZ6GBpgFPHN",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Justin",
+                            "id": "zNNLKRtSYRbvQHOMMlB2",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cesar",
+                    "status": "Completed"
+                },
+                {
+                    "table": 3,
+                    "players": [
+                        {
+                            "name": "Will Y",
+                            "id": "MXCk3V2SWLA3CSqXIboC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dalton C",
+                            "id": "pqfy6WYr9t6nopZBt2lv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Lance",
+                            "id": "4Js4Yrc3F3b92R8mWkzJ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Adel",
+                            "id": "ldKxTON5h8UX2mnq3qhh",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 4,
+                    "players": [
+                        {
+                            "name": "Derrick",
+                            "id": "DUOgrO1TqrqJsUzMPgbC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Josette",
+                            "id": "6ql9p3r0gCNLb0w87uEC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tim B",
+                            "id": "HdHaaM6dG9rCIts1QPrp",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Trevor H",
+                            "id": "S5aBZG55BB9qvxGHoL2O",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Derrick",
+                    "status": "Completed"
+                },
+                {
+                    "table": 5,
+                    "players": [
+                        {
+                            "name": "Michael Couch",
+                            "id": "PZUvvdF9blxAqx4gU8f0",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tyler G",
+                            "id": "imk3BkiKFxsAkX3v8IUO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dane",
+                            "id": "32KlgPurK3WdJfIPM9CQ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Randall",
+                            "id": "iF3ASSzxdGF3v2yfGd81",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 6,
+                    "players": [
+                        {
+                            "name": "Luke",
+                            "id": "kPMyZ4Y5VIqObw7ZQzJv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tom",
+                            "id": "SxczfLd6wkFrFRkMqHHA",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Alec",
+                            "id": "pIZKSPy0aZlhwoSg61f5",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Caleb",
+                            "id": "3SuOwJoUyD8aKuDnUdLU",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                }
+            ]
+        },
+        {
+            "round": 2,
+            "tables": [
+                {
+                    "table": 1,
+                    "players": [
+                        {
+                            "name": "Cesar",
+                            "id": "R2S7c4Wg7zZ6GBpgFPHN",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dalton C",
+                            "id": "pqfy6WYr9t6nopZBt2lv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Luke",
+                            "id": "kPMyZ4Y5VIqObw7ZQzJv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Michael Couch",
+                            "id": "PZUvvdF9blxAqx4gU8f0",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 2,
+                    "players": [
+                        {
+                            "name": "Cameron",
+                            "id": "sFMLJKvbhq5LBq7x21tX",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Lance",
+                            "id": "4Js4Yrc3F3b92R8mWkzJ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tyler G",
+                            "id": "imk3BkiKFxsAkX3v8IUO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Alec",
+                            "id": "pIZKSPy0aZlhwoSg61f5",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cameron",
+                    "status": "Completed"
+                },
+                {
+                    "table": 3,
+                    "players": [
+                        {
+                            "name": "Caleb",
+                            "id": "3SuOwJoUyD8aKuDnUdLU",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Randall",
+                            "id": "iF3ASSzxdGF3v2yfGd81",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Adel",
+                            "id": "ldKxTON5h8UX2mnq3qhh",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Derrick",
+                            "id": "DUOgrO1TqrqJsUzMPgbC",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Derrick",
+                    "status": "Completed"
+                },
+                {
+                    "table": 4,
+                    "players": [
+                        {
+                            "name": "Dane",
+                            "id": "32KlgPurK3WdJfIPM9CQ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dennis",
+                            "id": "imfjP5MyIcpjniU7DR3Y",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tom",
+                            "id": "SxczfLd6wkFrFRkMqHHA",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Will Y",
+                            "id": "MXCk3V2SWLA3CSqXIboC",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Tom",
+                    "status": "Completed"
+                },
+                {
+                    "table": 5,
+                    "players": [
+                        {
+                            "name": "Amber",
+                            "id": "HKXkpn96Klzz7lH52q8U",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "bryan",
+                            "id": "6YekEfUd8mvwxVdEWyCZ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tim B",
+                            "id": "HdHaaM6dG9rCIts1QPrp",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Justin",
+                            "id": "zNNLKRtSYRbvQHOMMlB2",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 6,
+                    "players": [
+                        {
+                            "name": "Trevor H",
+                            "id": "S5aBZG55BB9qvxGHoL2O",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Ronan",
+                            "id": "Y6O4NVvyCAoCZnmLFiQO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Josette",
+                            "id": "6ql9p3r0gCNLb0w87uEC",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Josette",
+                    "status": "Completed"
+                }
+            ]
+        },
+        {
+            "round": 3,
+            "tables": [
+                {
+                    "table": 1,
+                    "players": [
+                        {
+                            "name": "Cameron",
+                            "id": "sFMLJKvbhq5LBq7x21tX",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Derrick",
+                            "id": "DUOgrO1TqrqJsUzMPgbC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tom",
+                            "id": "SxczfLd6wkFrFRkMqHHA",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Cesar",
+                            "id": "R2S7c4Wg7zZ6GBpgFPHN",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Derrick",
+                    "status": "Completed"
+                },
+                {
+                    "table": 2,
+                    "players": [
+                        {
+                            "name": "Randall",
+                            "id": "iF3ASSzxdGF3v2yfGd81",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Josette",
+                            "id": "6ql9p3r0gCNLb0w87uEC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Luke",
+                            "id": "kPMyZ4Y5VIqObw7ZQzJv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "bryan",
+                            "id": "6YekEfUd8mvwxVdEWyCZ",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "bryan",
+                    "status": "Completed"
+                },
+                {
+                    "table": 3,
+                    "players": [
+                        {
+                            "name": "Alec",
+                            "id": "pIZKSPy0aZlhwoSg61f5",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tim B",
+                            "id": "HdHaaM6dG9rCIts1QPrp",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Michael Couch",
+                            "id": "PZUvvdF9blxAqx4gU8f0",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Will Y",
+                            "id": "MXCk3V2SWLA3CSqXIboC",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 4,
+                    "players": [
+                        {
+                            "name": "Trevor H",
+                            "id": "S5aBZG55BB9qvxGHoL2O",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dalton C",
+                            "id": "pqfy6WYr9t6nopZBt2lv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Justin",
+                            "id": "zNNLKRtSYRbvQHOMMlB2",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tyler G",
+                            "id": "imk3BkiKFxsAkX3v8IUO",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Tyler G",
+                    "status": "Completed"
+                },
+                {
+                    "table": 5,
+                    "players": [
+                        {
+                            "name": "Adel",
+                            "id": "ldKxTON5h8UX2mnq3qhh",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Amber",
+                            "id": "HKXkpn96Klzz7lH52q8U",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dane",
+                            "id": "32KlgPurK3WdJfIPM9CQ",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 6,
+                    "players": [
+                        {
+                            "name": "Caleb",
+                            "id": "3SuOwJoUyD8aKuDnUdLU",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Ronan",
+                            "id": "Y6O4NVvyCAoCZnmLFiQO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Lance",
+                            "id": "4Js4Yrc3F3b92R8mWkzJ",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Caleb",
+                    "status": "Completed"
+                }
+            ]
+        },
+        {
+            "round": 4,
+            "tables": [
+                {
+                    "table": 1,
+                    "players": [
+                        {
+                            "name": "Will Y",
+                            "id": "MXCk3V2SWLA3CSqXIboC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tyler G",
+                            "id": "imk3BkiKFxsAkX3v8IUO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Luke",
+                            "id": "kPMyZ4Y5VIqObw7ZQzJv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Derrick",
+                            "id": "DUOgrO1TqrqJsUzMPgbC",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Will Y",
+                    "status": "Completed"
+                },
+                {
+                    "table": 2,
+                    "players": [
+                        {
+                            "name": "Caleb",
+                            "id": "3SuOwJoUyD8aKuDnUdLU",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Michael Couch",
+                            "id": "PZUvvdF9blxAqx4gU8f0",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Josette",
+                            "id": "6ql9p3r0gCNLb0w87uEC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Cameron",
+                            "id": "sFMLJKvbhq5LBq7x21tX",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cameron",
+                    "status": "Completed"
+                },
+                {
+                    "table": 3,
+                    "players": [
+                        {
+                            "name": "Adel",
+                            "id": "ldKxTON5h8UX2mnq3qhh",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Alec",
+                            "id": "pIZKSPy0aZlhwoSg61f5",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "bryan",
+                            "id": "6YekEfUd8mvwxVdEWyCZ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Trevor H",
+                            "id": "S5aBZG55BB9qvxGHoL2O",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                },
+                {
+                    "table": 4,
+                    "players": [
+                        {
+                            "name": "Cesar",
+                            "id": "R2S7c4Wg7zZ6GBpgFPHN",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dane",
+                            "id": "32KlgPurK3WdJfIPM9CQ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tim B",
+                            "id": "HdHaaM6dG9rCIts1QPrp",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cesar",
+                    "status": "Completed"
+                },
+                {
+                    "table": 5,
+                    "players": [
+                        {
+                            "name": "Justin",
+                            "id": "zNNLKRtSYRbvQHOMMlB2",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Lance",
+                            "id": "4Js4Yrc3F3b92R8mWkzJ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tom",
+                            "id": "SxczfLd6wkFrFRkMqHHA",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Tom",
+                    "status": "Completed"
+                },
+                {
+                    "table": 6,
+                    "players": [
+                        {
+                            "name": "Ronan",
+                            "id": "Y6O4NVvyCAoCZnmLFiQO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Dalton C",
+                            "id": "pqfy6WYr9t6nopZBt2lv",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Amber",
+                            "id": "HKXkpn96Klzz7lH52q8U",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Draw",
+                    "winner_id": "Draw",
+                    "status": "Completed"
+                }
+            ]
+        },
+        {
+            "round": "Top 10",
+            "tables": [
+                {
+                    "table": 1,
+                    "players": [
+                        {
+                            "name": "Cesar",
+                            "id": "R2S7c4Wg7zZ6GBpgFPHN",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "bryan",
+                            "id": "6YekEfUd8mvwxVdEWyCZ",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tyler G",
+                            "id": "imk3BkiKFxsAkX3v8IUO",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Alec",
+                            "id": "pIZKSPy0aZlhwoSg61f5",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cesar",
+                    "status": "Completed"
+                },
+                {
+                    "table": 2,
+                    "players": [
+                        {
+                            "name": "Tom",
+                            "id": "SxczfLd6wkFrFRkMqHHA",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Will Y",
+                            "id": "MXCk3V2SWLA3CSqXIboC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Caleb",
+                            "id": "3SuOwJoUyD8aKuDnUdLU",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Josette",
+                            "id": "6ql9p3r0gCNLb0w87uEC",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Tom",
+                    "status": "Completed"
+                }
+            ]
+        },
+        {
+            "round": "Top 4",
+            "tables": [
+                {
+                    "table": 1,
+                    "players": [
+                        {
+                            "name": "Derrick",
+                            "id": "DUOgrO1TqrqJsUzMPgbC",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Cameron",
+                            "id": "sFMLJKvbhq5LBq7x21tX",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Cesar",
+                            "id": "R2S7c4Wg7zZ6GBpgFPHN",
+                            "decklist": null,
+                            "deckObj": null
+                        },
+                        {
+                            "name": "Tom",
+                            "id": "SxczfLd6wkFrFRkMqHHA",
+                            "decklist": null,
+                            "deckObj": null
+                        }
+                    ],
+                    "winner": "Cesar",
+                    "status": "Completed"
+                }
+            ]
+        }
+    ],
+    "topCut": 10,
+    "standings": [
+        {
+            "name": "Cesar",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 4,
+            "winsSwiss": 2,
+            "winsBracket": 2,
+            "byes": 0,
+            "draws": 1,
+            "losses": 1,
+            "lossesSwiss": 1,
+            "lossesBracket": 0,
+            "id": "R2S7c4Wg7zZ6GBpgFPHN"
+        },
+        {
+            "name": "Derrick",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 3,
+            "winsSwiss": 3,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 2,
+            "lossesSwiss": 1,
+            "lossesBracket": 1,
+            "id": "DUOgrO1TqrqJsUzMPgbC"
+        },
+        {
+            "name": "Cameron",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 3,
+            "winsSwiss": 3,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 2,
+            "lossesSwiss": 1,
+            "lossesBracket": 1,
+            "id": "sFMLJKvbhq5LBq7x21tX"
+        },
+        {
+            "name": "Tom",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 3,
+            "winsSwiss": 2,
+            "winsBracket": 1,
+            "byes": 0,
+            "draws": 0,
+            "losses": 3,
+            "lossesSwiss": 2,
+            "lossesBracket": 1,
+            "id": "SxczfLd6wkFrFRkMqHHA"
+        },
+        {
+            "name": "Will Y",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 1,
+            "winsSwiss": 1,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 1,
+            "lossesBracket": 1,
+            "id": "MXCk3V2SWLA3CSqXIboC"
+        },
+        {
+            "name": "bryan",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 1,
+            "winsSwiss": 1,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 1,
+            "lossesBracket": 1,
+            "id": "6YekEfUd8mvwxVdEWyCZ"
+        },
+        {
+            "name": "Tyler G",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 1,
+            "winsSwiss": 1,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 1,
+            "losses": 3,
+            "lossesSwiss": 2,
+            "lossesBracket": 1,
+            "id": "imk3BkiKFxsAkX3v8IUO"
+        },
+        {
+            "name": "Caleb",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 1,
+            "winsSwiss": 1,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 4,
+            "lossesSwiss": 3,
+            "lossesBracket": 1,
+            "id": "3SuOwJoUyD8aKuDnUdLU"
+        },
+        {
+            "name": "Josette",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 1,
+            "winsSwiss": 1,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 4,
+            "lossesSwiss": 3,
+            "lossesBracket": 1,
+            "id": "6ql9p3r0gCNLb0w87uEC"
+        },
+        {
+            "name": "Alec",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 3,
+            "losses": 2,
+            "lossesSwiss": 1,
+            "lossesBracket": 1,
+            "id": "pIZKSPy0aZlhwoSg61f5"
+        },
+        {
+            "name": "Amber",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 3,
+            "losses": 1,
+            "lossesSwiss": 1,
+            "lossesBracket": 0,
+            "id": "HKXkpn96Klzz7lH52q8U"
+        },
+        {
+            "name": "Dalton C",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 3,
+            "losses": 1,
+            "lossesSwiss": 1,
+            "lossesBracket": 0,
+            "id": "pqfy6WYr9t6nopZBt2lv"
+        },
+        {
+            "name": "Luke",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "kPMyZ4Y5VIqObw7ZQzJv"
+        },
+        {
+            "name": "Tim B",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "HdHaaM6dG9rCIts1QPrp"
+        },
+        {
+            "name": "Michael Couch",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "PZUvvdF9blxAqx4gU8f0"
+        },
+        {
+            "name": "Dane",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "32KlgPurK3WdJfIPM9CQ"
+        },
+        {
+            "name": "Adel",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 2,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "ldKxTON5h8UX2mnq3qhh"
+        },
+        {
+            "name": "Lance",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 1,
+            "losses": 3,
+            "lossesSwiss": 3,
+            "lossesBracket": 0,
+            "id": "4Js4Yrc3F3b92R8mWkzJ"
+        },
+        {
+            "name": "Randall",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 1,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "iF3ASSzxdGF3v2yfGd81"
+        },
+        {
+            "name": "Justin",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 1,
+            "losses": 3,
+            "lossesSwiss": 3,
+            "lossesBracket": 0,
+            "id": "zNNLKRtSYRbvQHOMMlB2"
+        },
+        {
+            "name": "Hannah",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 1,
+            "lossesSwiss": 1,
+            "lossesBracket": 0,
+            "id": "gg54SznjX1nfQZrZ0aYM"
+        },
+        {
+            "name": "Dennis",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 2,
+            "lossesSwiss": 2,
+            "lossesBracket": 0,
+            "id": "imfjP5MyIcpjniU7DR3Y"
+        },
+        {
+            "name": "Trevor H",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 4,
+            "lossesSwiss": 4,
+            "lossesBracket": 0,
+            "id": "S5aBZG55BB9qvxGHoL2O"
+        },
+        {
+            "name": "Ronan",
+            "decklist": null,
+            "deckObj": null,
+            "wins": 0,
+            "winsSwiss": 0,
+            "winsBracket": 0,
+            "byes": 0,
+            "draws": 0,
+            "losses": 4,
+            "lossesSwiss": 4,
+            "lossesBracket": 0,
+            "id": "Y6O4NVvyCAoCZnmLFiQO"
+        }
+    ]
+}
