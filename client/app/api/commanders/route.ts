@@ -8,8 +8,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createServerClient } from '@/lib/api/supabase';
 import { apiLogger } from '@/lib/logger';
 import { createErrorResponse } from '@/lib/errors';
 
@@ -25,20 +25,7 @@ export async function GET(request: Request) {
 
         // Create Supabase client
         const cookieStore = await cookies();
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll: () => [...cookieStore.getAll()],
-                    setAll: (cookies) => {
-                        cookies.map((cookie) => {
-                            cookieStore.set(cookie.name, cookie.value, cookie.options);
-                        });
-                    }
-                },
-            }
-        );
+        const supabase = createServerClient(cookieStore);
 
         // Build query
         let query = supabase

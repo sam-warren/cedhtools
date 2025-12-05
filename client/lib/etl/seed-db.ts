@@ -13,7 +13,7 @@ import EtlProcessor from './processor';
 import { format } from 'date-fns';
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { cliLogger } from '../logger';
+import { cliLogger } from '@/lib/logger';
 
 // Determine which env file to load
 const envFile = process.env.ENV_FILE || '.env.local';

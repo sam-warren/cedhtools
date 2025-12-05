@@ -24,7 +24,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseServiceRole } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/api/supabase';
+
+// Create singleton for this module
+const serviceRoleClient = createServiceRoleClient();
 import { apiLogger } from '@/lib/logger';
 
 interface HealthCheck {
@@ -56,7 +59,7 @@ async function checkDatabase(): Promise<HealthCheck> {
   
   try {
     // Simple query to verify database connectivity
-    const { error } = await supabaseServiceRole
+    const { error } = await serviceRoleClient
       .from('commanders')
       .select('id')
       .limit(1);
@@ -93,20 +96,20 @@ async function checkDatabase(): Promise<HealthCheck> {
 }
 
 /**
- * Check ETL status - verify last successful run
+ * Check ETL status - verify last successful job run
  */
 async function checkEtl(): Promise<HealthCheck> {
   try {
-    const { data, error } = await supabaseServiceRole
-      .from('etl_status')
-      .select('status, end_date, records_processed')
+    const { data, error } = await serviceRoleClient
+      .from('etl_jobs')
+      .select('status, completed_at, records_processed')
       .eq('status', 'COMPLETED')
-      .order('created_at', { ascending: false })
+      .order('completed_at', { ascending: false })
       .limit(1)
       .single();
     
     if (error) {
-      // No completed ETL runs is not necessarily unhealthy
+      // No completed ETL jobs is not necessarily unhealthy
       if (error.code === 'PGRST116') {
         return {
           status: 'healthy',
@@ -120,7 +123,7 @@ async function checkEtl(): Promise<HealthCheck> {
     }
     
     // Check if last run was within the last 48 hours
-    const lastRunDate = data.end_date ? new Date(data.end_date) : null;
+    const lastRunDate = data.completed_at ? new Date(data.completed_at) : null;
     const hoursSinceLastRun = lastRunDate 
       ? (Date.now() - lastRunDate.getTime()) / (1000 * 60 * 60)
       : Infinity;
@@ -128,14 +131,14 @@ async function checkEtl(): Promise<HealthCheck> {
     if (hoursSinceLastRun > 48) {
       return {
         status: 'degraded',
-        lastRun: data.end_date || undefined,
+        lastRun: data.completed_at || undefined,
         error: 'ETL has not run in over 48 hours',
       };
     }
     
     return {
       status: 'healthy',
-      lastRun: data.end_date || undefined,
+      lastRun: data.completed_at || undefined,
     };
   } catch (error) {
     return {
@@ -202,4 +205,3 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
     } as HealthResponse, { status: 503 });
   }
 }
-

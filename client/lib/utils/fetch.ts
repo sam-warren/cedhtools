@@ -1,10 +1,11 @@
-import { toast } from "sonner";
+/**
+ * Fetch Utilities
+ * 
+ * Client-side fetch wrapper with error handling and toast notifications.
+ */
 
-type ApiError = {
-    error: string;
-    message?: string;
-    type?: string;
-};
+import { toast } from "sonner";
+import type { ApiError } from "@/lib/types";
 
 /**
  * Redirect to login page with current URL as return path
@@ -15,9 +16,19 @@ export function redirectToLogin() {
 }
 
 /**
- * Custom fetch wrapper that handles common API errors without requiring authentication
+ * Custom fetch wrapper that handles common API errors.
+ * 
+ * Features:
+ * - Automatic error toast notifications
+ * - JSON parsing with fallback
+ * - Auth redirect handling
+ * 
+ * @example
+ * ```tsx
+ * const data = await fetchApi<CommanderData>('/api/commanders');
+ * ```
  */
-export async function fetchWithAuth<T>(
+export async function fetchApi<T>(
     url: string,
     options?: RequestInit
 ): Promise<T> {
@@ -72,4 +83,10 @@ export async function fetchWithAuth<T>(
         console.error("API request failed:", error);
         throw error;
     }
-} 
+}
+
+/**
+ * @deprecated Use fetchApi instead
+ */
+export const fetchWithAuth = fetchApi;
+

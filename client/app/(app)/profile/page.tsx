@@ -1,4 +1,5 @@
-import { createClient } from "@/app/utils/supabase/server";
+import { createServerClient } from "@/lib/api/supabase";
+import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,7 +11,8 @@ import {
 import Link from "next/link";
 
 export default async function Profile() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const supabase = createServerClient(cookieStore);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -35,8 +37,7 @@ export default async function Profile() {
           </CardHeader>
           <CardContent>
             <p className="mb-4">
-              Sign in to track your deck analyses and manage your account
-              settings.
+              Sign in to access your account settings.
             </p>
             <Button asChild>
               <Link href="/login?returnTo=/profile">Sign In</Link>
@@ -46,14 +47,6 @@ export default async function Profile() {
       </div>
     );
   }
-
-  // Get user analysis history
-  const { data: analysisData } = await supabase
-    .from("deck_analyses")
-    .select("id, created_at, moxfield_url, deck_name")
-    .eq("user_id", user?.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
 
   return (
     <div className="container max-w-6xl py-8">
@@ -98,40 +91,17 @@ export default async function Profile() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your deck analysis history</CardDescription>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Get started with deck analysis</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border bg-card">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h4 className="font-medium">Recent Analyses</h4>
-              </div>
-              {analysisData && analysisData.length > 0 ? (
-                <div className="divide-y">
-                  {analysisData.map((analysis) => (
-                    <div
-                      key={analysis.id}
-                      className="px-4 py-2 flex justify-between items-center"
-                    >
-                      <p
-                        className="text-sm truncate max-w-[200px]"
-                        title={analysis.moxfield_url}
-                      >
-                        {analysis.deck_name ||
-                          `Deck ${analysis.moxfield_url.split("/").pop()}`}
-                      </p>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(analysis.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="px-4 py-3 text-sm text-muted-foreground">
-                  No recent analyses found
-                </p>
-              )}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Search for a commander to view their tournament statistics,
+              or analyze your own deck against tournament data.
+            </p>
+            <Button asChild>
+              <Link href="/">Search Commanders</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

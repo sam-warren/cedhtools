@@ -1,3 +1,10 @@
+/**
+ * Supabase Database Types
+ * 
+ * Auto-generated types for the Supabase database schema.
+ * Do not edit directly - regenerate using Supabase CLI.
+ */
+
 export type Json =
     | string
     | number
@@ -45,7 +52,6 @@ export interface Database {
                 Row: {
                     unique_card_id: string
                     name: string
-                    scryfall_id: string | null
                     type: number | null
                     type_line: string | null
                     created_at: string
@@ -54,7 +60,6 @@ export interface Database {
                 Insert: {
                     unique_card_id: string
                     name: string
-                    scryfall_id?: string | null
                     type?: number | null
                     type_line?: string | null
                     created_at?: string
@@ -63,7 +68,6 @@ export interface Database {
                 Update: {
                     unique_card_id?: string
                     name?: string
-                    scryfall_id?: string | null
                     type?: number | null
                     type_line?: string | null
                     created_at?: string
@@ -137,61 +141,6 @@ export interface Database {
                     updated_at?: string
                 }
             }
-            deck_analyses: {
-                Row: {
-                    id: number
-                    user_id: string
-                    moxfield_url: string
-                    commander_id: string
-                    deck_name: string | null
-                    created_at: string
-                }
-                Insert: {
-                    id?: number
-                    user_id: string
-                    moxfield_url: string
-                    commander_id: string
-                    deck_name?: string | null
-                    created_at?: string
-                }
-                Update: {
-                    id?: number
-                    user_id?: string
-                    moxfield_url?: string
-                    commander_id?: string
-                    deck_name?: string | null
-                    created_at?: string
-                }
-            }
-            etl_status: {
-                Row: {
-                    id: number
-                    start_date: string | null
-                    end_date: string | null
-                    status: string | null
-                    records_processed: number
-                    last_processed_date: string | null
-                    created_at: string
-                }
-                Insert: {
-                    id?: number
-                    start_date?: string | null
-                    end_date?: string | null
-                    status?: string | null
-                    records_processed?: number
-                    last_processed_date?: string | null
-                    created_at?: string
-                }
-                Update: {
-                    id?: number
-                    start_date?: string | null
-                    end_date?: string | null
-                    status?: string | null
-                    records_processed?: number
-                    last_processed_date?: string | null
-                    created_at?: string
-                }
-            }
             etl_jobs: {
                 Row: {
                     id: number
@@ -199,7 +148,11 @@ export interface Database {
                     status: string
                     parameters: Json
                     created_at: string
-                    updated_at: string
+                    started_at: string | null
+                    completed_at: string | null
+                    next_cursor: string | null
+                    records_processed: number
+                    error: string | null
                     priority: number
                     max_runtime_seconds: number
                 }
@@ -207,11 +160,15 @@ export interface Database {
                     id?: number
                     job_type: string
                     status: string
-                    parameters: Json
+                    parameters?: Json
                     created_at?: string
-                    updated_at?: string
-                    priority: number
-                    max_runtime_seconds: number
+                    started_at?: string | null
+                    completed_at?: string | null
+                    next_cursor?: string | null
+                    records_processed?: number
+                    error?: string | null
+                    priority?: number
+                    max_runtime_seconds?: number
                 }
                 Update: {
                     id?: number
@@ -219,43 +176,56 @@ export interface Database {
                     status?: string
                     parameters?: Json
                     created_at?: string
-                    updated_at?: string
+                    started_at?: string | null
+                    completed_at?: string | null
+                    next_cursor?: string | null
+                    records_processed?: number
+                    error?: string | null
                     priority?: number
                     max_runtime_seconds?: number
                 }
             }
+            processed_tournaments: {
+                Row: {
+                    tournament_id: string
+                    name: string
+                    processed_at: string
+                }
+                Insert: {
+                    tournament_id: string
+                    name: string
+                    processed_at?: string
+                }
+                Update: {
+                    tournament_id?: string
+                    name?: string
+                    processed_at?: string
+                }
+            }
+        }
+        Views: {
             etl_jobs_active: {
                 Row: {
                     id: number
                     job_type: string
                     status: string
                     created_at: string
-                    runtime_seconds: number
-                }
-                Insert: {
-                    id: number
-                    job_type: string
-                    status: string
-                    created_at: string
-                    runtime_seconds: number
-                }
-                Update: {
-                    id?: number
-                    job_type?: string
-                    status?: string
-                    created_at?: string
-                    runtime_seconds?: number
+                    started_at: string | null
+                    runtime_seconds: number | null
+                    max_runtime_seconds: number
+                    records_processed: number
                 }
             }
         }
-        Views: {
-            [_ in never]: never
-        }
         Functions: {
-            [_ in never]: never
+            reset_stuck_jobs: {
+                Args: Record<string, never>
+                Returns: number
+            }
         }
         Enums: {
             [_ in never]: never
         }
     }
-} 
+}
+

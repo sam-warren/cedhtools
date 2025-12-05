@@ -8,49 +8,38 @@
  * 
  * The ETL process follows this flow:
  * 1. **Extract**: Fetch tournaments from Topdeck API for a date range
- * 2. **Filter**: Identify standings with valid deckObj (Scrollrack data)
- * 3. **Transform**: Extract commanders, cards, and calculate statistics
+ * 2. **Filter**: Identify tables with valid players and deck data
+ * 3. **Transform**: Extract commanders, cards, seat positions, and calculate statistics
  * 4. **Load**: Upsert aggregated data into Supabase tables
  * 
  * ## Data Source
  * 
- * As of 2024, Topdeck provides deck data directly via their Scrollrack
- * integration. The `deckObj` field on each standing contains:
- * - Commanders with Scryfall UUIDs
- * - Mainboard cards with Scryfall UUIDs
+ * Topdeck provides tournament data with rounds containing tables.
+ * Each table has players listed in seat order (0-3 = seats 1-4) with
+ * deck data via their Scrollrack integration.
  * 
- * This eliminates the need for separate Moxfield API calls.
+ * ## Processing
  * 
- * ## Processing Modes
- * 
- * - **Full Processing** (`processData`): Processes all data in weekly batches.
- *   Suitable for initial seeding or catching up on large date ranges.
- * 
- * - **Batch Processing** (`processBatch`): Processes data in smaller chunks
- *   with cursor support. Designed for serverless environments with time limits.
- * 
- * ## Data Model
- * 
- * - **Commanders**: Identified by Scryfall UUID (single) or sorted concatenation
- *   of UUIDs for partner pairs (e.g., "uuid1_uuid2").
- * 
- * - **Cards**: Identified by Scryfall UUID.
- * 
- * - **Statistics**: Per-commander, per-card performance metrics including
- *   wins, losses, draws, and entry counts.
+ * - Process each round's tables
+ * - For each table, identify winner and seat positions
+ * - Track seat position win rates for commanders
+ * - Track card statistics per commander
  * 
  * @module EtlProcessor
  */
 
 import { addDays, format, parseISO, subDays, subMonths } from 'date-fns';
-import { supabaseServiceRole } from '../supabase';
-import { TopdeckClient } from './api-clients';
-import {
-    EtlStatus,
+import { createServiceRoleClient } from '@/lib/api/supabase';
+
+// Create singleton for this module
+const serviceRoleClient = createServiceRoleClient();
+import { TopdeckClient } from '@/lib/api/topdeck';
+import type {
     Tournament,
-    TournamentStanding,
+    TournamentTable,
+    TablePlayer,
     TopdeckDeckObj,
-} from './types';
+} from '@/lib/types/etl';
 import {
     DEFAULT_BATCH_SIZE,
     DEFAULT_CONCURRENCY_LIMIT,
@@ -59,34 +48,37 @@ import {
     WEEKLY_BATCH_DAYS,
     MIN_VALID_TOURNAMENT_YEAR,
     CURSOR_DELIMITER,
-    ETL_STATUS,
-    type EtlStatusType,
 } from './constants';
 import {
     generateCommanderId,
     generateCommanderName,
-} from '../utils/commander';
-import { etlLogger } from '../logger';
-import { EtlProcessingError } from '../errors';
+} from '@/lib/utils/commander';
+import { etlLogger } from '@/lib/logger';
+
+/**
+ * Result of processing a single game/table
+ */
+interface GameResult {
+    /** Player's Topdeck user ID */
+    playerId: string;
+    /** Player's deck object */
+    deckObj: TopdeckDeckObj;
+    /** Seat position (1-4) */
+    seatPosition: number;
+    /** Whether this player won the game */
+    isWinner: boolean;
+    /** Whether the game was a draw */
+    isDraw: boolean;
+}
 
 /**
  * Main ETL processor class that orchestrates data extraction, transformation,
  * and loading from Topdeck API into the database.
  * 
- * @example
- * ```typescript
- * const processor = new EtlProcessor();
- * 
- * // Process all data from a date range
- * await processor.processData('2024-01-01', '2024-06-01');
- * 
- * // Or process in smaller batches with cursor support
- * let cursor = null;
- * do {
- *   const result = await processor.processBatch(cursor, 50);
- *   cursor = result.nextCursor;
- * } while (!result.isComplete);
- * ```
+ * Processes tournament rounds to track:
+ * - Commander win rates
+ * - Card statistics per commander
+ * - Seat position win rates for commanders
  */
 export default class EtlProcessor {
     private topdeckClient: TopdeckClient;
@@ -95,7 +87,6 @@ export default class EtlProcessor {
 
     constructor() {
         this.topdeckClient = new TopdeckClient();
-        // Allow runtime configuration of concurrency via environment variable
         this.concurrencyLimit = parseInt(
             process.env.ETL_CONCURRENCY_LIMIT || String(DEFAULT_CONCURRENCY_LIMIT), 
             10
@@ -105,63 +96,32 @@ export default class EtlProcessor {
     /**
      * Process data in batches with cursor support for resumable processing.
      * 
-     * This method is designed for environments with time constraints (e.g., serverless
-     * functions with 10-60 second limits). It processes data incrementally and returns
-     * a cursor that can be used to resume processing in the next invocation.
-     * 
-     * ## Cursor Format
-     * The cursor encodes the current position: `{date}:{tournamentId}:{standingIndex}`
-     * - `date`: YYYY-MM-DD format, the date being processed
-     * - `tournamentId`: ID of the tournament being processed (empty if starting a new day)
-     * - `standingIndex`: Index into the standings array (for mid-tournament resume)
-     * 
-     * ## Processing Strategy
-     * 1. Process one day at a time for natural chunking
-     * 2. Within a day, process tournaments sequentially
-     * 3. Within a tournament, process standings up to batch size limit
-     * 4. On batch limit, save cursor and return
-     * 
      * @param cursor - Resume cursor from previous batch, or null to start fresh
      * @param batchSize - Maximum records to process before returning (default: 50)
-     * @returns Object containing:
-     *   - `nextCursor`: Cursor for next batch, or null if complete
-     *   - `recordsProcessed`: Number of records processed in this batch
-     *   - `isComplete`: True if all data up to today has been processed
+     * @returns Object containing nextCursor, recordsProcessed, and isComplete
      */
     async processBatch(
         cursor: string | null,
         batchSize: number = DEFAULT_BATCH_SIZE
     ): Promise<{ nextCursor: string | null; recordsProcessed: number; isComplete: boolean }> {
         try {
-            // Create a new ETL status record to track this batch
-            const etlStatusId = await this.createEtlStatus(ETL_STATUS.RUNNING);
-
-            if (!etlStatusId) {
-                throw new Error('Failed to create ETL status record');
-            }
-
-            // Parse the cursor to determine where to resume processing
             let currentDate: string;
-            let currentTournamentIndex = 0;
             let tournamentIdToSkipTo: string | null = null;
+            let tableIndexToSkipTo = 0;
 
             if (cursor) {
                 const [date, tournamentId, indexStr] = cursor.split(CURSOR_DELIMITER);
                 currentDate = date;
                 tournamentIdToSkipTo = tournamentId || null;
-                currentTournamentIndex = indexStr ? parseInt(indexStr, 10) : 0;
+                tableIndexToSkipTo = indexStr ? parseInt(indexStr, 10) : 0;
             } else {
-                // No cursor provided - determine start date automatically
                 const lastTournamentDate = await this.getLastProcessedTournamentDate();
                 if (lastTournamentDate) {
                     currentDate = format(addDays(parseISO(lastTournamentDate), 1), 'yyyy-MM-dd');
-                    this.logger.info('Using last processed tournament date', { lastTournamentDate, startingFrom: currentDate });
+                    this.logger.info('Starting from last processed tournament date', { lastTournamentDate, startingFrom: currentDate });
                 } else {
-                    const lastEtlStatus = await this.getLastCompletedEtlStatus();
-                    currentDate = lastEtlStatus?.lastProcessedDate
-                        ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
-                        : format(subDays(new Date(), DEFAULT_LOOKBACK_DAYS), 'yyyy-MM-dd');
-                    this.logger.info('Using ETL status date', { startingFrom: currentDate });
+                    currentDate = format(subDays(new Date(), DEFAULT_LOOKBACK_DAYS), 'yyyy-MM-dd');
+                    this.logger.info('No previous data found, starting from lookback', { startingFrom: currentDate });
                 }
             }
 
@@ -192,12 +152,10 @@ export default class EtlProcessor {
 
                 let batchComplete = true;
                 
-                for (let i = 0; i < tournamentsToProcess.length; i++) {
-                    const tournament = tournamentsToProcess[i];
-                    
+                for (const tournament of tournamentsToProcess) {
                     this.logger.debug('Processing tournament', { name: tournament.tournamentName, id: tournament.TID });
 
-                    const { data: existingTournament } = await supabaseServiceRole
+                    const { data: existingTournament } = await serviceRoleClient
                         .from('processed_tournaments')
                         .select('tournament_id, record_count')
                         .eq('tournament_id', tournament.TID)
@@ -208,45 +166,32 @@ export default class EtlProcessor {
                         continue;
                     }
 
-                    // Filter standings to only include those with valid deckObj
-                    const validStandings = tournament.standings.filter(
-                        standing => standing.deckObj !== null && 
-                                   standing.deckObj.Commanders && 
-                                   Object.keys(standing.deckObj.Commanders).length > 0
-                    );
-
-                    this.logger.debug('Found valid deck objects', { tournament: tournament.tournamentName, count: validStandings.length });
+                    // Collect all tables from all rounds
+                    const allTables = this.collectTables(tournament);
+                    
+                    this.logger.debug('Found tables', { tournament: tournament.tournamentName, count: allTables.length });
 
                     let tournamentRecordsProcessed = 0;
-                    const startingIndex = (tournament.TID === tournamentIdToSkipTo) ? currentTournamentIndex : 0;
+                    const startingIndex = (tournament.TID === tournamentIdToSkipTo) ? tableIndexToSkipTo : 0;
 
-                    let standingIndex = startingIndex;
-                    
-                    while (standingIndex < validStandings.length) {
-                        const batchEndIndex = Math.min(standingIndex + this.concurrencyLimit, validStandings.length);
-                        const standingsBatch = validStandings.slice(standingIndex, batchEndIndex);
-
-                        for (const standing of standingsBatch) {
-                            try {
-                                await this.processStanding(standing);
+                    for (let tableIndex = startingIndex; tableIndex < allTables.length; tableIndex++) {
+                        const table = allTables[tableIndex];
+                        
+                        try {
+                            const processed = await this.processTable(table);
+                            if (processed) {
                                 recordsProcessed++;
                                 tournamentRecordsProcessed++;
-                                
-                                if (recordsProcessed >= batchSize) {
-                                    nextCursor = `${currentDate}:${tournament.TID}:${standingIndex + 1}`;
-                                    batchComplete = false;
-                                    break;
-                                }
-                            } catch (error) {
-                                this.logger.logError('Error processing standing, skipping', error);
                             }
+                            
+                            if (recordsProcessed >= batchSize) {
+                                nextCursor = `${currentDate}:${tournament.TID}:${tableIndex + 1}`;
+                                batchComplete = false;
+                                break;
+                            }
+                        } catch (error) {
+                            this.logger.logError('Error processing table, skipping', error);
                         }
-
-                        if (!batchComplete) {
-                            break;
-                        }
-
-                        standingIndex = batchEndIndex;
                     }
 
                     if (batchComplete && tournamentRecordsProcessed > 0) {
@@ -254,7 +199,7 @@ export default class EtlProcessor {
                             ? new Date(parseInt(tournament.startDate) * 1000).toISOString()
                             : new Date(tournament.startDate * 1000).toISOString();
                         
-                        await supabaseServiceRole
+                        await serviceRoleClient
                             .from('processed_tournaments')
                             .insert({
                                 tournament_id: tournament.TID,
@@ -288,41 +233,17 @@ export default class EtlProcessor {
                 isComplete = true;
             }
 
-            let lastProcessedDate = currentDate;
-            if (recordsProcessed > 0) {
-                const actualLastDate = await this.getLastProcessedTournamentDate();
-                if (actualLastDate) {
-                    lastProcessedDate = actualLastDate;
-                }
-            }
-
-            await this.updateEtlStatus(etlStatusId, {
-                status: 'COMPLETED',
-                endDate: new Date().toISOString(),
-                recordsProcessed,
-                lastProcessedDate: recordsProcessed > 0 ? lastProcessedDate : undefined
-            });
+            this.logger.info('Batch processing complete', { recordsProcessed, isComplete, nextCursor });
 
             return { nextCursor, recordsProcessed, isComplete };
         } catch (error) {
             this.logger.logError('Error in batch processing', error);
-
-            await this.updateEtlStatus(undefined, {
-                status: 'FAILED',
-                endDate: new Date().toISOString()
-            });
-
             throw error;
         }
     }
 
     /**
      * Process all tournament data within a date range.
-     * 
-     * This method is suitable for:
-     * - Initial database seeding (6 months of historical data)
-     * - Catching up after extended downtime
-     * - Running in environments without strict time limits
      * 
      * @param startDate - Start date in YYYY-MM-DD format (optional)
      * @param endDate - End date in YYYY-MM-DD format (optional, defaults to today)
@@ -333,24 +254,15 @@ export default class EtlProcessor {
     ): Promise<void> {
         try {
             this.logger.info('Starting ETL process');
-            
-            const etlStatusId = await this.createEtlStatus(ETL_STATUS.RUNNING);
-
-            if (!etlStatusId) {
-                throw new EtlProcessingError('Failed to create ETL status record', 'initialization');
-            }
 
             if (!startDate) {
                 const lastTournamentDate = await this.getLastProcessedTournamentDate();
                 if (lastTournamentDate) {
                     startDate = format(addDays(parseISO(lastTournamentDate), 1), 'yyyy-MM-dd');
-                    this.logger.info('Using last processed tournament date', { lastTournamentDate, startingFrom: startDate });
+                    this.logger.info('Starting from last processed tournament date', { lastTournamentDate, startingFrom: startDate });
                 } else {
-                    const lastEtlStatus = await this.getLastCompletedEtlStatus();
-                    startDate = lastEtlStatus?.lastProcessedDate
-                        ? format(addDays(parseISO(lastEtlStatus.lastProcessedDate), 1), 'yyyy-MM-dd')
-                        : format(subMonths(new Date(), DEFAULT_SEED_MONTHS), 'yyyy-MM-dd');
-                    this.logger.info('Using ETL status date', { startingFrom: startDate });
+                    startDate = format(subMonths(new Date(), DEFAULT_SEED_MONTHS), 'yyyy-MM-dd');
+                    this.logger.info('No previous data found, starting from seed date', { startingFrom: startDate });
                 }
             }
 
@@ -386,45 +298,40 @@ export default class EtlProcessor {
 
                 this.logger.info('Batch complete', { batchRecords: batchRecordsProcessed, totalRecords: recordsProcessed });
 
-                let lastProcessedDate = batchEndDate;
-                if (batchRecordsProcessed > 0) {
-                    const actualLastDate = await this.getLastProcessedTournamentDate();
-                    if (actualLastDate) {
-                        lastProcessedDate = actualLastDate;
-                    }
-                }
-
-                await this.updateEtlStatus(etlStatusId, {
-                    recordsProcessed,
-                    lastProcessedDate: batchRecordsProcessed > 0 ? lastProcessedDate : undefined
-                });
-
                 currentStartDate = format(addDays(parseISO(batchEndDate), 1), 'yyyy-MM-dd');
             }
-
-            await this.updateEtlStatus(etlStatusId, {
-                status: 'COMPLETED',
-                endDate: new Date().toISOString()
-            });
 
             this.logger.info('ETL process completed successfully', { recordsProcessed });
         } catch (error) {
             this.logger.logError('Error in ETL process', error);
-
-            await this.updateEtlStatus(undefined, {
-                status: 'FAILED',
-                endDate: new Date().toISOString()
-            });
-
             throw error;
         }
     }
 
     /**
-     * Process a list of tournaments, extracting and storing deck data.
+     * Collect all tables from all rounds in a tournament.
+     */
+    private collectTables(tournament: Tournament): TournamentTable[] {
+        const tables: TournamentTable[] = [];
+        
+        if (!tournament.rounds) {
+            return tables;
+        }
+        
+        for (const round of tournament.rounds) {
+            if (round.tables) {
+                tables.push(...round.tables);
+            }
+        }
+        
+        return tables;
+    }
+
+    /**
+     * Process a list of tournaments.
      * 
      * @param tournaments - Array of tournaments from Topdeck API
-     * @returns Total number of records (standings) processed
+     * @returns Total number of tables processed
      */
     private async processTournaments(tournaments: Tournament[]): Promise<number> {
         let recordsProcessed = 0;
@@ -432,7 +339,7 @@ export default class EtlProcessor {
         for (const tournament of tournaments) {
             this.logger.debug('Processing tournament', { name: tournament.tournamentName, id: tournament.TID });
 
-            const { data: existingTournament } = await supabaseServiceRole
+            const { data: existingTournament } = await serviceRoleClient
                 .from('processed_tournaments')
                 .select('tournament_id, record_count')
                 .eq('tournament_id', tournament.TID)
@@ -447,27 +354,24 @@ export default class EtlProcessor {
                 continue;
             }
 
-            // Filter standings to only include those with valid deckObj
-            const validStandings = tournament.standings.filter(
-                standing => standing.deckObj !== null && 
-                           standing.deckObj.Commanders && 
-                           Object.keys(standing.deckObj.Commanders).length > 0
-            );
-
-            this.logger.debug('Found valid deck objects', { tournament: tournament.tournamentName, count: validStandings.length });
+            const allTables = this.collectTables(tournament);
+            
+            this.logger.debug('Found tables', { tournament: tournament.tournamentName, count: allTables.length });
 
             let tournamentRecordsProcessed = 0;
 
-            for (let i = 0; i < validStandings.length; i += this.concurrencyLimit) {
-                const batch = validStandings.slice(i, i + this.concurrencyLimit);
+            for (let i = 0; i < allTables.length; i += this.concurrencyLimit) {
+                const batch = allTables.slice(i, i + this.concurrencyLimit);
 
-                for (const standing of batch) {
+                for (const table of batch) {
                     try {
-                        await this.processStanding(standing);
-                        recordsProcessed++;
-                        tournamentRecordsProcessed++;
+                        const processed = await this.processTable(table);
+                        if (processed) {
+                            recordsProcessed++;
+                            tournamentRecordsProcessed++;
+                        }
                     } catch (error) {
-                        this.logger.logError('Error processing standing, skipping', error);
+                        this.logger.logError('Error processing table, skipping', error);
                     }
                 }
             }
@@ -477,7 +381,7 @@ export default class EtlProcessor {
                     ? new Date(parseInt(tournament.startDate) * 1000).toISOString()
                     : new Date(tournament.startDate * 1000).toISOString();
                 
-                await supabaseServiceRole
+                await serviceRoleClient
                     .from('processed_tournaments')
                     .insert({
                         tournament_id: tournament.TID,
@@ -498,155 +402,160 @@ export default class EtlProcessor {
     }
 
     /**
-     * Process a single tournament standing (one player's deck entry).
+     * Process a single table/game.
      * 
-     * Extracts deck data from deckObj and updates database statistics.
+     * Extracts game results from the table and updates statistics.
      * 
-     * @param standing - Tournament standing with deckObj and results
+     * @param table - Tournament table with players and winner
+     * @returns true if the table was processed, false if skipped
      */
-    private async processStanding(standing: TournamentStanding): Promise<void> {
+    private async processTable(table: TournamentTable): Promise<boolean> {
         try {
-            const startTime = Date.now();
-
-            if (!standing.deckObj) {
-                this.logger.warn('Standing has no deckObj', { player: standing.name });
-                return;
+            if (!table.players || table.players.length === 0) {
+                return false;
             }
 
-            await this.processDeck(standing.deckObj, standing);
-            
-            const totalTime = Date.now() - startTime;
-            this.logger.debug('Standing processing complete', { 
-                player: standing.name,
-                totalMs: totalTime 
-            });
+            if (table.status !== 'Completed') {
+                return false;
+            }
+
+            const isDraw = table.winner === 'Draw' || table.winner_id === 'Draw';
+            const gameResults: GameResult[] = [];
+
+            // Process each player at the table
+            for (let seatIndex = 0; seatIndex < table.players.length; seatIndex++) {
+                const player = table.players[seatIndex];
+                
+                if (!player.deckObj || !player.deckObj.Commanders || Object.keys(player.deckObj.Commanders).length === 0) {
+                    continue;
+                }
+
+                const isWinner = !isDraw && player.id === table.winner_id;
+                
+                gameResults.push({
+                    playerId: player.id,
+                    deckObj: player.deckObj,
+                    seatPosition: seatIndex + 1, // Convert 0-indexed to 1-indexed
+                    isWinner,
+                    isDraw
+                });
+            }
+
+            if (gameResults.length === 0) {
+                return false;
+            }
+
+            // Process each player's deck data
+            for (const result of gameResults) {
+                await this.processGameResult(result);
+            }
+
+            return true;
         } catch (error) {
-            this.logger.logError('Error processing standing', error);
+            this.logger.logError('Error processing table', error);
             throw error;
         }
     }
 
     /**
-     * Process a deck object and update database statistics.
+     * Process a single player's game result.
      * 
-     * This is the core transformation logic that:
-     * 1. Extracts commander(s) and generates a consistent commander ID
-     * 2. Extracts all mainboard cards
-     * 3. Fetches existing statistics from the database
-     * 4. Calculates new aggregated statistics
-     * 5. Batch upserts all data (commander, cards, statistics)
-     * 
-     * @param deckObj - Topdeck deck object with Commanders and Mainboard
-     * @param standing - Tournament standing with win/loss/draw counts
+     * Updates commander stats (including seat position) and card statistics.
      */
-    private async processDeck(
-        deckObj: TopdeckDeckObj,
-        standing: TournamentStanding
-    ): Promise<void> {
+    private async processGameResult(result: GameResult): Promise<void> {
         try {
-            const startTime = Date.now();
-            let dbOperationsTime = 0;
+            const { deckObj, seatPosition, isWinner, isDraw } = result;
             
-            // =================================================================
-            // VALIDATION
-            // =================================================================
+            // Validate deck
             if (!deckObj.Commanders || Object.keys(deckObj.Commanders).length === 0) {
-                this.logger.warn('Deck has no commanders');
                 return;
             }
 
             if (!deckObj.Mainboard || Object.keys(deckObj.Mainboard).length === 0) {
-                this.logger.warn('Deck has no mainboard cards');
                 return;
             }
 
-            // =================================================================
-            // COMMANDER IDENTIFICATION
-            // Generate consistent ID for commander/partner pairs using Scryfall UUIDs
-            // =================================================================
             const commanderId = generateCommanderId(deckObj.Commanders);
             const commanderName = generateCommanderName(deckObj.Commanders);
 
-            // =================================================================
-            // STEP 1: FETCH EXISTING COMMANDER DATA
-            // =================================================================
-            const commanderFetchStart = Date.now();
-            const { data: existingCommander } = await supabaseServiceRole
+            // Fetch existing commander data
+            const { data: existingCommander } = await serviceRoleClient
                 .from('commanders')
                 .select('*')
                 .eq('id', commanderId)
                 .single();
-            
-            const commanderFetchTime = Date.now() - commanderFetchStart;
-            dbOperationsTime += commanderFetchTime;
-            
-            // =================================================================
-            // STEP 2: PREPARE CARD DATA FOR BATCH OPERATIONS
-            // =================================================================
+
+            // Prepare card data
             const allCards = Object.entries(deckObj.Mainboard).map(([cardName, entry]) => ({
                 unique_card_id: entry.id,
                 name: cardName,
-                scryfall_id: entry.id, // Same as unique_card_id now
                 updated_at: new Date().toISOString()
             }));
             
             const allCardIds = allCards.map(card => card.unique_card_id);
-            
-            // =================================================================
-            // STEP 3: FETCH EXISTING STATISTICS (BATCH)
-            // =================================================================
-            const statsFetchStart = Date.now();
-            const { data: existingStatistics } = await supabaseServiceRole
+
+            // Fetch existing statistics
+            const { data: existingStatistics } = await serviceRoleClient
                 .from('statistics')
                 .select('*')
                 .eq('commander_id', commanderId)
                 .in('card_id', allCardIds);
-            
-            const statsFetchTime = Date.now() - statsFetchStart;
-            dbOperationsTime += statsFetchTime;
             
             type StatRecord = { card_id: string; wins: number; losses: number; draws: number; entries: number };
             const statsMap: Record<string, StatRecord> = (existingStatistics || []).reduce((acc, stat) => {
                 acc[stat.card_id] = stat;
                 return acc;
             }, {} as Record<string, StatRecord>);
-            
-            // =================================================================
-            // STEP 4: CALCULATE NEW COMMANDER STATISTICS
-            // =================================================================
-            const newCommanderValues = {
+
+            // Calculate win/loss/draw increments
+            const winIncrement = isWinner ? 1 : 0;
+            const lossIncrement = (!isWinner && !isDraw) ? 1 : 0;
+            const drawIncrement = isDraw ? 1 : 0;
+
+            // Calculate seat position increments
+            const seatWinKey = `seat${seatPosition}_wins` as const;
+            const seatEntriesKey = `seat${seatPosition}_entries` as const;
+
+            // Prepare commander update
+            const newCommanderValues: Record<string, unknown> = {
                 id: commanderId,
                 name: commanderName,
-                wins: (existingCommander?.wins || 0) + standing.wins,
-                losses: (existingCommander?.losses || 0) + standing.losses,
-                draws: (existingCommander?.draws || 0) + standing.draws,
+                wins: (existingCommander?.wins || 0) + winIncrement,
+                losses: (existingCommander?.losses || 0) + lossIncrement,
+                draws: (existingCommander?.draws || 0) + drawIncrement,
                 entries: (existingCommander?.entries || 0) + 1,
+                seat1_wins: existingCommander?.seat1_wins || 0,
+                seat1_entries: existingCommander?.seat1_entries || 0,
+                seat2_wins: existingCommander?.seat2_wins || 0,
+                seat2_entries: existingCommander?.seat2_entries || 0,
+                seat3_wins: existingCommander?.seat3_wins || 0,
+                seat3_entries: existingCommander?.seat3_entries || 0,
+                seat4_wins: existingCommander?.seat4_wins || 0,
+                seat4_entries: existingCommander?.seat4_entries || 0,
                 updated_at: new Date().toISOString()
             };
-            
-            // =================================================================
-            // STEP 5: PREPARE STATISTICS RECORDS
-            // =================================================================
+
+            // Increment the appropriate seat position stats
+            newCommanderValues[seatWinKey] = (existingCommander?.[seatWinKey] || 0) + winIncrement;
+            newCommanderValues[seatEntriesKey] = (existingCommander?.[seatEntriesKey] || 0) + 1;
+
+            // Prepare statistics records
             const allStatistics = allCardIds.map(cardId => {
                 const existingStat = statsMap[cardId];
                 
                 return {
                     commander_id: commanderId,
                     card_id: cardId,
-                    wins: (existingStat?.wins || 0) + standing.wins,
-                    losses: (existingStat?.losses || 0) + standing.losses,
-                    draws: (existingStat?.draws || 0) + standing.draws,
+                    wins: (existingStat?.wins || 0) + winIncrement,
+                    losses: (existingStat?.losses || 0) + lossIncrement,
+                    draws: (existingStat?.draws || 0) + drawIncrement,
                     entries: (existingStat?.entries || 0) + 1,
                     updated_at: new Date().toISOString()
                 };
             });
-            
-            // =================================================================
-            // STEP 6: BATCH UPSERT ALL DATA
-            // =================================================================
-            const batchUpsertStart = Date.now();
-            
-            const { error } = await supabaseServiceRole.rpc('batch_upsert_deck_data', {
+
+            // Batch upsert all data
+            const { error } = await serviceRoleClient.rpc('batch_upsert_deck_data', {
                 commander_data: newCommanderValues,
                 cards_data: allCards,
                 stats_data: allStatistics
@@ -655,7 +564,7 @@ export default class EtlProcessor {
             if (error) {
                 this.logger.debug('RPC batch operation failed, using fallback', { error: error.message });
                 
-                const commanderResult = await supabaseServiceRole
+                const commanderResult = await serviceRoleClient
                     .from('commanders')
                     .upsert(newCommanderValues, { onConflict: 'id' });
                     
@@ -663,7 +572,7 @@ export default class EtlProcessor {
                     this.logger.warn('Error upserting commander', { error: commanderResult.error.message });
                 }
                 
-                const cardsResult = await supabaseServiceRole
+                const cardsResult = await serviceRoleClient
                     .from('cards')
                     .upsert(allCards, { onConflict: 'unique_card_id' });
                     
@@ -671,7 +580,7 @@ export default class EtlProcessor {
                     this.logger.warn('Error upserting cards', { error: cardsResult.error.message });
                 }
                 
-                const statsResult = await supabaseServiceRole
+                const statsResult = await serviceRoleClient
                     .from('statistics')
                     .upsert(allStatistics, { onConflict: 'commander_id,card_id' });
                     
@@ -679,133 +588,24 @@ export default class EtlProcessor {
                     this.logger.warn('Error upserting statistics', { error: statsResult.error.message });
                 }
             }
-            
-            const batchUpsertTime = Date.now() - batchUpsertStart;
-            dbOperationsTime += batchUpsertTime;
-            
-            const totalProcessingTime = Date.now() - startTime;
-            
-            this.logger.debug('Deck processing summary', {
-                totalMs: totalProcessingTime,
-                dbOpsMs: dbOperationsTime,
-                commanderFetchMs: commanderFetchTime,
-                statsFetchMs: statsFetchTime,
-                batchUpsertMs: batchUpsertTime,
+
+            this.logger.debug('Game result processed', {
+                commander: commanderName,
+                seat: seatPosition,
+                isWinner,
+                isDraw,
                 cardsCount: allCards.length
             });
         } catch (error) {
-            this.logger.logError('Error processing deck', error);
+            this.logger.logError('Error processing game result', error);
         }
     }
 
     /**
-     * Create a new ETL status record to track the current run.
-     */
-    private async createEtlStatus(status: EtlStatusType): Promise<number | null> {
-        const { data, error } = await supabaseServiceRole
-            .from('etl_status')
-            .insert({
-                start_date: new Date().toISOString(),
-                status,
-                records_processed: 0
-            })
-            .select('id')
-            .single();
-
-        if (error) {
-            this.logger.warn('Error creating ETL status', { error: error.message });
-            return null;
-        }
-
-        return data.id;
-    }
-
-    /**
-     * Update an ETL status record with progress or completion information.
-     */
-    private async updateEtlStatus(
-        id?: number,
-        updates?: Partial<{
-            status: EtlStatusType;
-            endDate: string;
-            recordsProcessed: number;
-            lastProcessedDate: string;
-        }>
-    ): Promise<void> {
-        if (!id && !updates?.status) {
-            return;
-        }
-
-        try {
-            if (id) {
-                const { error } = await supabaseServiceRole
-                    .from('etl_status')
-                    .update({
-                        status: updates?.status,
-                        end_date: updates?.endDate,
-                        records_processed: updates?.recordsProcessed,
-                        last_processed_date: updates?.lastProcessedDate,
-                    })
-                    .eq('id', id);
-
-                if (error) {
-                    this.logger.warn('Error updating ETL status', { id, error: error.message });
-                }
-            } else {
-                const { error } = await supabaseServiceRole
-                    .from('etl_status')
-                    .update({
-                        status: updates?.status,
-                        end_date: updates?.endDate,
-                    })
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-
-                if (error) {
-                    this.logger.warn('Error updating ETL status', { error: error.message });
-                }
-            }
-        } catch (error) {
-            this.logger.logError('Error updating ETL status', error);
-        }
-    }
-
-    /**
-     * Get the most recent completed ETL status that processed records.
-     */
-    private async getLastCompletedEtlStatus(): Promise<EtlStatus | null> {
-        const { data, error } = await supabaseServiceRole
-            .from('etl_status')
-            .select('*')
-            .eq('status', ETL_STATUS.COMPLETED)
-            .gt('records_processed', 0)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            this.logger.warn('Error fetching last ETL status', { error: error.message });
-            return null;
-        }
-
-        return {
-            id: data.id,
-            startDate: data.start_date,
-            endDate: data.end_date,
-            status: data.status as EtlStatusType,
-            recordsProcessed: data.records_processed,
-            lastProcessedDate: data.last_processed_date
-        };
-    }
-
-    /**
-     * Get the actual last processed tournament date.
+     * Get the actual last processed tournament date from the processed_tournaments table.
      */
     private async getLastProcessedTournamentDate(): Promise<string | null> {
-        const { data, error } = await supabaseServiceRole
+        const { data, error } = await serviceRoleClient
             .from('processed_tournaments')
             .select('tournament_date, processed_at')
             .gt('tournament_date', MIN_VALID_TOURNAMENT_YEAR)
@@ -815,7 +615,7 @@ export default class EtlProcessor {
 
         if (error) {
             if (error.code === 'PGRST116') {
-                const { data: fallbackData } = await supabaseServiceRole
+                const { data: fallbackData } = await serviceRoleClient
                     .from('processed_tournaments')
                     .select('processed_at')
                     .order('processed_at', { ascending: false })

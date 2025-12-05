@@ -1,45 +1,54 @@
 /**
- * API Clients for External Data Sources
+ * Topdeck API Client
  * 
- * This module provides the client for fetching data from Topdeck.
+ * Client for fetching tournament data from the Topdeck API.
  * 
  * As of 2024, Topdeck includes deck data directly via their Scrollrack
  * integration, eliminating the need for separate Moxfield API calls.
  * The deck data includes Scryfall UUIDs for card identification.
  */
 
-import { Tournament } from './types';
-import { DEFAULT_TOPDECK_API_URL } from './constants';
-import { etlLogger } from '../logger';
-import { ExternalServiceError } from '../errors';
+import type { Tournament } from '@/lib/types/etl';
+import { etlLogger } from '@/lib/logger';
+import { ExternalServiceError } from '@/lib/errors';
+
+/**
+ * Default Topdeck API base URL.
+ * Can be overridden by TOPDECK_API_BASE_URL env var.
+ */
+export const DEFAULT_TOPDECK_API_URL = 'https://topdeck.gg/api/v2';
 
 /**
  * Client for fetching tournament data from the Topdeck API.
  * 
  * Topdeck.gg is a platform for organizing and tracking Magic: The Gathering
  * tournaments. This client fetches EDH (Commander) tournament results including
- * player standings and deck data (via Scrollrack integration).
+ * rounds with tables showing seat positions and winners.
  * 
- * ## Deck Data
+ * ## Data Structure
  * 
- * As of 2024, Topdeck provides deck data directly in the `deckObj` field
- * of each standing. This includes:
+ * Tournament data includes rounds, each containing tables.
+ * Players at each table are listed in seat order (index 0 = seat 1, etc.).
+ * Each table has a winner field indicating who won.
+ * 
+ * Deck data is provided via Scrollrack integration in `deckObj`:
  * - Commanders with Scryfall UUIDs
  * - Mainboard cards with Scryfall UUIDs
- * - Metadata about the deck source
- * 
- * This eliminates the need for separate Moxfield API calls and rate limiting.
  * 
  * @example
  * ```typescript
+ * import { TopdeckClient } from '@/lib/api/topdeck';
+ * 
  * const client = new TopdeckClient();
  * const tournaments = await client.fetchTournaments('2024-01-01', '2024-01-31');
  * 
  * for (const tournament of tournaments) {
- *   for (const standing of tournament.standings) {
- *     if (standing.deckObj) {
- *       console.log('Commanders:', standing.deckObj.Commanders);
- *       console.log('Mainboard:', standing.deckObj.Mainboard);
+ *   for (const round of tournament.rounds) {
+ *     for (const table of round.tables) {
+ *       console.log('Winner:', table.winner);
+ *       table.players.forEach((player, seat) => {
+ *         console.log(`Seat ${seat + 1}:`, player.name);
+ *       });
  *     }
  *   }
  * }
@@ -62,12 +71,12 @@ export class TopdeckClient {
     /**
      * Fetch all EDH tournaments within a date range.
      * 
-     * Returns tournaments with standings that include deck data via `deckObj`.
-     * Standings without `deckObj` (null) should be skipped during processing.
+     * Returns tournaments with rounds containing tables and player data.
+     * Each table has players in seat order and a winner field.
      * 
      * @param startDate - Start date in YYYY-MM-DD format
      * @param endDate - End date in YYYY-MM-DD format
-     * @returns Array of tournaments with standings including deck data
+     * @returns Array of tournaments with rounds data
      * @throws Error if the API request fails
      */
     async fetchTournaments(startDate: string, endDate: string): Promise<Tournament[]> {
@@ -94,14 +103,11 @@ export class TopdeckClient {
                     format: "EDH",
                     start: startTimestamp,
                     end: endTimestamp,
-                    // Request columns including deckObj for Scrollrack data
+                    // Request rounds data with deck objects for seat position tracking
                     columns: [
+                        "rounds",
                         "decklist",
-                        "deckObj",
-                        "wins",
-                        "byes",
-                        "draws",
-                        "losses"
+                        "deckObj"
                     ]
                 }),
             });
@@ -124,3 +130,4 @@ export class TopdeckClient {
         }
     }
 }
+

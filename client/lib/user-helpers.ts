@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from './database.types';
+import type { Database } from '@/lib/types/database';
 
 /**
  * Gets an existing user record from the database

@@ -1,6 +1,6 @@
 "use client";
 
-import { DeckAnalysisForm } from "@/components/shared/search/deck-analysis-form";
+import { CommanderSearch } from "@/components/shared/search/commander-search";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -11,7 +11,7 @@ export function NavSearch() {
     <SidebarGroup>
       <SidebarGroupContent>
         <div className="relative">
-          <DeckAnalysisForm variant="sidebar" />
+          <CommanderSearch variant="sidebar" />
         </div>
       </SidebarGroupContent> 
     </SidebarGroup>

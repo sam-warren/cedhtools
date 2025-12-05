@@ -1,11 +1,13 @@
 import { ScrollToTopButton } from "@/components/shared/buttons/scroll-to-top-button";
 import { Header } from "@/components/shared/layout/header";
-import { DeckAnalysisForm } from "@/components/shared/search/deck-analysis-form";
+import { CommanderSearch } from "@/components/shared/search/commander-search";
 import { BarChart3, Database, Users } from "lucide-react";
-import { createClient } from "./utils/supabase/server";
+import { createServerClient } from "@/lib/api/supabase";
+import { cookies } from "next/headers";
 
 export default async function Home() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const supabase = createServerClient(cookieStore);
 
   // Fetch actual counts from database
   const { count: cardCount } = await supabase
@@ -37,19 +39,19 @@ export default async function Home() {
             <div className="max-w-4xl mx-auto flex flex-col items-center space-y-8 text-center">
               <div className="space-y-4">
                 <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl md:text-7xl font-mono">
-                  CEDH Deck Analysis
+                  CEDH Tournament Stats
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground max-w-[800px] mx-auto">
-                  Analyze your CEDH decks with data from real tournaments. Find
-                  the best cards for your commander.
+                  Explore commander statistics from real competitive EDH tournaments.
+                  Find the best cards for your commander.
                 </p>
               </div>
 
-              {/* Enhanced Search Box */}
+              {/* Commander Search Box */}
               <div className="w-full max-w-xl mx-auto relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-indigo-500/20 rounded-xl blur-xl opacity-75 group-hover:opacity-100 transition duration-200"></div>
                 <div className="relative p-1 bg-background border rounded-lg shadow-lg">
-                  <DeckAnalysisForm />
+                  <CommanderSearch />
                 </div>
               </div>
 
@@ -138,15 +140,15 @@ export default async function Home() {
           <div className="container px-4 md:px-6 mx-auto">
             <div className="bg-card border rounded-xl p-8 md:p-12 shadow-lg max-w-3xl mx-auto text-center">
               <h2 className="text-3xl font-bold tracking-tight mb-4 font-mono">
-                Ready to optimize your deck?
+                Ready to explore?
               </h2>
               <p className="text-xl text-muted-foreground mb-8">
-                Select your commander and paste your deck list to get instant
-                insights based on tournament data.
+                Search for any commander to see their tournament statistics,
+                popular cards, and win rates.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <ScrollToTopButton size="lg" variant="outline">
-                  Analyze Deck
+                  Search Commanders
                 </ScrollToTopButton>
               </div>
             </div>

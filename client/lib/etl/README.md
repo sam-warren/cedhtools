@@ -16,6 +16,7 @@ The ETL system consists of several key components:
 2. **`worker.ts`** - Worker service that processes jobs from a queue
 3. **`api-clients.ts`** - API client for Topdeck
 4. **`types.ts`** - TypeScript type definitions for all data structures
+5. **`enrich-cards.ts`** - Script to enrich card metadata from Scryfall
 
 ### Utility Scripts
 
@@ -27,6 +28,8 @@ The ETL system consists of several key components:
 
 ```
 Topdeck API → Tournament Data (with deckObj) → Process & Aggregate → Supabase Database
+                                                        ↓
+                                              Scryfall API (card enrichment)
 ```
 
 ### Step-by-Step Process
@@ -40,11 +43,11 @@ Topdeck API → Tournament Data (with deckObj) → Process & Aggregate → Supab
    - `cards` - Card metadata (using Scryfall UUIDs)
    - `statistics` - Card usage statistics per commander
    - `processed_tournaments` - Tracking of processed tournaments
-   - `etl_status` - ETL run status tracking
+   - `etl_jobs` - Job queue and status tracking
 
 ## Data Source: Topdeck deckObj
 
-As of 2024, Topdeck provides deck data directly via their Scrollrack integration. Each tournament standing includes a `deckObj` field with the following structure:
+Topdeck provides deck data directly via their Scrollrack integration. Each tournament standing includes a `deckObj` field with the following structure:
 
 ```json
 {
@@ -55,15 +58,11 @@ As of 2024, Topdeck provides deck data directly via their Scrollrack integration
   "Mainboard": {
     "Sol Ring": { "id": "scryfall-uuid", "count": 1 },
     "Mana Crypt": { "id": "scryfall-uuid", "count": 1 }
-    // ... rest of deck
-  },
-  "metadata": {
-    "importedFrom": "https://moxfield.com/decks/..."
   }
 }
 ```
 
-This eliminates the need for separate API calls to deck building websites and provides consistent Scryfall UUIDs for card identification.
+This provides consistent Scryfall UUIDs for card identification.
 
 ## Components in Detail
 
@@ -76,7 +75,6 @@ The main processor class that handles the ETL workflow.
 - **`processData(startDate?, endDate?)`**: Processes all tournaments in a date range
   - Processes data in weekly batches to avoid overwhelming APIs
   - Automatically determines start date from last processed date if not provided
-  - Updates ETL status throughout the process
 
 - **`processBatch(cursor?, batchSize?)`**: Processes data in smaller batches with cursor support
   - Designed for time-constrained environments (e.g., serverless functions)
@@ -106,6 +104,18 @@ Fetches tournament data from the Topdeck API including deckObj.
   - Filters for EDH format tournaments
   - Returns tournament data with standings including deckObj
 
+### Card Enrichment (`enrich-cards.ts`)
+
+Fetches card metadata from Scryfall API to populate `type` and `type_line` columns.
+
+```bash
+npx tsx lib/etl/enrich-cards.ts
+```
+
+- Uses Scryfall's collection endpoint (75 cards/request)
+- Respectful rate limiting (100ms between requests)
+- Only processes cards missing `type_line`
+
 ## Database Schema
 
 ### Tables
@@ -120,10 +130,10 @@ Stores aggregated statistics per commander:
 
 #### `cards`
 Stores card metadata:
-- `unique_card_id`: Scryfall UUID
+- `unique_card_id`: Scryfall UUID (primary key)
 - `name`: Card name
-- `scryfall_id`: Same as unique_card_id (legacy field)
-- `type_line`: Card type line text
+- `type`: Numeric type (1-8)
+- `type_line`: Full type line text (e.g., "Legendary Creature — Human Wizard")
 - `updated_at`: Last update timestamp
 
 #### `statistics`
@@ -142,14 +152,17 @@ Tracks processed tournaments to avoid duplicates:
 - `record_count`: Number of records processed
 - `processed_at`: Processing timestamp
 
-#### `etl_status`
-Tracks ETL run status:
-- `id`: Unique status ID
-- `start_date`: Run start time
-- `end_date`: Run end time
-- `status`: RUNNING, COMPLETED, or FAILED
-- `records_processed`: Number of records processed
-- `last_processed_date`: Last processed date
+#### `etl_jobs`
+Job queue for ETL processing:
+- `id`: Job ID
+- `job_type`: SEED, DAILY_UPDATE, or BATCH_PROCESS
+- `status`: PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+- `parameters`: Job parameters (JSON)
+- `next_cursor`: For resumable jobs
+- `records_processed`: Count of processed records
+- `error`: Error message if failed
+- `priority`: Job priority
+- `max_runtime_seconds`: Timeout for job
 
 ## Usage
 
@@ -172,6 +185,14 @@ npm run etl:seed:prod     # Production database
 ```
 
 This processes the last 6 months of tournament data.
+
+### Card Enrichment
+
+To populate card type information from Scryfall:
+
+```bash
+npx tsx lib/etl/enrich-cards.ts
+```
 
 ### Resetting ETL Data
 
@@ -235,14 +256,6 @@ The `processBatch()` method is designed for environments with time constraints:
 
 ## Monitoring
 
-### ETL Status
-
-Check the `etl_status` table for recent runs:
-- Status (RUNNING, COMPLETED, FAILED)
-- Records processed
-- Last processed date
-- Start/end times
-
 ### Job Queue
 
 Monitor the `etl_jobs` table:
@@ -250,6 +263,8 @@ Monitor the `etl_jobs` table:
 - Job priorities
 - Failed jobs with error messages
 - Processing times
+
+Use the `etl_jobs_active` view to see currently running jobs with runtime.
 
 ## Troubleshooting
 

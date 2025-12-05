@@ -1,6 +1,6 @@
 "use client";
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "@/lib/api/supabase";
 import { Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -33,10 +33,7 @@ export function NavRecentDecks({ className }: NavRecentDecksProps) {
   const [userId, setUserId] = useState<string | null>(null);
 
   // Create Supabase client once
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
+  const supabase = createBrowserClient();
 
   // Fetch user first
   useEffect(() => {
@@ -73,7 +70,17 @@ export function NavRecentDecks({ className }: NavRecentDecksProps) {
           .limit(5);
 
         if (data) {
-          setRecentDecks(data as DeckAnalysis[]);
+          // Transform the data to match DeckAnalysis type
+          const transformedData = data.map((d: Record<string, unknown>) => ({
+            id: d.id as number,
+            deck_list: d.deck_list as string | null,
+            deck_name: d.deck_name as string | null,
+            created_at: d.created_at as string,
+            commanders: Array.isArray(d.commanders) && d.commanders.length > 0 
+              ? { name: (d.commanders[0] as { name: string }).name }
+              : null,
+          }));
+          setRecentDecks(transformedData);
         }
       } catch (error) {
         console.error("Error fetching recent decks:", error);

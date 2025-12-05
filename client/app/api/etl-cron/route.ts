@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { createServiceRoleClient } from '@/lib/api/supabase';
 import { format, subMonths } from 'date-fns';
 import { etlLogger } from '@/lib/logger';
 import { 

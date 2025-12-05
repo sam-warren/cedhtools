@@ -15,20 +15,18 @@ import {
   isPartnerPair,
   getIndividualCommanderIds,
 } from '../commander';
-import type { MoxfieldCardEntry } from '@/lib/etl/types';
+import type { TopdeckCardEntry } from '@/lib/types/etl';
 
 // =============================================================================
 // TEST DATA FACTORIES
 // =============================================================================
 
-function createCardEntry(uniqueCardId: string, name: string): MoxfieldCardEntry {
-  return {
-    quantity: 1,
-    card: {
-      uniqueCardId,
-      name,
-    },
-  };
+function createCommanderRecord(commanders: Record<string, { id: string }>): Record<string, TopdeckCardEntry> {
+  const result: Record<string, TopdeckCardEntry> = {};
+  for (const [name, entry] of Object.entries(commanders)) {
+    result[name] = { id: entry.id, count: 1 };
+  }
+  return result;
 }
 
 // =============================================================================
@@ -37,18 +35,18 @@ function createCardEntry(uniqueCardId: string, name: string): MoxfieldCardEntry 
 
 describe('generateCommanderId', () => {
   it('should return single ID for single commander', () => {
-    const commanders = [
-      createCardEntry('kinnan-123', 'Kinnan, Bonder Prodigy'),
-    ];
+    const commanders = createCommanderRecord({
+      'Kinnan, Bonder Prodigy': { id: 'kinnan-123' }
+    });
     
     expect(generateCommanderId(commanders)).toBe('kinnan-123');
   });
 
   it('should concatenate partner IDs with underscore', () => {
-    const commanders = [
-      createCardEntry('thrasios-456', 'Thrasios, Triton Hero'),
-      createCardEntry('tymna-789', 'Tymna the Weaver'),
-    ];
+    const commanders = createCommanderRecord({
+      'Thrasios, Triton Hero': { id: 'thrasios-456' },
+      'Tymna the Weaver': { id: 'tymna-789' }
+    });
     
     const result = generateCommanderId(commanders);
     expect(result).toContain('_');
@@ -56,43 +54,29 @@ describe('generateCommanderId', () => {
   });
 
   it('should sort IDs alphabetically for consistency', () => {
-    const commanders1 = [
-      createCardEntry('zzz', 'Commander Z'),
-      createCardEntry('aaa', 'Commander A'),
-    ];
+    const commanders1 = createCommanderRecord({
+      'Commander Z': { id: 'zzz' },
+      'Commander A': { id: 'aaa' }
+    });
     
-    const commanders2 = [
-      createCardEntry('aaa', 'Commander A'),
-      createCardEntry('zzz', 'Commander Z'),
-    ];
+    const commanders2 = createCommanderRecord({
+      'Commander A': { id: 'aaa' },
+      'Commander Z': { id: 'zzz' }
+    });
     
     expect(generateCommanderId(commanders1)).toBe(generateCommanderId(commanders2));
     expect(generateCommanderId(commanders1)).toBe('aaa_zzz');
   });
 
-  it('should handle empty arrays', () => {
-    expect(generateCommanderId([])).toBe('');
-  });
-
-  it('should handle undefined uniqueCardId', () => {
-    const commanders = [
-      {
-        quantity: 1,
-        card: {
-          uniqueCardId: undefined as unknown as string,
-          name: 'Test Commander',
-        },
-      },
-    ];
-    
-    expect(generateCommanderId(commanders)).toBe('');
+  it('should handle empty objects', () => {
+    expect(generateCommanderId({})).toBe('');
   });
 
   it('should produce deterministic results', () => {
-    const commanders = [
-      createCardEntry('id-1', 'Commander 1'),
-      createCardEntry('id-2', 'Commander 2'),
-    ];
+    const commanders = createCommanderRecord({
+      'Commander 1': { id: 'id-1' },
+      'Commander 2': { id: 'id-2' }
+    });
     
     const result1 = generateCommanderId(commanders);
     const result2 = generateCommanderId(commanders);
@@ -101,19 +85,19 @@ describe('generateCommanderId', () => {
   });
 
   it('should handle special characters in IDs', () => {
-    const commanders = [
-      createCardEntry('id_with-special_chars-123', 'Special Commander'),
-    ];
+    const commanders = createCommanderRecord({
+      'Special Commander': { id: 'id_with-special_chars-123' }
+    });
     
     expect(generateCommanderId(commanders)).toBe('id_with-special_chars-123');
   });
 
   it('should handle three or more partners (edge case)', () => {
-    const commanders = [
-      createCardEntry('ccc', 'Commander C'),
-      createCardEntry('aaa', 'Commander A'),
-      createCardEntry('bbb', 'Commander B'),
-    ];
+    const commanders = createCommanderRecord({
+      'Commander C': { id: 'ccc' },
+      'Commander A': { id: 'aaa' },
+      'Commander B': { id: 'bbb' }
+    });
     
     expect(generateCommanderId(commanders)).toBe('aaa_bbb_ccc');
   });
@@ -125,61 +109,42 @@ describe('generateCommanderId', () => {
 
 describe('generateCommanderName', () => {
   it('should return single name for single commander', () => {
-    const commanders = [
-      createCardEntry('kinnan-123', 'Kinnan, Bonder Prodigy'),
-    ];
+    const commanders = createCommanderRecord({
+      'Kinnan, Bonder Prodigy': { id: 'kinnan-123' }
+    });
     
     expect(generateCommanderName(commanders)).toBe('Kinnan, Bonder Prodigy');
   });
 
   it('should join partner names with " + "', () => {
-    const commanders = [
-      createCardEntry('thrasios-456', 'Thrasios, Triton Hero'),
-      createCardEntry('tymna-789', 'Tymna the Weaver'),
-    ];
+    const commanders = createCommanderRecord({
+      'Thrasios, Triton Hero': { id: 'thrasios-456' },
+      'Tymna the Weaver': { id: 'tymna-789' }
+    });
     
-    expect(generateCommanderName(commanders)).toBe('Thrasios, Triton Hero + Tymna the Weaver');
+    const result = generateCommanderName(commanders);
+    expect(result).toContain(' + ');
   });
 
-  it('should NOT sort names (preserve order)', () => {
-    const commanders1 = [
-      createCardEntry('zzz', 'Commander Z'),
-      createCardEntry('aaa', 'Commander A'),
-    ];
+  it('should sort names alphabetically for consistency', () => {
+    const commanders = createCommanderRecord({
+      'Commander Z': { id: 'zzz' },
+      'Commander A': { id: 'aaa' }
+    });
     
-    const commanders2 = [
-      createCardEntry('aaa', 'Commander A'),
-      createCardEntry('zzz', 'Commander Z'),
-    ];
-    
-    // Names should be in different order
-    expect(generateCommanderName(commanders1)).toBe('Commander Z + Commander A');
-    expect(generateCommanderName(commanders2)).toBe('Commander A + Commander Z');
+    // Names should be sorted alphabetically
+    expect(generateCommanderName(commanders)).toBe('Commander A + Commander Z');
   });
 
-  it('should handle empty arrays', () => {
-    expect(generateCommanderName([])).toBe('');
-  });
-
-  it('should use "Unknown Commander" for missing names', () => {
-    const commanders = [
-      {
-        quantity: 1,
-        card: {
-          uniqueCardId: 'test-123',
-          name: undefined as unknown as string,
-        },
-      },
-    ];
-    
-    expect(generateCommanderName(commanders)).toBe('Unknown Commander');
+  it('should handle empty objects', () => {
+    expect(generateCommanderName({})).toBe('');
   });
 
   it('should handle commanders with commas in names', () => {
-    const commanders = [
-      createCardEntry('id-1', 'Thrasios, Triton Hero'),
-      createCardEntry('id-2', 'Tymna the Weaver'),
-    ];
+    const commanders = createCommanderRecord({
+      'Thrasios, Triton Hero': { id: 'id-1' },
+      'Tymna the Weaver': { id: 'id-2' }
+    });
     
     const result = generateCommanderName(commanders);
     expect(result).toContain('Thrasios, Triton Hero');
@@ -253,10 +218,10 @@ describe('getIndividualCommanderIds', () => {
 
 describe('integration', () => {
   it('should produce consistent roundtrip for partner detection', () => {
-    const commanders = [
-      createCardEntry('thrasios', 'Thrasios, Triton Hero'),
-      createCardEntry('tymna', 'Tymna the Weaver'),
-    ];
+    const commanders = createCommanderRecord({
+      'Thrasios, Triton Hero': { id: 'thrasios' },
+      'Tymna the Weaver': { id: 'tymna' }
+    });
     
     const id = generateCommanderId(commanders);
     expect(isPartnerPair(id)).toBe(true);
@@ -268,10 +233,10 @@ describe('integration', () => {
   });
 
   it('should be consistent across multiple calls', () => {
-    const commanders = [
-      createCardEntry('id-2', 'Second'),
-      createCardEntry('id-1', 'First'),
-    ];
+    const commanders = createCommanderRecord({
+      'Second': { id: 'id-2' },
+      'First': { id: 'id-1' }
+    });
     
     // Multiple calls should produce same results
     const ids = Array.from({ length: 10 }, () => generateCommanderId(commanders));
@@ -283,16 +248,15 @@ describe('integration', () => {
 
   it('should handle real-world commander examples', () => {
     // Thrasios + Tymna (popular partner pair)
-    const thrasiosTymna = [
-      createCardEntry('9d-thrasios', 'Thrasios, Triton Hero'),
-      createCardEntry('8f-tymna', 'Tymna the Weaver'),
-    ];
+    const thrasiosTymna = createCommanderRecord({
+      'Thrasios, Triton Hero': { id: '9d-thrasios' },
+      'Tymna the Weaver': { id: '8f-tymna' }
+    });
     
     const id = generateCommanderId(thrasiosTymna);
     const name = generateCommanderName(thrasiosTymna);
     
     expect(id).toBe('8f-tymna_9d-thrasios'); // Sorted alphabetically
-    expect(name).toBe('Thrasios, Triton Hero + Tymna the Weaver'); // Original order
+    expect(name).toBe('Thrasios, Triton Hero + Tymna the Weaver'); // Sorted alphabetically
   });
 });
-

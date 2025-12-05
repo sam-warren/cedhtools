@@ -11,7 +11,7 @@
  */
 
 import { runWorker } from './worker';
-import { cliLogger } from '../logger';
+import { cliLogger } from '@/lib/logger';
 
 const logger = cliLogger.child({ script: 'run-worker' });
 

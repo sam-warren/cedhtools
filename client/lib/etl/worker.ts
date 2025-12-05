@@ -38,10 +38,13 @@
  */
 
 import EtlProcessor from './processor';
-import { supabaseServiceRole } from '../supabase';
+import { createServiceRoleClient } from '@/lib/api/supabase';
+
+// Create singleton for this module
+const serviceRoleClient = createServiceRoleClient();
 import { format, subMonths } from 'date-fns';
 import { DEFAULT_BATCH_SIZE, DEFAULT_SEED_MONTHS } from './constants';
-import { etlLogger } from '../logger';
+import { etlLogger } from '@/lib/logger';
 
 // =============================================================================
 // WORKER CONFIGURATION
@@ -106,7 +109,7 @@ interface EtlJob {
  */
 async function updateJob(jobId: number, updates: Partial<EtlJob>): Promise<void> {
   try {
-    const { error } = await supabaseServiceRole
+    const { error } = await serviceRoleClient
       .from('etl_jobs')
       .update(updates)
       .eq('id', jobId);
@@ -183,7 +186,7 @@ async function processJob(job: EtlJob): Promise<void> {
         // If there's more data to process, create a follow-up job
         // This allows the worker to process data across multiple invocations
         if (!isComplete && nextCursor) {
-          await supabaseServiceRole
+          await serviceRoleClient
             .from('etl_jobs')
             .insert({
               job_type: 'BATCH_PROCESS',
@@ -241,11 +244,11 @@ async function findAndProcessNextJob(): Promise<boolean> {
   try {
     // First, reset any jobs that have been running too long
     // This prevents stuck jobs from blocking the queue
-    await supabaseServiceRole.rpc('reset_stuck_jobs');
+    await serviceRoleClient.rpc('reset_stuck_jobs');
     
     // Query for the next job to process
     // Priority ordering: higher priority first, then oldest within same priority
-    const { data: jobs, error } = await supabaseServiceRole
+    const { data: jobs, error } = await serviceRoleClient
       .from('etl_jobs')
       .select('*')
       .eq('status', 'PENDING')

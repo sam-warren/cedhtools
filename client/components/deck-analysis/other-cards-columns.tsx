@@ -4,15 +4,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table/column-header";
 import { WinRateBadge } from "@/components/ui/win-rate-badge";
 import { InclusionRateBadge } from "@/components/ui/inclusion-rate-badge";
-import Link from "next/link";
 
 // Define the type for a card row
 export type OtherCardData = {
   id: string;
   name: string;
-  scryfallId: string;
-  type: number;
-  type_line: string | null;
   stats: {
     wins: number;
     losses: number;
@@ -25,8 +21,6 @@ export type OtherCardData = {
   };
 };
 
-// Helper function removed and replaced with WinRateBadge component
-
 export const otherCardsColumns = (
   commanderWinRate: number
 ): ColumnDef<OtherCardData>[] => [
@@ -36,30 +30,11 @@ export const otherCardsColumns = (
       <DataTableColumnHeader column={column} title="Card Name" />
     ),
     cell: ({ row }) => {
-      const scryfallId = row.original.scryfallId;
-
       return (
-        <div className="flex items-center">
-          <Link
-            href={`https://scryfall.com/card/${scryfallId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            {row.getValue("name")}
-          </Link>
+        <div className="flex items-center font-medium">
+          {row.getValue("name")}
         </div>
       );
-    },
-  },
-  {
-    accessorKey: "type_line",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
-    ),
-    cell: ({ row }) => {
-      const typeValue = row.getValue("type_line") as number;
-      return <div>{typeValue}</div>;
     },
   },
   {

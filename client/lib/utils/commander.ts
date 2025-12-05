@@ -22,7 +22,7 @@
  * - Partners: "3d867016-2601-4a37-a73d-308898d3bd37_584cee10-f18c-4633-95cc-f2e7a11841ac" (sorted)
  */
 
-import { TopdeckCardEntry } from '@/lib/etl/types';
+import type { TopdeckCardEntry } from '@/lib/types/etl';
 
 /**
  * Commander card data structure for ID generation.

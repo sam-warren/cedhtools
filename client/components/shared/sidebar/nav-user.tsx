@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@/app/utils/supabase/client";
+import { createBrowserClient } from "@/lib/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ export function NavUser({ className }: NavUserProps) {
 
   useEffect(() => {
     async function getUser() {
-      const supabase = createClient();
+      const supabase = createBrowserClient();
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
       setLoading(false);
@@ -50,7 +50,7 @@ export function NavUser({ className }: NavUserProps) {
   }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     await supabase.auth.signOut();
     router.push('/');
   };

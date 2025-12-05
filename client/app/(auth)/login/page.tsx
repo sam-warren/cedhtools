@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Suspense } from "react";
 import { useState, useEffect } from "react";
-import { createClient } from "@/app/utils/supabase/client";
+import { createBrowserClient } from "@/lib/api/supabase";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
@@ -47,7 +47,7 @@ export default function LoginPage() {
 function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const supabase = createClient();
+  const supabase = createBrowserClient();
   const searchParams = useSearchParams();
 
   useEffect(() => {

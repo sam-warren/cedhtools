@@ -1,6 +1,29 @@
-# cedhtools ETL Pipeline
+# CEDHTools
 
-This repository contains the ETL (Extract, Transform, Load) pipeline for the cedhtools application. The pipeline fetches tournament data from Topdeck.gg, processes it, and stores it in a Supabase database.
+A competitive EDH (cEDH) deck analysis tool that provides tournament statistics for commanders and cards. The application fetches tournament data from Topdeck.gg and provides insights on commander performance and card win rates.
+
+## Features
+
+- **Commander Statistics**: View win rates, entries, and performance data for any commander
+- **Deck Analysis**: Upload your decklist to see how your cards perform in tournaments
+- **Card Recommendations**: Discover popular cards for your commander that you might be missing
+- **Tournament Data**: Real-time data from competitive EDH tournaments
+
+## Architecture
+
+### Data Flow
+
+1. **ETL Pipeline**: Fetches tournament data from Topdeck API (including deck data via Scrollrack integration)
+2. **Card Identification**: Cards are identified by Scryfall UUIDs
+3. **Statistics Aggregation**: Win/loss/draw statistics are aggregated per commander-card pair
+4. **Card Enrichment**: Card metadata (type_line) can be enriched from Scryfall API
+
+### Tech Stack
+
+- **Frontend**: Next.js 14+ with App Router
+- **Database**: Supabase (PostgreSQL)
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Deployment**: Vercel
 
 ## Setup
 
@@ -13,143 +36,107 @@ This repository contains the ETL (Extract, Transform, Load) pipeline for the ced
 ### Setting up local Supabase
 
 1. Install Supabase CLI:
-   ```
+   ```bash
    npm install -g supabase
    ```
 
 2. Start local Supabase:
-   ```
+   ```bash
    supabase start
    ```
 
 3. Apply migrations:
-   ```
+   ```bash
    supabase migration up
    ```
 
 ### Environment Variables
 
-Create a `.env.local` file in the `client` directory with the following variables:
+Create a `.env.local` file in the `client` directory:
 
-```
+```env
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 ETL_API_KEY=<your-secret-api-key>
+TOPDECK_API_KEY=<your-topdeck-api-key>
 ```
 
-## Running the ETL Pipeline
+## Running the Application
 
-### Local Testing
+### Development
 
-To test the ETL pipeline locally:
-
-1. Install dependencies:
-   ```
-   cd client
-   npm install
-   ```
-
-2. Run the test script:
-   ```
-   npm run etl:test
-   ```
-
-This will process tournament data from the last 7 days.
-
-### Asynchronous Job Queue System
-
-The ETL pipeline now uses an asynchronous job queue system to handle long-running tasks. This architecture separates the web application from the ETL processing, allowing for more resilient handling of rate limits and long processing times.
-
-#### Components:
-
-1. **ETL Jobs Table**: Stores job metadata, status, and progress
-2. **ETL Worker**: Processes jobs from the queue one by one
-3. **Cron Trigger**: Schedules daily update jobs
-4. **API Endpoints**: For job management and monitoring
-
-#### Running the Worker
-
-The worker service runs independently of the web application and can be deployed to a separate server:
-
+```bash
+cd client
+npm install
+npm run dev
 ```
-# For local development:
+
+### ETL Pipeline
+
+The ETL pipeline uses an asynchronous job queue system:
+
+```bash
+# Run ETL worker (processes jobs from queue)
 npm run etl:worker
 
-# For production:
-npm run etl:worker:prod
+# Run card enrichment (fetches type_line from Scryfall)
+npx tsx lib/etl/enrich-cards.ts
 ```
-
-The worker will:
-- Process one job at a time
-- Automatically retry on rate limit errors
-- Report job progress and status
-- Create follow-up jobs for batch processing
 
 #### Job Types
 
-The system supports three types of jobs:
-
-- **SEED**: For initial database seeding (6 months of data)
-- **DAILY_UPDATE**: For daily incremental updates
-- **BATCH_PROCESS**: For processing data in smaller chunks with cursor-based resumption
+- **SEED**: Initial database seeding (6 months of historical data)
+- **DAILY_UPDATE**: Daily incremental updates
+- **BATCH_PROCESS**: Processing data in smaller chunks with cursor-based resumption
 
 ### API Endpoints
 
-- `GET /api/etl` - Check if the ETL API is running
-- `GET /api/etl?jobId=123` - Get status of a specific job
-- `GET /api/etl?list=true` - List recent jobs
-- `POST /api/etl` - Trigger a new ETL job
-
-The POST endpoint requires authentication with the ETL_API_KEY as a Bearer token.
-
-Example request to queue a seed job:
-```
-curl -X POST https://your-domain.com/api/etl \
-  -H "Authorization: Bearer YOUR_ETL_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jobType": "SEED", 
-    "startDate": "2023-01-01", 
-    "endDate": "2023-06-30",
-    "priority": 0
-  }'
-```
-
-## Deployment
-
-### Deploying to Vercel
-
-1. Push your changes to GitHub
-2. Connect your repository to Vercel
-3. Set the environment variables in the Vercel dashboard
-4. Deploy!
-
-### Setting up Scheduled ETL Runs
-
-To run the ETL process daily, you can set up a scheduled job using Vercel Cron Jobs:
-
-1. Create a `vercel.json` file:
-   ```json
-   {
-     "crons": [
-       {
-         "path": "/api/etl-cron",
-         "schedule": "0 0 * * *"
-       }
-     ]
-   }
-   ```
-
-2. Create the cron endpoint at `app/api/etl-cron/route.ts`
+- `GET /api/commanders` - List commanders with statistics
+- `GET /api/commanders/[id]` - Get commander details and top cards
+- `POST /api/decks/analyze` - Analyze a deck against tournament statistics
+- `GET /api/health` - Health check endpoint
 
 ## Database Schema
 
-The database schema includes the following tables:
+| Table | Description |
+|-------|-------------|
+| `commanders` | Commander statistics (wins, losses, draws, entries) |
+| `cards` | Card metadata (unique_card_id is Scryfall UUID, type_line) |
+| `statistics` | Per-commander, per-card performance statistics |
+| `users` | User accounts and subscription information |
+| `etl_jobs` | ETL job queue with status tracking |
+| `processed_tournaments` | Tracks which tournaments have been processed |
 
-- `commanders` - Information about commanders
-- `cards` - Information about cards
-- `statistics` - Statistics for each commander-card pair
-- `users` - User information and subscription status
-- `deck_analyses` - Record of deck analyses performed by users
-- `etl_status` - Status and logs of ETL runs 
+## Deployment
+
+### Vercel
+
+1. Push your changes to GitHub
+2. Connect your repository to Vercel
+3. Set environment variables in the Vercel dashboard
+4. Deploy!
+
+### Scheduled ETL Runs
+
+The `vercel.json` file configures daily ETL runs via Vercel Cron Jobs:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/etl-cron",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
+```
+
+## Data Sources
+
+- **Tournament Data**: [Topdeck.gg](https://topdeck.gg) API with Scrollrack integration
+- **Card Metadata**: [Scryfall](https://scryfall.com) API
+
+## License
+
+See [LICENSE](LICENSE) file.

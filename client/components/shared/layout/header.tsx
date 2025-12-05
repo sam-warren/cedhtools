@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { createClient } from "@/app/utils/supabase/client";
+import { createBrowserClient } from "@/lib/api/supabase";
 import { User } from "@supabase/supabase-js";
 
 export function Header() {
@@ -13,7 +13,7 @@ export function Header() {
   
   useEffect(() => {
     async function getUser() {
-      const supabase = createClient();
+      const supabase = createBrowserClient();
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
       setLoading(false);

@@ -1,5 +1,5 @@
-import { createClient } from "@/app/utils/supabase/server";
-import { DashboardStats } from "@/components/dashboard/dashboard-stats";
+import { createServerClient } from "@/lib/api/supabase";
+import { cookies } from "next/headers";
 import { TournamentStats } from "@/components/dashboard/tournament-stats";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const supabase = createServerClient(cookieStore);
 
   const {
     data: { user: authUser },
@@ -25,28 +26,9 @@ async function getStats() {
 
   const { data: userStats } = await supabase
     .from("users")
-    .select("*, deck_analyses(count)")
+    .select("*")
     .eq("id", authUser.id)
     .single();
-
-  const { data: recentAnalyses } = await supabase
-    .from("deck_analyses")
-    .select(
-      `
-      id,
-      moxfield_url,
-      created_at,
-      deck_name,
-      commanders:commander_id (
-        name,
-        wins,
-        losses
-      )
-    `
-    )
-    .eq("user_id", authUser.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
 
   const { data: recentTournaments } = await supabase
     .from("processed_tournaments")
@@ -57,32 +39,11 @@ async function getStats() {
   // Get first name from full name, or use email as fallback
   const firstName = authUser.user_metadata.full_name?.split(' ')[0];
 
-  // Format the analysis data to match the Analysis type
-  const formattedAnalyses = recentAnalyses?.map(analysis => {
-    // Handle the case where commanders might be an array
-    const commander = Array.isArray(analysis.commanders) 
-      ? analysis.commanders[0] 
-      : analysis.commanders;
-      
-    return {
-      id: analysis.id,
-      moxfield_url: analysis.moxfield_url,
-      created_at: analysis.created_at,
-      deck_name: analysis.deck_name,
-      commanders: {
-        name: commander?.name || "Unknown Commander",
-        wins: commander?.wins || 0,
-        losses: commander?.losses || 0
-      }
-    };
-  }) || [];
-
   return {
     user: {
       ...userStats,
       full_name: firstName
     },
-    recentAnalyses: formattedAnalyses,
     recentTournaments,
   };
 }
@@ -102,7 +63,7 @@ export default async function DashboardPage() {
             <CardTitle>Authentication Required</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-4">You need to sign in to view your dashboard and save your deck analyses.</p>
+            <p className="mb-4">You need to sign in to view your dashboard.</p>
             <Button asChild>
               <Link href="/login?returnTo=/dashboard">Sign In</Link>
             </Button>
@@ -112,7 +73,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const { user, recentAnalyses, recentTournaments } = stats;
+  const { user, recentTournaments } = stats;
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
@@ -122,18 +83,21 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Use the sidebar to analyze a deck or explore recent tournaments.
+              Use the search bar to find a commander and view their tournament statistics,
+              or analyze your own deck against tournament data.
             </div>
+            <Button asChild>
+              <Link href="/">Search Commanders</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 grid-cols-1">
-        <DashboardStats analyses={recentAnalyses || []} />
         <TournamentStats tournaments={recentTournaments || []} />
       </div>
     </div>

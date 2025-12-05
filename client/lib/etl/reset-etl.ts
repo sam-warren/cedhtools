@@ -5,8 +5,11 @@
  * Run with: npx tsx lib/etl/reset-etl.ts
  */
 
-import { supabaseServer } from '../supabase';
-import { cliLogger } from '../logger';
+import { createServiceRoleClient } from '@/lib/api/supabase';
+
+// Create singleton for this module
+const serviceRoleClient = createServiceRoleClient();
+import { cliLogger } from '@/lib/logger';
 
 const logger = cliLogger.child({ script: 'reset-etl' });
 
@@ -15,7 +18,7 @@ async function resetEtlData() {
 
     try {
         // Call our SQL function to clear data
-        const { error } = await supabaseServer.rpc('clear_etl_data');
+        const { error } = await serviceRoleClient.rpc('clear_etl_data');
 
         if (error) {
             throw error;
@@ -30,11 +33,11 @@ async function resetEtlData() {
         logger.info('Attempting manual data reset...');
 
         try {
-            await supabaseServer.from('statistics').delete().neq('id', 0);
-            await supabaseServer.from('commanders').delete().neq('id', '');
-            await supabaseServer.from('cards').delete().neq('unique_card_id', '');
-            await supabaseServer.from('etl_status').delete().neq('id', 0);
-            await supabaseServer.from('processed_tournaments').delete().neq('tournament_id', '');
+            await serviceRoleClient.from('statistics').delete().neq('id', 0);
+            await serviceRoleClient.from('commanders').delete().neq('id', '');
+            await serviceRoleClient.from('cards').delete().neq('unique_card_id', '');
+            await serviceRoleClient.from('etl_jobs').delete().neq('id', 0);
+            await serviceRoleClient.from('processed_tournaments').delete().neq('tournament_id', '');
 
             logger.info('Manual reset complete');
         } catch (fallbackError) {
