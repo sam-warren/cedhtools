@@ -4,6 +4,28 @@
 const SCROLLRACK_API_URL = 'https://scrollrack.topdeck.gg/api';
 
 /**
+ * Normalize text by replacing special characters with ASCII equivalents.
+ * This ensures card names match Scrollrack's database regardless of
+ * how they were originally encoded in the source data.
+ * 
+ * Common issues:
+ * - Curly apostrophes (') vs straight apostrophes (')
+ * - En/em dashes vs hyphens
+ * - Various quote styles
+ */
+function normalizeText(text: string): string {
+  return text
+    // Normalize apostrophes (curly to straight)
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    // Normalize quotes (curly to straight)
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    // Normalize dashes (em/en dash to hyphen)
+    .replace(/[\u2013\u2014]/g, '-')
+    // Normalize ellipsis
+    .replace(/\u2026/g, '...');
+}
+
+/**
  * Scrollrack validation error
  */
 export class ScrollrackClientError extends Error {
@@ -40,12 +62,26 @@ export async function validateDecklist(decklist: string): Promise<ValidationResu
     .replace(/\\r\\n/g, '\n')
     .replace(/\\n/g, '\n');
   
-  // Remove metadata lines that TopDeck adds (e.g., "Imported from https://...")
-  // These cause scrollrack to report "Unknown Card" errors
-  const normalizedDecklist = unescaped
+  // Normalize special characters (curly quotes, em-dashes, etc.)
+  // Card names like "Thassa's Oracle" may have curly apostrophes from copy-paste
+  // which Scrollrack won't recognize
+  const normalized = normalizeText(unescaped);
+  
+  // Process line by line:
+  // - Remove metadata lines (e.g., "Imported from https://...")
+  // - Trim whitespace from each line
+  // - Filter out empty lines at the end
+  const lines = normalized
     .split('\n')
-    .filter(line => !line.startsWith('Imported from '))
-    .join('\n');
+    .map(line => line.trim())
+    .filter(line => !line.startsWith('Imported from '));
+  
+  // Remove trailing empty lines but preserve internal structure
+  while (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+  
+  const normalizedDecklist = lines.join('\n');
 
   const response = await fetch(`${SCROLLRACK_API_URL}/validate`, {
     method: 'POST',

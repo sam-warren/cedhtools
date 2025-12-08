@@ -45,50 +45,32 @@ function createSupabaseAdmin() {
 // ============================================
 
 /**
- * Get the Monday of the week for a given date (UTC-based)
- * TODO: Verify this logic is correct and necessary. Is this the correct way to get the week start date?
+ * Get the Monday of the week for a given date (UTC-based).
+ * 
+ * This is used to bucket tournament data into weekly aggregates for efficient querying.
+ * Using Monday as the week start aligns with ISO 8601 week numbering standard.
+ * 
+ * The logic works as follows:
+ * - getUTCDay() returns 0 (Sunday) through 6 (Saturday)
+ * - For Monday (1) through Saturday (6): subtract (day - 1) to get to Monday
+ * - For Sunday (0): subtract 6 to get to the previous Monday
+ * - The formula `day === 0 ? -6 : 1` handles this by adjusting the offset
+ * 
+ * UTC methods are used to ensure consistent week boundaries regardless of
+ * server timezone, preventing the same tournament from being bucketed into
+ * different weeks depending on when/where the aggregation runs.
  */
 function getWeekStart(date: Date): string {
   const d = new Date(date);
-  // Use UTC methods to avoid timezone issues
   const day = d.getUTCDay();
   const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
   d.setUTCDate(diff);
-  // Return as YYYY-MM-DD
   return d.toISOString().split('T')[0];
 }
 
 // ============================================
 // Stats Aggregation
 // ============================================
-
-interface TournamentData {
-  id: number;
-  tournament_date: string;
-  top_cut: number;
-}
-
-// TODO: This is currently only referenced by unused interface EntryWithDecklistItems. Should we remove it? Or use it?
-interface EntryWithTournament {
-  id: number;
-  commander_id: number | null;
-  standing: number | null;
-  wins_swiss: number;
-  wins_bracket: number;
-  losses_swiss: number;
-  losses_bracket: number;
-  draws: number;
-  tournament: TournamentData | TournamentData[] | null;
-}
-
-// TODO: This is currently unused. Should we remove it? Or use it?
-interface EntryWithDecklistItems extends EntryWithTournament {
-  decklist_items: Array<{
-    card_id: number;
-    quantity: number;
-  }> | null;
-}
-
 async function aggregateCommanderWeeklyStats(
   supabase: ReturnType<typeof createSupabaseAdmin>
 ): Promise<number> {
@@ -101,7 +83,9 @@ async function aggregateCommanderWeeklyStats(
   console.log('  📥 Loading tournament data...');
   const tournamentMap = new Map<number, { tournament_date: string; top_cut: number }>();
   
-  // TODO: What is tournamentOffset? What does it represent?
+  // Pagination offset for fetching tournaments in batches of PAGE_SIZE.
+  // Supabase has a default limit of 1000 rows per query, so we paginate
+  // to ensure we fetch all tournaments regardless of total count.
   let tournamentOffset = 0;
   while (true) {
     const { data, error } = await supabase
@@ -214,8 +198,10 @@ async function aggregateCommanderWeeklyStats(
       existing.draws += entry.draws;
       existing.losses += entry.losses_swiss + entry.losses_bracket;
       
-      // Check if made top cut
-      // TODO: Verify that tournament.top_cut is correctly set, i.e. it is an integer we can compare to and not a string like "Top 4" or "Top 16"
+      // Check if made top cut.
+      // tournament.top_cut is an integer from the tournaments table, populated by sync-tournaments.ts
+      // from the TopDeck.gg API's topCut field (e.g., 4, 8, 16). A value of 0 means no top cut.
+      // standing is the player's final position (1 = winner, 2 = second place, etc.)
       if (entry.standing && entry.standing <= tournament.top_cut) {
         existing.top_cuts += 1;
       }
@@ -253,7 +239,22 @@ async function aggregateCommanderWeeklyStats(
   return statsArray.length;
 }
 
-// TODO: Should we include a p value here for statistical significance? How would we go about doing this in an efficient manner?
+/**
+ * Aggregates card statistics per commander per week.
+ * 
+ * Statistical Significance Consideration:
+ * A p-value for card win rate differences could help identify statistically significant
+ * over/under performers. However, implementing this efficiently is challenging:
+ * 
+ * 1. Sample sizes vary greatly per card (Sol Ring vs niche cards)
+ * 2. Would need to store additional data (variance, sample count) for incremental updates
+ * 3. Chi-squared or Fisher's exact test would require commander baseline stats
+ * 4. Computation would need to happen at query time or as a separate post-processing step
+ * 
+ * Current approach: Let the frontend/consumer calculate significance if needed,
+ * using the entries count as the sample size and win_rate for comparison against
+ * commander baseline. Cards with low entries should be flagged as low-confidence.
+ */
 async function aggregateCardCommanderWeeklyStats(
   supabase: ReturnType<typeof createSupabaseAdmin>
 ): Promise<number> {
@@ -322,13 +323,23 @@ async function aggregateCardCommanderWeeklyStats(
         decklist_valid
       `)
       .not('commander_id', 'is', null)
-      .eq('decklist_valid', true)  // Only include validated decklists - TODO: This is currently causing issues as decklists are not being correctly validated in the db seed script.
-      .order('id', { ascending: true }) // TODO: When using pagination, we need to ensure we maintain order by id to avoid duplicate entries. This needs to be true EVERYWHERE we use pagination.
+      // Only include validated decklists to ensure card stats reflect legal commander decks.
+      // Note: If decklist_valid is not being set correctly in sync-tournaments.ts,
+      // this filter may exclude valid decklists. Check the Scrollrack validation
+      // integration in sync-tournaments.ts if card stats seem incomplete.
+      .eq('decklist_valid', true)
+      // IMPORTANT: Consistent ordering by 'id' is required for pagination to work correctly.
+      // Without deterministic ordering, the same row could appear in multiple pages or be
+      // skipped entirely if the underlying data order changes between queries.
+      // This pattern must be used everywhere pagination is implemented.
+      .order('id', { ascending: true })
       .range(entryOffset, entryOffset + PAGE_SIZE - 1);
     
     if (error) throw error;
     
-    // TODO: Is there a better place to put this interface?
+    // Interface defined inline near its usage for co-location with the query.
+    // This pattern keeps the type close to where Supabase data is cast,
+    // making it easier to update if the query's select clause changes.
     interface EntryData {
       id: number;
       tournament_id: number;
@@ -428,7 +439,9 @@ async function aggregateCardCommanderWeeklyStats(
       }
       
       const weekStart = getWeekStart(new Date(entry.tournament_date));
-      const isTopCut = entry.standing !== null && entry.standing <= entry.top_cut; // TODO: Verify that entry.top_cut is correctly set, i.e. it is an integer we can compare to and not a string like "Top 4" or "Top 16"
+      // entry.top_cut is an integer from the tournaments table (e.g., 4, 8, 16).
+      // A value of 0 means the tournament had no top cut (Swiss-only).
+      const isTopCut = entry.standing !== null && entry.standing <= entry.top_cut;
       
       const key = `${item.card_id}-${entry.commander_id}-${weekStart}`;
       

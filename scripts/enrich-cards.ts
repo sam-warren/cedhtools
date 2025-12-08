@@ -29,9 +29,38 @@ import type { Database } from '../lib/db/types';
 // Configuration
 // ============================================
 
-// TODO: See comments in @scripts/sync-tournaments.ts. We are able to fetch some card information from here, but not all. Take a look at the /images endpoint of scrollrack.topdeck.gg for more details, documented in the aforementioned file.
-// TODO: We have a data issue with mulit-faced cards. We need to handle them correctly.
-// TODO: For example: Sink into Stupor // Soporific Springs has type_line "Instant // Land", cmc 3.00, but mana_cost is NULL. For your reference: scryfall_data: {"id":"5358b87a-1a29-426d-b165-40c97da2c14d","cmc":3,"set":"mh3","uri":"https://api.scryfall.com/cards/5358b87a-1a29-426d-b165-40c97da2c14d","foil":true,"lang":"en","name":"Sink into Stupor // Soporific Springs","frame":"2015","games":["paper","mtgo","arena"],"promo":false,"artist":"Peter Polach","layout":"modal_dfc","object":"card","prices":{"eur":"8.19","tix":"6.73","usd":"8.77","eur_foil":"10.53","usd_foil":"11.06","usd_etched":null},"rarity":"uncommon","set_id":"3ed80bb6-77e8-4aa7-8262-95377a38aba1","booster":true,"digital":false,"mtgo_id":126509,"nonfoil":true,"preview":{"source":"ChannelFireball","source_uri":"https://www.channelfireball.com/article/Our-EXCLUSIVE-Modern-Horizons-3-Preview-Card/f16a095e-4a0c-4b98-b99a-0ef94a09f369/","previewed_at":"2024-05-23"},"reprint":false,"set_uri":"https://api.scryfall.com/sets/3ed80bb6-77e8-4aa7-8262-95377a38aba1","arena_id":90808,"finishes":["nonfoil","foil"],"full_art":false,"keywords":[],"reserved":false,"set_name":"Modern Horizons 3","set_type":"draft_innovation","textless":false,"oracle_id":"bcc6eece-75ea-494c-b33a-d4477d504e0b","oversized":false,"type_line":"Instant // Land","variation":false,"artist_ids":["3cb68fd9-a9e9-425d-85a3-c116318a880f"],"card_faces":[{"name":"Sink into Stupor","artist":"Peter Polach","colors":["U"],"object":"card_face","artist_id":"3cb68fd9-a9e9-425d-85a3-c116318a880f","mana_cost":"{1}{U}{U}","type_line":"Instant","image_uris":{"png":"https://cards.scryfall.io/png/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.png?1717013194","large":"https://cards.scryfall.io/large/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","small":"https://cards.scryfall.io/small/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","normal":"https://cards.scryfall.io/normal/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","art_crop":"https://cards.scryfall.io/art_crop/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","border_crop":"https://cards.scryfall.io/border_crop/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194"},"flavor_text":"The kami help travelers find profound relief, by freeing them from their mortal concerns.","oracle_text":"Return target spell or nonland permanent an opponent controls to its owner's hand.","illustration_id":"92db1618-f22a-4b78-a144-e53260f6d698"},{"name":"Soporific Springs","artist":"Peter Polach","colors":[],"object":"card_face","artist_id":"3cb68fd9-a9e9-425d-85a3-c116318a880f","mana_cost":"","type_line":"Land","image_uris":{"png":"https://cards.scryfall.io/png/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.png?1717013194","large":"https://cards.scryfall.io/large/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","small":"https://cards.scryfall.io/small/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","normal":"https://cards.scryfall.io/normal/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","art_crop":"https://cards.scryfall.io/art_crop/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194","border_crop":"https://cards.scryfall.io/border_crop/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1717013194"},"flavor_text":"Desperate travelers journey from across Kamigawa, drawn by rumors of relief from all their troubles.","oracle_text":"As this land enters, you may pay 3 life. If you don't, it enters tapped.\n{T}: Add {U}.","illustration_id":"efc076c4-815f-4909-8ff7-229572c3ef49"}],"legalities":{"duel":"legal","brawl":"legal","penny":"not_legal","predh":"not_legal","future":"not_legal","legacy":"legal","modern":"legal","pauper":"not_legal","alchemy":"not_legal","pioneer":"not_legal","vintage":"legal","historic":"legal","standard":"not_legal","timeless":"legal","commander":"legal","gladiator":"legal","oldschool":"not_legal","premodern":"not_legal","oathbreaker":"legal","standardbrawl":"not_legal","paupercommander":"not_legal"},"edhrec_rank":245,"released_at":"2024-06-14","rulings_uri":"https://api.scryfall.com/cards/5358b87a-1a29-426d-b165-40c97da2c14d/rulings","border_color":"black","game_changer":false,"image_status":"highres_scan","related_uris":{"edhrec":"https://edhrec.com/route/?cc=Sink+into+Stupor","gatherer":"https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=661761&printed=false","tcgplayer_infinite_decks":"https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=tcgplayer.com%2Fsearch%2Fdecks&u=https%3A%2F%2Fwww.tcgplayer.com%2Fsearch%2Fdecks%3FproductLineName%3Dmagic%26q%3DSink%2Binto%2BStupor%2B%252F%252F%2BSoporific%2BSprings","tcgplayer_infinite_articles":"https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&trafcat=tcgplayer.com%2Fsearch%2Farticles&u=https%3A%2F%2Fwww.tcgplayer.com%2Fsearch%2Farticles%3FproductLineName%3Dmagic%26q%3DSink%2Binto%2BStupor%2B%252F%252F%2BSoporific%2BSprings"},"scryfall_uri":"https://scryfall.com/card/mh3/241/sink-into-stupor-soporific-springs?utm_source=api","tcgplayer_id":552582,"cardmarket_id":771811,"highres_image":true,"produced_mana":["U"],"purchase_uris":{"tcgplayer":"https://partner.tcgplayer.com/c/4931599/1830156/21018?subId1=api&u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F552582%3Fpage%3D1","cardmarket":"https://www.cardmarket.com/en/Magic/Products?idProduct=771811&referrer=scryfall&utm_campaign=card_prices&utm_medium=text&utm_source=scryfall","cardhoarder":"https://www.cardhoarder.com/cards/126509?affiliate_id=scryfall&ref=card-profile&utm_campaign=affiliate&utm_medium=card&utm_source=scryfall"},"color_identity":["U"],"multiverse_ids":[661761],"set_search_uri":"https://api.scryfall.com/cards/search?order=set&q=e%3Amh3&unique=prints","story_spotlight":false,"collector_number":"241","scryfall_set_uri":"https://scryfall.com/sets/mh3?utm_source=api","prints_search_uri":"https://api.scryfall.com/cards/search?order=released&q=oracleid%3Abcc6eece-75ea-494c-b33a-d4477d504e0b&unique=prints"}
+/**
+ * Card Data Sources:
+ * 
+ * Primary: Scryfall bulk data (oracle_cards.json)
+ * - Provides comprehensive card metadata including type_line, mana_cost, cmc, oracle_id
+ * - Updated daily, cached locally for 24 hours
+ * 
+ * Alternative: Scrollrack API (scrollrack.topdeck.gg)
+ * - /api/image endpoint provides card images and basic metadata
+ * - Used for decklist validation in sync-tournaments.ts
+ * - Could supplement Scryfall data if needed
+ * 
+ * Known Issue: Multi-faced Cards (DFCs, MDFCs, Split cards, etc.)
+ * 
+ * Multi-faced cards have special handling in Scryfall data:
+ * - Top-level mana_cost may be null (cost is in card_faces array)
+ * - type_line is combined (e.g., "Instant // Land")
+ * - cmc represents the front face only for MDFCs
+ * 
+ * Example: "Sink into Stupor // Soporific Springs"
+ * - type_line: "Instant // Land" (combined)
+ * - cmc: 3 (front face only)
+ * - mana_cost: null (stored in card_faces[0].mana_cost as "{1}{U}{U}")
+ * 
+ * To properly handle multi-faced cards, this script would need to:
+ * 1. Check if card.card_faces exists
+ * 2. Extract mana_cost from card_faces[0].mana_cost
+ * 3. Optionally store both faces' data for frontend display
+ * 
+ * Current behavior: mana_cost will be null for multi-faced cards.
+ * This affects filtering/sorting by mana cost in the frontend.
+ */
 
 const SCRYFALL_BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
 const ORACLE_CARDS_FILE = './oracle_cards.scryfall.json';
@@ -50,17 +79,52 @@ interface ScryfallBulkDataResponse {
   }>;
 }
 
+interface ScryfallCardFace {
+  name: string;
+  mana_cost?: string;
+  type_line?: string;
+  colors?: string[];
+}
+
 interface ScryfallCard {
-  id: string;           // Scryfall printing ID
-  oracle_id: string;    // Oracle ID (what TopDeck uses)
+  id: string;           // Scryfall printing ID (unique per printing/set)
+  oracle_id: string;    // Oracle ID (unique per card name, used by TopDeck for matching)
   name: string;
   type_line?: string;
   mana_cost?: string;
   cmc?: number;
   color_identity?: string[];
   colors?: string[];
-  // TODO: What is the meaning of the below comment?
-  // ... many more fields we store in scryfall_data
+  // Multi-faced cards (DFCs, MDFCs, split cards) store face-specific data here
+  // The front face's mana_cost should be used when top-level mana_cost is null
+  card_faces?: ScryfallCardFace[];
+  // Note: Scryfall cards have many more fields (image_uris, legalities, prices, etc.)
+  // We store the entire object in the scryfall_data JSONB column for future use,
+  // but only explicitly type the fields we actively use in this script.
+}
+
+/**
+ * Extract mana_cost from a Scryfall card, handling multi-faced cards.
+ * 
+ * For regular cards, mana_cost is at the top level.
+ * For multi-faced cards (DFCs, MDFCs, split cards, etc.), mana_cost is null
+ * at the top level and stored in card_faces[0].mana_cost for the front face.
+ * 
+ * @param card - Scryfall card data
+ * @returns The mana cost string (e.g., "{1}{U}{U}") or null if not available
+ */
+function extractManaCost(card: ScryfallCard): string | null {
+  // Use top-level mana_cost if available
+  if (card.mana_cost) {
+    return card.mana_cost;
+  }
+  
+  // For multi-faced cards, extract from the front face
+  if (card.card_faces && card.card_faces.length > 0 && card.card_faces[0].mana_cost) {
+    return card.card_faces[0].mana_cost;
+  }
+  
+  return null;
 }
 
 // ============================================
@@ -267,7 +331,7 @@ async function enrichCards(
         .update({
           oracle_id: scryfallCard.oracle_id,
           type_line: scryfallCard.type_line || null,
-          mana_cost: scryfallCard.mana_cost || null,
+          mana_cost: extractManaCost(scryfallCard),
           cmc: scryfallCard.cmc ?? null,
           scryfall_data: scryfallCard as unknown as Record<string, unknown>,
         })

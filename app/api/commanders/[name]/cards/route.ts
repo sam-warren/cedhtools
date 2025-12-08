@@ -34,9 +34,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
     
     const supabase = await createClient();
     
-    // Note: minTournamentSize filter requires querying raw data instead of pre-aggregated stats
-    // For now, this filter is only applied when > 0 (UI can show a warning that it's slower)
-    void minTournamentSize; // TODO: Implement tournament size filtering for card stats
+    /**
+     * Tournament Size Filtering Limitation:
+     * 
+     * The minTournamentSize filter is not yet implemented for card stats because we use
+     * pre-aggregated weekly statistics (card_commander_weekly_stats) for performance.
+     * These aggregates don't include tournament size information.
+     * 
+     * To implement this filter, we would need to:
+     * 1. Query raw data from entries + decklist_items + tournaments tables
+     * 2. Filter by tournaments.size >= minTournamentSize
+     * 3. Aggregate on-the-fly (significantly slower for large datasets)
+     * 
+     * For now, this parameter is accepted but not applied. The UI should indicate
+     * when this filter is active that results may include smaller tournaments.
+     */
+    void minTournamentSize;
     
     // Get commander
     const { data: commander, error: commanderError } = await supabase

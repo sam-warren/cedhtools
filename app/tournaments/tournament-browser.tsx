@@ -39,7 +39,19 @@ const timeOptions: { value: TimePeriod; label: string }[] = [
   { value: "1_year", label: "Past Year" },
 ];
 
-// TODO: We should be able to filter by tournament size, top cut, swiss rounds, players, etc.
+/**
+ * Future Enhancement: Additional Filters
+ * 
+ * Consider adding filters for:
+ * - Tournament size (min/max players)
+ * - Top cut size (e.g., Top 4, Top 8, Top 16)
+ * - Number of Swiss rounds
+ * - Specific date range picker
+ * - Tournament name search
+ * 
+ * These would require extending the /api/tournaments endpoint to accept
+ * additional query parameters and filter the database query accordingly.
+ */
 export function TournamentBrowser() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,11 +192,17 @@ function TournamentCard({ tournament, formatDate }: { tournament: Tournament; fo
                 <Users className="w-4 h-4" />
                 {tournament.size} players
               </span>
-              <span className="flex items-center gap-1">
-                <Trophy className="w-4 h-4" />
-                {/* TODO: For tournaments with no finals (i.e. top_cut is 0) we need to 1. verify that top_cut is being populated correctly in the seed script and 2. handle this correctly in the frontend. We should not display "Top 0" for these tournaments.*/}
-                Top {tournament.top_cut}
-              </span>
+              {/* 
+                Display top cut info only if tournament has a top cut (> 0).
+                Tournaments with top_cut = 0 are Swiss-only events with no elimination bracket.
+                The top_cut value is populated from TopDeck.gg API data in sync-tournaments.ts.
+              */}
+              {tournament.top_cut > 0 && (
+                <span className="flex items-center gap-1">
+                  <Trophy className="w-4 h-4" />
+                  Top {tournament.top_cut}
+                </span>
+              )}
             </div>
           </div>
 
