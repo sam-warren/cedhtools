@@ -1,4 +1,5 @@
 // Supabase Database Types for cEDH Tools
+// These types define our database schema for use with the Supabase client
 
 export interface Database {
   public: {
@@ -40,6 +41,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       players: {
         Row: {
@@ -63,6 +65,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       commanders: {
         Row: {
@@ -86,6 +89,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       cards: {
         Row: {
@@ -121,6 +125,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       entries: {
         Row: {
@@ -134,7 +139,8 @@ export interface Database {
           losses_swiss: number;
           losses_bracket: number;
           draws: number;
-          decklist_url: string | null;
+          decklist: string | null;
+          decklist_valid: boolean | null;
           created_at: string;
         };
         Insert: {
@@ -149,6 +155,7 @@ export interface Database {
           losses_bracket?: number;
           draws?: number;
           decklist_url?: string | null;
+          decklist_valid?: boolean | null;
           created_at?: string;
         };
         Update: {
@@ -163,8 +170,10 @@ export interface Database {
           losses_bracket?: number;
           draws?: number;
           decklist_url?: string | null;
+          decklist_valid?: boolean | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       decklist_items: {
         Row: {
@@ -185,6 +194,7 @@ export interface Database {
           card_id?: number;
           quantity?: number;
         };
+        Relationships: [];
       };
       games: {
         Row: {
@@ -214,6 +224,7 @@ export interface Database {
           is_draw?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
       game_players: {
         Row: {
@@ -237,6 +248,7 @@ export interface Database {
           entry_id?: number | null;
           seat_position?: number;
         };
+        Relationships: [];
       };
       commander_weekly_stats: {
         Row: {
@@ -244,6 +256,7 @@ export interface Database {
           commander_id: number;
           week_start: string;
           entries: number;
+          entries_with_decklists: number;
           top_cuts: number;
           wins: number;
           draws: number;
@@ -256,6 +269,7 @@ export interface Database {
           commander_id: number;
           week_start: string;
           entries?: number;
+          entries_with_decklists?: number;
           top_cuts?: number;
           wins?: number;
           draws?: number;
@@ -268,6 +282,7 @@ export interface Database {
           commander_id?: number;
           week_start?: string;
           entries?: number;
+          entries_with_decklists?: number;
           top_cuts?: number;
           wins?: number;
           draws?: number;
@@ -275,6 +290,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       card_commander_weekly_stats: {
         Row: {
@@ -316,40 +332,13 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-      };
-      seat_position_weekly_stats: {
-        Row: {
-          id: number;
-          commander_id: number;
-          seat_position: number;
-          week_start: string;
-          games: number;
-          wins: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: number;
-          commander_id: number;
-          seat_position: number;
-          week_start: string;
-          games?: number;
-          wins?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: number;
-          commander_id?: number;
-          seat_position?: number;
-          week_start?: string;
-          games?: number;
-          wins?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }
 
@@ -371,8 +360,9 @@ export type GameInsert = Database["public"]["Tables"]["games"]["Insert"];
 export type GamePlayer = Database["public"]["Tables"]["game_players"]["Row"];
 export type GamePlayerInsert = Database["public"]["Tables"]["game_players"]["Insert"];
 export type CommanderWeeklyStats = Database["public"]["Tables"]["commander_weekly_stats"]["Row"];
+export type CommanderWeeklyStatsInsert = Database["public"]["Tables"]["commander_weekly_stats"]["Insert"];
 export type CardCommanderWeeklyStats = Database["public"]["Tables"]["card_commander_weekly_stats"]["Row"];
-export type SeatPositionWeeklyStats = Database["public"]["Tables"]["seat_position_weekly_stats"]["Row"];
+export type CardCommanderWeeklyStatsInsert = Database["public"]["Tables"]["card_commander_weekly_stats"]["Insert"];
 
 // Extended types for API responses
 export interface CommanderWithStats extends Commander {

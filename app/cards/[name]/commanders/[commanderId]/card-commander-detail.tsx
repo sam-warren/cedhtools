@@ -1,29 +1,34 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { ColorIdentity } from "@/components/color-identity";
-import { ManaCost } from "@/components/mana-cost";
+import { ManaCost } from "@/components/shared/mana-cost";
 import { StatCard } from "@/components/stat-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis, ReferenceLine, Line, LineChart, CartesianGrid } from "recharts";
 import {
-  Trophy,
-  Users,
-  TrendingUp,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { CardCommanderStats, TimePeriod } from "@/types/api";
+import {
   ArrowLeft,
   RefreshCw,
+  TrendingUp,
+  Trophy,
+  Users,
 } from "lucide-react";
-import type { CardCommanderStats, TimePeriod } from "@/types/api";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 
 interface CardCommanderDetailProps {
   cardName: string;
@@ -186,16 +191,17 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
           {/* Time Period Selector */}
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">Time period:</span>
-            <Select
-              value={timePeriod}
-              onChange={(e) => setTimePeriod(e.target.value as TimePeriod)}
-              className="w-40"
-            >
-              {timeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
+            <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {timeOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>

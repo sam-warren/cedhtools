@@ -1,22 +1,24 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ColorIdentity } from "@/components/color-identity";
+import { DataTable, createStapleCardsColumns } from "@/components/shared/data-table";
+import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ColorIdentity } from "@/components/color-identity";
-import { StatCard } from "@/components/stat-card";
-import { ManaCost } from "@/components/mana-cost";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -25,26 +27,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bar, BarChart, XAxis, YAxis, ReferenceLine, Line, LineChart, CartesianGrid } from "recharts";
-import {
-  Trophy,
-  Users,
-  TrendingUp,
-  Percent,
-  ExternalLink,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  Search,
-  ArrowUpDown,
-} from "lucide-react";
 import type {
-  CommanderDetail as CommanderDetailType,
+  CardWithStats,
   CommanderCardsResponse,
+  CommanderDetail as CommanderDetailType,
   SeatPositionResponse,
   TimePeriod,
-  CardWithStats,
 } from "@/types/api";
+import {
+  ChevronRight,
+  ExternalLink,
+  Percent,
+  TrendingUp,
+  Trophy,
+  Users,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 
 interface CommanderDetailProps {
   commanderName: string;
@@ -57,10 +58,6 @@ const timeOptions: { value: TimePeriod; label: string }[] = [
   { value: "1_year", label: "Past Year" },
   { value: "all_time", label: "All Time" },
 ];
-
-type SortField = "name" | "play_rate" | "win_rate" | "win_rate_delta" | "conversion_rate";
-type SortDirection = "asc" | "desc";
-const ITEMS_PER_PAGE = 25;
 
 // Skeleton Components
 function CommanderHeaderSkeleton() {
@@ -162,14 +159,6 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
   const [seatData, setSeatData] = useState<SeatPositionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Table state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("play_rate");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [typeFilter, setTypeFilter] = useState<string>("");
-  const [minEntries, setMinEntries] = useState<number>(5);
-  const [currentPage, setCurrentPage] = useState(1);
-
   // Fetch commander data
   useEffect(() => {
     const fetchCommander = async () => {
@@ -233,99 +222,11 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
     fetchSeats();
   }, [commanderName]);
 
-  // Get unique card types for filter
-  const cardTypes = useMemo(() => {
-    const types = new Set<string>();
-    cards.forEach((card) => {
-      if (card.type_line) {
-        // Extract main type (before the em dash)
-        const mainType = card.type_line.split("—")[0].trim();
-        mainType.split(" ").forEach((t) => {
-          if (["Creature", "Instant", "Sorcery", "Artifact", "Enchantment", "Land", "Planeswalker"].includes(t)) {
-            types.add(t);
-          }
-        });
-      }
-    });
-    return Array.from(types).sort();
-  }, [cards]);
-
-  // Filter and sort cards
-  const filteredCards = useMemo(() => {
-    let result = [...cards];
-
-    // Minimum entries filter
-    result = result.filter((card) => card.entries >= minEntries);
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((card) =>
-        card.name.toLowerCase().includes(query) ||
-        card.type_line?.toLowerCase().includes(query)
-      );
-    }
-
-    // Type filter
-    if (typeFilter) {
-      result = result.filter((card) =>
-        card.type_line?.toLowerCase().includes(typeFilter.toLowerCase())
-      );
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      let comparison = 0;
-      switch (sortField) {
-        case "name":
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case "play_rate":
-          comparison = a.play_rate - b.play_rate;
-          break;
-        case "win_rate":
-          comparison = a.win_rate - b.win_rate;
-          break;
-        case "win_rate_delta":
-          comparison = a.win_rate_delta - b.win_rate_delta;
-          break;
-        case "conversion_rate":
-          comparison = a.conversion_rate - b.conversion_rate;
-          break;
-      }
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-
-    return result;
-  }, [cards, searchQuery, typeFilter, minEntries, sortField, sortDirection]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
-  const paginatedCards = filteredCards.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+  // Memoize columns to avoid recreating on every render
+  const stapleCardsColumns = useMemo(
+    () => (commander ? createStapleCardsColumns(commander.id) : []),
+    [commander]
   );
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, typeFilter, minEntries, sortField, sortDirection]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("desc");
-    }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
-    return sortDirection === "asc" 
-      ? <ChevronUp className="w-4 h-4 ml-1" />
-      : <ChevronDown className="w-4 h-4 ml-1" />;
-  };
 
   if (error) {
     return (
@@ -443,14 +344,18 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
             <span className="text-sm text-muted-foreground">Time period:</span>
             <Select
               value={timePeriod}
-              onChange={(e) => setTimePeriod(e.target.value as TimePeriod)}
-              className="w-40"
+              onValueChange={(value) => setTimePeriod(value as TimePeriod)}
             >
-              {timeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {timeOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>
@@ -458,53 +363,195 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
 
       {/* Trend Charts & Seat Position */}
       {(seatsLoading || commander.trend?.length) ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Win Rate Trend */}
-          {commander.trend && commander.trend.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Performance Over Time</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Weekly win rate trend (last {Math.min(commander.trend.length, 12)} weeks)
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer
-                  config={{
-                    winRate: {
-                      label: "Win Rate",
-                      color: "hsl(var(--chart-1))",
-                    },
-                  }}
-                  className="h-[250px] w-full"
-                >
-                  <LineChart 
-                    data={commander.trend.slice(-12).map((point, i) => ({
-                      week: `W${i + 1}`,
-                      winRate: point.win_rate * 100,
-                      entries: point.entries,
-                    }))}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Win Rate Over Time */}
+          {commander.trend && commander.trend.length > 0 && (() => {
+            // Aggregate weekly data into monthly data using weighted averages
+            const monthlyData = new Map<string, {
+              month: string;
+              label: string;
+              entries: number;
+              weightedWinRate: number; // Sum of (win_rate * entries) for weighted average
+            }>();
+            
+            for (const point of commander.trend) {
+              const date = new Date(point.week_start);
+              const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              const label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+              
+              const existing = monthlyData.get(monthKey) || {
+                month: monthKey,
+                label,
+                entries: 0,
+                weightedWinRate: 0,
+              };
+              
+              existing.entries += point.entries;
+              existing.weightedWinRate += point.win_rate * point.entries;
+              
+              monthlyData.set(monthKey, existing);
+            }
+            
+            const chartData = Array.from(monthlyData.values())
+              .sort((a, b) => a.month.localeCompare(b.month))
+              .map((m) => ({
+                month: m.label,
+                winRate: m.entries > 0 ? (m.weightedWinRate / m.entries) * 100 : 0,
+                entries: m.entries,
+              }));
+            
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Win Rate Over Time</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {chartData.length} month{chartData.length !== 1 ? 's' : ''} of data
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer
+                    config={{
+                      winRate: {
+                        label: "Win Rate",
+                        color: "hsl(var(--chart-1))",
+                      },
+                    }}
+                    className="h-[220px] w-full"
                   >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="week" tick={{ fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} width={45} />
-                    <ChartTooltip
-                      content={<ChartTooltipContent formatter={(value) => `${Number(value).toFixed(1)}%`} />}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="winRate"
-                      stroke="var(--color-winRate)"
-                      strokeWidth={2}
-                      dot={{ fill: "var(--color-winRate)", r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          )}
+                    <LineChart 
+                      data={chartData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} width={40} />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent 
+                            formatter={(value, name, item) => {
+                              const payload = item.payload;
+                              return (
+                                <div className="space-y-1">
+                                  <div className="font-medium">{Number(value).toFixed(1)}% win rate</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {payload.entries} entries
+                                  </div>
+                                </div>
+                              );
+                            }} 
+                          />
+                        }
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="winRate"
+                        stroke="var(--color-winRate)"
+                        strokeWidth={2}
+                        dot={{ fill: "var(--color-winRate)", r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* Meta Share Over Time */}
+          {commander.trend && commander.trend.length > 0 && (() => {
+            // Aggregate weekly data into monthly data
+            const monthlyData = new Map<string, {
+              month: string;
+              label: string;
+              entries: number;
+              totalMetaEntries: number;
+            }>();
+            
+            for (const point of commander.trend) {
+              const date = new Date(point.week_start);
+              const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              const label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+              
+              const existing = monthlyData.get(monthKey) || {
+                month: monthKey,
+                label,
+                entries: 0,
+                totalMetaEntries: 0,
+              };
+              
+              existing.entries += point.entries;
+              // Calculate total meta entries from meta_share: entries / meta_share = totalMetaEntries
+              if (point.meta_share > 0) {
+                existing.totalMetaEntries += point.entries / point.meta_share;
+              }
+              
+              monthlyData.set(monthKey, existing);
+            }
+            
+            const chartData = Array.from(monthlyData.values())
+              .sort((a, b) => a.month.localeCompare(b.month))
+              .map((m) => ({
+                month: m.label,
+                metaShare: m.totalMetaEntries > 0 ? (m.entries / m.totalMetaEntries) * 100 : 0,
+                entries: m.entries,
+              }));
+            
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Meta Share Over Time</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    % of meta each month
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer
+                    config={{
+                      metaShare: {
+                        label: "Meta Share",
+                        color: "hsl(var(--chart-3))",
+                      },
+                    }}
+                    className="h-[220px] w-full"
+                  >
+                    <LineChart 
+                      data={chartData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} width={40} />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent 
+                            formatter={(value, name, item) => {
+                              const payload = item.payload;
+                              return (
+                                <div className="space-y-1">
+                                  <div className="font-medium">{Number(value).toFixed(1)}% of meta</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {payload.entries} entries
+                                  </div>
+                                </div>
+                              );
+                            }} 
+                          />
+                        }
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="metaShare"
+                        stroke="var(--color-metaShare)"
+                        strokeWidth={2}
+                        dot={{ fill: "var(--color-metaShare)", r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Seat Position */}
           {seatsLoading ? (
@@ -514,15 +561,15 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
                 <Skeleton className="w-64 h-4 mt-2" />
               </CardHeader>
               <CardContent>
-                <Skeleton className="h-[200px] w-full" />
+                <Skeleton className="h-[220px] w-full" />
               </CardContent>
             </Card>
           ) : seatData && seatData.total_games > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Win Rate by Seat Position</CardTitle>
+                <CardTitle className="text-lg">Win Rate by Seat</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Expected: {(seatData.expected_win_rate * 100).toFixed(0)}% • {seatData.total_games} games
+                  Expected: {(seatData.expected_win_rate * 100).toFixed(0)}% • {seatData.total_games.toLocaleString()} games
                 </p>
               </CardHeader>
               <CardContent>
@@ -533,7 +580,7 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
                       color: "hsl(var(--chart-2))",
                     },
                   }}
-                  className="h-[250px] w-full"
+                  className="h-[220px] w-full"
                 >
                   <BarChart 
                     data={seatData.seats.map((seat) => ({
@@ -545,8 +592,8 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
                     margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="seat" tick={{ fontSize: 12 }} />
-                    <YAxis domain={[0, 50]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} width={45} />
+                    <XAxis dataKey="seat" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 50]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} width={40} />
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
@@ -585,52 +632,10 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
       {/* Staple Cards Section - Table View */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle>Staple Cards</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {cardsLoading ? "Loading..." : `${filteredCards.length} cards in ${commander.name} decks`}
-              </p>
-            </div>
-          </div>
-          
-          {/* Filters */}
-          {!cardsLoading && cards.length > 0 && (
-            <div className="flex flex-wrap gap-3 mt-4">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search cards..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-40"
-              >
-                <option value="">All Types</option>
-                {cardTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                value={String(minEntries)}
-                onChange={(e) => setMinEntries(Number(e.target.value))}
-                className="w-36"
-              >
-                <option value="5">Min 5 decks</option>
-                <option value="10">Min 10 decks</option>
-                <option value="25">Min 25 decks</option>
-                <option value="50">Min 50 decks</option>
-                <option value="100">Min 100 decks</option>
-              </Select>
-            </div>
-          )}
+          <CardTitle>Staple Cards</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            {cardsLoading ? "Loading..." : `${cards.length} cards in ${commander.name} decks`}
+          </p>
         </CardHeader>
         <CardContent>
           {cardsLoading ? (
@@ -639,152 +644,17 @@ export function CommanderDetail({ commanderName }: CommanderDetailProps) {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : filteredCards.length > 0 ? (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50 w-[300px]"
-                        onClick={() => handleSort("name")}
-                      >
-                        <div className="flex items-center">
-                          Card
-                          <SortIcon field="name" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[120px]">Mana Cost</TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50 text-right w-[100px]"
-                        onClick={() => handleSort("play_rate")}
-                      >
-                        <div className="flex items-center justify-end">
-                          Play Rate
-                          <SortIcon field="play_rate" />
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50 text-right w-[100px]"
-                        onClick={() => handleSort("win_rate")}
-                      >
-                        <div className="flex items-center justify-end">
-                          Win Rate
-                          <SortIcon field="win_rate" />
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50 text-right w-[100px]"
-                        onClick={() => handleSort("win_rate_delta")}
-                      >
-                        <div className="flex items-center justify-end">
-                          WR Δ
-                          <SortIcon field="win_rate_delta" />
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50 text-right w-[100px]"
-                        onClick={() => handleSort("conversion_rate")}
-                      >
-                        <div className="flex items-center justify-end">
-                          Conversion
-                          <SortIcon field="conversion_rate" />
-                        </div>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedCards.map((card) => (
-                      <TableRow key={card.id}>
-                        <TableCell>
-                          <Link
-                            href={`/cards/${encodeURIComponent(card.name)}/commanders/${commander.id}`}
-                            className="font-medium hover:underline hover:text-primary"
-                          >
-                            {card.name}
-                          </Link>
-                          {card.type_line && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[280px]">
-                              {card.type_line}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <ManaCost cost={card.mana_cost} size="sm" />
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {(card.play_rate * 100).toFixed(1)}%
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {(card.win_rate * 100).toFixed(1)}%
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={
-                            card.win_rate_delta > 0.02 
-                              ? "text-green-500" 
-                              : card.win_rate_delta < -0.02 
-                                ? "text-red-500" 
-                                : "text-muted-foreground"
-                          }>
-                            {card.win_rate_delta >= 0 ? "+" : ""}
-                            {(card.win_rate_delta * 100).toFixed(1)}%
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {(card.conversion_rate * 100).toFixed(1)}%
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-2 py-4">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredCards.length)} of {filteredCards.length} cards
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(1)}
-                      disabled={currentPage === 1}
-                    >
-                      First
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm px-2">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(totalPages)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Last
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+          ) : cards.length > 0 ? (
+            <DataTable
+              columns={stapleCardsColumns}
+              data={cards}
+              enableMinEntriesFilter
+              minEntriesOptions={[5, 10, 25, 50, 100]}
+              defaultMinEntries={5}
+              getRowEntries={(row) => row.entries}
+              defaultPageSize={10}
+              globalFilter
+            />
           ) : (
             <p className="text-muted-foreground text-center py-8">
               No staple card data available for this time period.

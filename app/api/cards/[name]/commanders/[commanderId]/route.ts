@@ -65,21 +65,47 @@ export async function GET(request: NextRequest, context: RouteContext) {
       ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
       : null;
     
-    // Get weekly stats for this card/commander pair
-    let query = supabase
-      .from("card_commander_weekly_stats")
-      .select("*")
-      .eq("card_id", card.id)
-      .eq("commander_id", commander.id)
-      .order("week_start", { ascending: true });
-    
-    if (dateFilter) {
-      query = query.gte("week_start", dateFilter);
+    // Get weekly stats for this card/commander pair (paginated)
+    interface CardCommanderWeeklyStat {
+      id: number;
+      card_id: number;
+      commander_id: number;
+      week_start: string;
+      entries: number;
+      top_cuts: number;
+      wins: number;
+      draws: number;
+      losses: number;
     }
     
-    const { data: weeklyStats, error: weeklyError } = await query;
+    const weeklyStats: CardCommanderWeeklyStat[] = [];
+    let statsOffset = 0;
+    const pageSize = 1000;
     
-    if (weeklyError) throw weeklyError;
+    while (true) {
+      let query = supabase
+        .from("card_commander_weekly_stats")
+        .select("*")
+        .eq("card_id", card.id)
+        .eq("commander_id", commander.id)
+        .order("week_start", { ascending: true })
+        .range(statsOffset, statsOffset + pageSize - 1);
+      
+      if (dateFilter) {
+        query = query.gte("week_start", dateFilter);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      const page = data as CardCommanderWeeklyStat[] | null;
+      if (!page || page.length === 0) break;
+      
+      weeklyStats.push(...page);
+      statsOffset += pageSize;
+      
+      if (page.length < pageSize) break;
+    }
     
     // Calculate aggregate stats
     let totalEntries = 0;
@@ -88,7 +114,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     let totalDraws = 0;
     let totalLosses = 0;
     
-    for (const week of weeklyStats || []) {
+    for (const week of weeklyStats) {
       totalEntries += week.entries;
       totalTopCuts += week.top_cuts;
       totalWins += week.wins;

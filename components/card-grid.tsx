@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { ManaCost } from "@/components/mana-cost";
+import { ManaCost } from "@/components/shared/mana-cost";
 import type { CardWithStats } from "@/types/api";
 
 interface CardGridProps {

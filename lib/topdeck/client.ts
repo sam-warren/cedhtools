@@ -220,14 +220,15 @@ export async function fetchAllTournaments(
 }
 
 /**
- * Get the week start date (Monday) for a given date
+ * Get the week start date (Monday) for a given date (UTC-based)
  */
 export function getWeekStart(date: Date): Date {
   const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
+  // Use UTC methods to avoid timezone issues
+  const day = d.getUTCDay();
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  d.setUTCDate(diff);
+  d.setUTCHours(0, 0, 0, 0);
   return d;
 }
 

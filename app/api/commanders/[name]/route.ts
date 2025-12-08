@@ -28,6 +28,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const name = decodeURIComponent(encodedName);
     const searchParams = request.nextUrl.searchParams;
     const timePeriod = (searchParams.get("timePeriod") as TimePeriod) ?? "3_months";
+    const minTournamentSize = searchParams.has("minTournamentSize")
+      ? parseInt(searchParams.get("minTournamentSize")!)
+      : 0;
     
     const supabase = await createClient();
     
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
       : null;
     
-    // Get aggregate stats from pre-aggregated weekly stats table
+    // Get aggregate stats from pre-aggregated weekly stats table (paginated)
     // This ensures we get stats from ALL entries, not just a limited subset
     interface WeeklyStat {
       entries: number;
@@ -62,18 +65,67 @@ export async function GET(request: NextRequest, context: RouteContext) {
       week_start: string;
     }
     
-    let statsQuery = supabase
-      .from("commander_weekly_stats")
-      .select("entries, top_cuts, wins, draws, losses, week_start")
-      .eq("commander_id", commander.id);
+    const weeklyStats: WeeklyStat[] = [];
+    let statsOffset = 0;
+    const statsPageSize = 1000;
     
-    if (dateFilter) {
-      statsQuery = statsQuery.gte("week_start", dateFilter);
+    while (true) {
+      let statsQuery = supabase
+        .from("commander_weekly_stats")
+        .select("entries, top_cuts, wins, draws, losses, week_start")
+        .eq("commander_id", commander.id)
+        .order("id", { ascending: true })
+        .range(statsOffset, statsOffset + statsPageSize - 1);
+      
+      if (dateFilter) {
+        statsQuery = statsQuery.gte("week_start", dateFilter);
+      }
+      
+      const { data, error } = await statsQuery;
+      if (error) throw error;
+      
+      const page = data as WeeklyStat[] | null;
+      if (!page || page.length === 0) break;
+      
+      weeklyStats.push(...page);
+      statsOffset += statsPageSize;
+      
+      if (page.length < statsPageSize) break;
     }
     
-    const { data: weeklyStats, error: weeklyError } = await statsQuery;
+    // Get total entries per week across ALL commanders for meta share calculation
+    // Must paginate to get all rows (Supabase default limit is 1000)
+    const weeklyTotals = new Map<string, number>();
+    let totalsOffset = 0;
+    const totalsPageSize = 1000;
     
-    if (weeklyError) throw weeklyError;
+    while (true) {
+      let totalQuery = supabase
+        .from("commander_weekly_stats")
+        .select("week_start, entries")
+        .order("id", { ascending: true })
+        .range(totalsOffset, totalsOffset + totalsPageSize - 1);
+      
+      if (dateFilter) {
+        totalQuery = totalQuery.gte("week_start", dateFilter);
+      }
+      
+      const { data: pageStats, error: pageError } = await totalQuery;
+      
+      if (pageError) throw pageError;
+      
+      const stats = pageStats as { week_start: string; entries: number }[] | null;
+      if (!stats || stats.length === 0) break;
+      
+      // Sum entries per week
+      for (const stat of stats) {
+        const current = weeklyTotals.get(stat.week_start) || 0;
+        weeklyTotals.set(stat.week_start, current + stat.entries);
+      }
+      
+      totalsOffset += totalsPageSize;
+      if (stats.length < totalsPageSize) break;
+    }
     
     // Aggregate from weekly stats
     let totalEntries = 0;
@@ -94,17 +146,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const winRate = totalGames > 0 ? wins / totalGames : 0;
     const conversionRate = totalEntries > 0 ? topCuts / totalEntries : 0;
     
-    // Format weekly trend data
+    // Format weekly trend data with meta share
     const trendData = ((weeklyStats || []) as WeeklyStat[])
       .sort((a, b) => a.week_start.localeCompare(b.week_start))
       .map((week) => {
         const weekTotalGames = week.wins + week.draws + week.losses;
+        const weekTotalEntries = weeklyTotals.get(week.week_start) || 1;
         return {
           week_start: week.week_start,
           entries: week.entries,
           top_cuts: week.top_cuts,
           conversion_rate: week.entries > 0 ? week.top_cuts / week.entries : 0,
           win_rate: weekTotalGames > 0 ? week.wins / weekTotalGames : 0,
+          meta_share: week.entries / weekTotalEntries,
         };
       });
     
@@ -121,7 +175,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         losses_swiss,
         losses_bracket,
         draws,
-        decklist_url,
+        decklist,
         player:players (
           id,
           name,
@@ -141,6 +195,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     
     if (dateFilterISO) {
       entriesQuery = entriesQuery.gte("tournament.tournament_date", dateFilterISO);
+    }
+    
+    if (minTournamentSize > 0) {
+      entriesQuery = entriesQuery.gte("tournament.size", minTournamentSize);
     }
     
     const { data: entries, error: entriesError } = await entriesQuery.limit(20);

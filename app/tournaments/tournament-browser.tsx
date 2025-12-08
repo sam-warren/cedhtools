@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
@@ -33,6 +39,7 @@ const timeOptions: { value: TimePeriod; label: string }[] = [
   { value: "1_year", label: "Past Year" },
 ];
 
+// TODO: We should be able to filter by tournament size, top cut, swiss rounds, players, etc.
 export function TournamentBrowser() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,16 +101,17 @@ export function TournamentBrowser() {
     <div>
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <Select
-          value={timePeriod}
-          onChange={(e) => setTimePeriod(e.target.value as TimePeriod)}
-          className="w-40"
-        >
-          {timeOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
+        <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timeOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 
@@ -174,6 +182,7 @@ function TournamentCard({ tournament, formatDate }: { tournament: Tournament; fo
               </span>
               <span className="flex items-center gap-1">
                 <Trophy className="w-4 h-4" />
+                {/* TODO: For tournaments with no finals (i.e. top_cut is 0) we need to 1. verify that top_cut is being populated correctly in the seed script and 2. handle this correctly in the frontend. We should not display "Top 0" for these tournaments.*/}
                 Top {tournament.top_cut}
               </span>
             </div>

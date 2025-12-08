@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ManaSymbol } from "@/components/mana-cost";
+import { ManaSymbol } from "@/components/shared/mana-cost";
 
 interface ColorIdentityProps {
   colorId: string;

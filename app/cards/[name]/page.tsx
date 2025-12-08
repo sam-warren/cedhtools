@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ColorIdentity } from "@/components/color-identity";
-import { ManaCost } from "@/components/mana-cost";
-import { ExternalLink, ArrowLeft, RefreshCw } from "lucide-react";
+import { ManaCost } from "@/components/shared/mana-cost";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CardDetail } from "@/types/api";
+import { ArrowLeft, ExternalLink, RefreshCw } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface PageProps {
   params: Promise<{ name: string }>;

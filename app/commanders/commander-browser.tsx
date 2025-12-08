@@ -1,31 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { CommanderCard, CommanderCardSkeleton } from "@/components/commander-card";
-import { Select } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { CommanderListItem, SortBy, TimePeriod } from "@/types/api";
-
-const colorOptions = [
-  { value: "", label: "All Colors" },
-  { value: "W", label: "White" },
-  { value: "U", label: "Blue" },
-  { value: "B", label: "Black" },
-  { value: "R", label: "Red" },
-  { value: "G", label: "Green" },
-  { value: "WU", label: "Azorius (WU)" },
-  { value: "WB", label: "Orzhov (WB)" },
-  { value: "UB", label: "Dimir (UB)" },
-  { value: "UR", label: "Izzet (UR)" },
-  { value: "BR", label: "Rakdos (BR)" },
-  { value: "BG", label: "Golgari (BG)" },
-  { value: "RG", label: "Gruul (RG)" },
-  { value: "WR", label: "Boros (WR)" },
-  { value: "WG", label: "Selesnya (WG)" },
-  { value: "UG", label: "Simic (UG)" },
-];
+import { RefreshCw, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const sortOptions: { value: SortBy; label: string }[] = [
   { value: "popularity", label: "Popularity" },
@@ -41,6 +28,13 @@ const timeOptions: { value: TimePeriod; label: string }[] = [
   { value: "all_time", label: "All Time" },
 ];
 
+const sizeOptions: { value: string; label: string }[] = [
+  { value: "0", label: "All Events" },
+  { value: "16", label: "16+ Players" },
+  { value: "32", label: "32+ Players" },
+  { value: "60", label: "60+ Players" },
+];
+
 export function CommanderBrowser() {
   const [commanders, setCommanders] = useState<CommanderListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,9 +42,9 @@ export function CommanderBrowser() {
   const [total, setTotal] = useState(0);
 
   // Filters
-  const [colorId, setColorId] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("popularity");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("3_months");
+  const [minTournamentSize, setMinTournamentSize] = useState("0");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Pagination
@@ -70,9 +64,9 @@ export function CommanderBrowser() {
         timePeriod,
         sortBy,
         minEntries: "5",
+        minTournamentSize,
       });
 
-      if (colorId) params.set("colorId", colorId);
       if (searchQuery) params.set("search", searchQuery);
 
       const response = await fetch(`/api/commanders?${params}`);
@@ -98,7 +92,8 @@ export function CommanderBrowser() {
   useEffect(() => {
     setOffset(0);
     fetchCommanders(false);
-  }, [colorId, sortBy, timePeriod, searchQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, timePeriod, minTournamentSize, searchQuery]);
 
   const hasMore = commanders.length < total;
 
@@ -116,40 +111,43 @@ export function CommanderBrowser() {
           />
         </div>
 
-        <Select
-          value={colorId}
-          onChange={(e) => setColorId(e.target.value)}
-          className="w-40"
-        >
-          {colorOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
+        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
 
-        <Select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as SortBy)}
-          className="w-40"
-        >
-          {sortOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
+        <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timeOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
 
-        <Select
-          value={timePeriod}
-          onChange={(e) => setTimePeriod(e.target.value as TimePeriod)}
-          className="w-36"
-        >
-          {timeOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
+        <Select value={minTournamentSize} onValueChange={setMinTournamentSize}>
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sizeOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 

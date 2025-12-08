@@ -26,25 +26,55 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
     
-    // Get commanders this card is played in
-    const { data: commanderStats, error: statsError } = await supabase
-      .from("card_commander_weekly_stats")
-      .select(`
-        commander_id,
-        entries,
-        top_cuts,
-        wins,
-        draws,
-        losses,
-        commander:commanders!inner (
-          id,
-          name,
-          color_id
-        )
-      `)
-      .eq("card_id", card.id);
+    // Get commanders this card is played in - paginate to avoid 1000-row limit
+    interface CardCommanderStat {
+      commander_id: number;
+      entries: number;
+      top_cuts: number;
+      wins: number;
+      draws: number;
+      losses: number;
+      commander: {
+        id: number;
+        name: string;
+        color_id: string;
+      };
+    }
     
-    if (statsError) throw statsError;
+    const allStats: CardCommanderStat[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    
+    while (true) {
+      const { data, error } = await supabase
+        .from("card_commander_weekly_stats")
+        .select(`
+          commander_id,
+          entries,
+          top_cuts,
+          wins,
+          draws,
+          losses,
+          commander:commanders!inner (
+            id,
+            name,
+            color_id
+          )
+        `)
+        .eq("card_id", card.id)
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      
+      if (error) throw error;
+      
+      const page = data as unknown as CardCommanderStat[] | null;
+      if (!page || page.length === 0) break;
+      
+      allStats.push(...page);
+      offset += pageSize;
+      
+      if (page.length < pageSize) break;
+    }
     
     // Aggregate stats by commander
     const commanderMap = new Map<number, {
@@ -60,12 +90,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       losses: number;
     }>();
     
-    for (const stat of commanderStats || []) {
-      const commander = stat.commander as {
-        id: number;
-        name: string;
-        color_id: string;
-      };
+    for (const stat of allStats) {
+      const commander = stat.commander;
       
       const existing = commanderMap.get(commander.id) || {
         commander,

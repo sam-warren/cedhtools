@@ -47,7 +47,7 @@ export interface EntryInfo {
   losses_swiss: number;
   losses_bracket: number;
   draws: number;
-  decklist_url: string | null;
+  decklist: string | null;
   player: PlayerInfo;
   tournament: TournamentInfo;
 }
@@ -58,6 +58,7 @@ export interface TrendDataPoint {
   top_cuts: number;
   conversion_rate: number;
   win_rate: number;
+  meta_share: number;
 }
 
 export interface CommanderDetail {
