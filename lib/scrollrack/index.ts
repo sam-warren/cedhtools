@@ -56,11 +56,13 @@ export interface ValidationResult {
  * @returns ValidationResult with valid flag and any errors
  */
 export async function validateDecklist(decklist: string): Promise<ValidationResult> {
-  // Unescape literal \n and \r\n to actual newlines
-  // TopDeck stores decklists with escaped newlines
+  // Unescape literal \n, \r\n, \', and \" to actual characters
+  // TopDeck stores decklists with escaped characters
   const unescaped = decklist
     .replace(/\\r\\n/g, '\n')
-    .replace(/\\n/g, '\n');
+    .replace(/\\n/g, '\n')
+    .replace(/\\'/g, "'")
+    .replace(/\\"/g, '"');
   
   // Normalize special characters (curly quotes, em-dashes, etc.)
   // Card names like "Thassa's Oracle" may have curly apostrophes from copy-paste

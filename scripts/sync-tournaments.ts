@@ -1,9 +1,22 @@
 #!/usr/bin/env npx tsx
 /**
- * Tournament Sync Script
+ * Tournament Sync Script (Seed)
  * 
  * Fetches tournament data from TopDeck.gg and syncs to Supabase.
  * Run with: npx tsx scripts/sync-tournaments.ts
+ * 
+ * Pipeline: seed (this) -> enrich -> aggregate
+ * 
+ * This script handles:
+ * - Tournament metadata (name, date, size, rounds, top cut)
+ * - Player records
+ * - Commander records  
+ * - Entry records (standings, wins/losses)
+ * - Decklist cards (from deckObj)
+ * - Game/round data for seat position tracking
+ * 
+ * Decklist validation is done separately in enrich-cards.ts to allow
+ * quick iteration without re-running the full sync.
  * 
  * Environment variables required:
  * - TOPDECK_API_KEY: TopDeck.gg API key
@@ -16,7 +29,6 @@ config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../lib/db/types';
-import { validateDecklistWithRetry } from '../lib/scrollrack';
 import {
   generateWeeklyRanges,
   listTournaments
@@ -120,9 +132,6 @@ interface SyncStats {
   cardsCreated: number;
   entriesCreated: number;
   gamesCreated: number;
-  decklistsValidated: number;
-  decklistsValid: number;
-  decklistsInvalid: number;
   errors: string[];
 }
 
@@ -380,82 +389,7 @@ async function processTournament(
     }
     stats.entriesCreated++;
 
-    /**
-     * Decklist Validation via Scrollrack API
-     * 
-     * We use the Scrollrack API (scrollrack.topdeck.gg/api/validate) to validate
-     * decklists against Commander format legality rules.
-     * 
-     * Known Issue: Some valid decklists may be incorrectly marked as invalid.
-     * 
-     * Observed patterns:
-     * - Decklists WITHOUT a trailing Moxfield URL tend to fail validation more often
-     * - Decklists WITH "Imported from https://moxfield.com/..." at the end tend to pass
-     * - The banlist is correctly applied (e.g., Mana Crypt flagged as illegal post-ban)
-     * 
-     * Possible causes to investigate:
-     * 1. Scrollrack may expect a specific decklist format
-     * 2. Character encoding issues in card names (curly quotes, accents)
-     * 3. New/unreleased cards not yet in Scrollrack's database
-     * 4. Rate limiting causing intermittent failures
-     * 
-     * API Documentation: https://scrollrack.topdeck.gg/docs
-     * 
-     * Expected decklist format:
-     *   ~~Commanders~~
-     *   1 Commander Name
-     *   
-     *   ~~Mainboard~~
-     *   1 Card Name
-     *   ...
-     * 
-     * Workaround: If validation fails or times out, decklist_valid is left as NULL
-     * rather than false, so the aggregation script can decide how to handle
-     * unvalidated decks (currently they are excluded from card stats).
-     * 
-     * @see lib/scrollrack.ts for the validation implementation
-     * 
-     * Historical note: Previous investigation found that decklists that include
-     * "Imported from [moxfield_url]" at the end tend to validate successfully,
-     * while those without tend to fail. This may indicate Scrollrack has specific
-     * parsing expectations.
-     *
-     * Test the API manually with:
-     *   curl -X POST https://scrollrack.topdeck.gg/api/validate \
-     *     -H "Content-Type: application/json" \
-     *     -d '{"game": "mtg", "format": "commander", "list": "~~Commanders~~\n1 Thrasios, Triton Hero\n\n~~Mainboard~~\n99 Island"}'
-     */
-
-    if (standing.decklist) {
-      try {
-        const validationResult = await validateDecklistWithRetry(standing.decklist);
-        stats.decklistsValidated++;
-
-        if (validationResult) {
-          const isValid = validationResult.valid;
-          if (isValid) {
-            stats.decklistsValid++;
-          } else {
-            stats.decklistsInvalid++;
-          }
-
-          // Update entry with validation result
-          await supabase
-            .from('entries')
-            .update({ decklist_valid: isValid })
-            .eq('id', entryId);
-        }
-        // If validationResult is null (API failed), decklist_valid remains NULL
-      } catch {
-        // Validation error - leave decklist_valid as NULL
-        // Don't throw - we don't want to fail the entire sync for validation issues
-      }
-
-      // Small delay between validation calls to be nice to scrollrack API
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
-    // Process decklist
+    // Process decklist cards (validation is done separately in enrich-cards.ts)
     if (standing.deckObj) {
       await processDeck(supabase, entryId, standing.deckObj, cardCache, stats);
     }
@@ -594,9 +528,6 @@ async function syncTournaments(): Promise<SyncStats> {
     cardsCreated: 0,
     entriesCreated: 0,
     gamesCreated: 0,
-    decklistsValidated: 0,
-    decklistsValid: 0,
-    decklistsInvalid: 0,
     errors: [],
   };
 
@@ -722,9 +653,8 @@ async function main() {
     console.log(`Cards created:         ${stats.cardsCreated}`);
     console.log(`Entries created:       ${stats.entriesCreated}`);
     console.log(`Games created:         ${stats.gamesCreated}`);
-    console.log(`Decklists validated:   ${stats.decklistsValidated}`);
-    console.log(`  - Valid:             ${stats.decklistsValid}`);
-    console.log(`  - Invalid:           ${stats.decklistsInvalid}`);
+    console.log('');
+    console.log('Next step: Run enrich-cards.ts to validate decklists and add metadata');
 
     if (stats.errors.length > 0) {
       console.log(`\n⚠️ Errors (${stats.errors.length}):`);
