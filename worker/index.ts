@@ -263,7 +263,12 @@ async function claimJob(supabase: SupabaseClient): Promise<Job | null> {
     return null;
   }
   
-  return data as Job | null;
+  // RPC returns a row with NULL values when no job is found
+  if (!data || !data.id || !data.job_type) {
+    return null;
+  }
+  
+  return data as Job;
 }
 
 async function completeJob(
