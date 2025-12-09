@@ -163,7 +163,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         losses_swiss: e.losses_swiss,
         losses_bracket: e.losses_bracket,
         draws: e.draws,
-        decklist_url: e.decklist_url,
+        decklist: e.decklist,
         player: e.player,
         tournament: e.tournament,
       })) || [],
