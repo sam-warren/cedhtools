@@ -21,18 +21,18 @@
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  createSupabaseAdmin,
   createProgressLogger,
-  type SyncStats,
-  type EnrichmentStats,
+  createSupabaseAdmin,
   type AggregationStats,
+  type EnrichmentStats,
+  type SyncStats,
 } from '../lib/jobs';
-import { syncTournaments, syncTournamentsFromDate } from '../lib/jobs/sync';
-import { enrichData, enrichDataFull } from '../lib/jobs/enrich';
 import { aggregateStats } from '../lib/jobs/aggregate';
+import { enrichData, enrichDataFull } from '../lib/jobs/enrich';
+import { syncTournaments, syncTournamentsFromDate } from '../lib/jobs/sync';
 
 // ============================================
 // Configuration
@@ -301,16 +301,29 @@ async function failJob(
   }
 }
 
+function getMemoryMB(): string {
+  const used = process.memoryUsage();
+  return `${Math.round(used.heapUsed / 1024 / 1024)}MB`;
+}
+
 async function processJob(supabase: ReturnType<typeof createSupabaseAdmin>, job: Job): Promise<void> {
-  log(`Processing job ${job.id} (${job.job_type})...`);
+  log(`Processing job ${job.id} (${job.job_type})... [mem: ${getMemoryMB()}]`);
   
   try {
     const result = await executeJob(supabase, job);
     await completeJob(supabase, job.id, result);
-    log(`Job ${job.id} completed in ${result.duration_ms}ms`);
+    log(`Job ${job.id} completed in ${result.duration_ms}ms [mem: ${getMemoryMB()}]`);
+    
+    // Force garbage collection hint after large jobs
+    if (global.gc) {
+      global.gc();
+      log(`GC triggered, mem: ${getMemoryMB()}`);
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : '';
     log(`Job ${job.id} failed: ${errorMessage}`, 'error');
+    if (stack) console.error(stack);
     await failJob(supabase, job.id, errorMessage);
   }
 }
@@ -383,8 +396,34 @@ async function main(): Promise<void> {
 // Entry Point
 // ============================================
 
+// Handle uncaught errors for debugging
+process.on('uncaughtException', (error) => {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] ❌ [${WORKER_ID}] Uncaught Exception: ${error.message}`);
+  console.error(error.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] ❌ [${WORKER_ID}] Unhandled Rejection at:`, promise);
+  console.error('Reason:', reason);
+  process.exit(1);
+});
+
+// Log memory usage periodically during long jobs
+const logMemory = () => {
+  const used = process.memoryUsage();
+  const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+  log(`Memory: heap=${mb(used.heapUsed)}MB, rss=${mb(used.rss)}MB, external=${mb(used.external)}MB`);
+};
+
+// Log memory every 2 minutes
+setInterval(logMemory, 120000);
+
 main().catch((error) => {
   log(`Fatal error: ${error.message}`, 'error');
+  console.error(error.stack);
   process.exit(1);
 });
 

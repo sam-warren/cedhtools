@@ -18,6 +18,7 @@ module.exports = {
       script: 'npx',
       args: 'tsx worker/index.ts',
       cwd: __dirname,
+      node_args: '--expose-gc --max-old-space-size=768',  // Enable GC + limit Node memory
       
       // Environment variables (override with --env production)
       env: {
@@ -46,8 +47,8 @@ module.exports = {
       out_file: './logs/worker-out.log',
       merge_logs: true,
       
-      // Memory management
-      max_memory_restart: '1G',
+      // Memory management (reduced from 1G to leave room for OS on 1GB droplet)
+      max_memory_restart: '750M',
       
       // Graceful shutdown
       kill_timeout: 7200000,  // 2 hours to finish current job (seed jobs are long)

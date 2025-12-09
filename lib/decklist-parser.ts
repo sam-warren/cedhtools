@@ -22,9 +22,7 @@ export interface ParsedDecklist {
 export function isTopDeckFormat(decklist: string): boolean {
   // Check for both escaped and unescaped markers
   return decklist.includes('~~Commanders~~') || 
-         decklist.includes('~~Mainboard~~') ||
-         decklist.includes('\\n~~Commanders~~') ||
-         decklist.includes('\\n~~Mainboard~~');
+         decklist.includes('~~Mainboard~~')
 }
 
 /**
