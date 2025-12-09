@@ -1,8 +1,8 @@
 import { Suspense } from "react";
-import { CommanderBrowser } from "./commander-browser";
-import { CommanderCardSkeleton } from "@/components/commander-card";
+import { CommanderBrowser } from "@/components/commanders/commander-browser";
+import { CommanderCardSkeleton } from "@/components/shared/commander-card";
 import { createClient } from "@/lib/db/server";
-import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/time-period";
+import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/utils/time-period";
 import type { CommanderListItem } from "@/types/api";
 
 export const metadata = {

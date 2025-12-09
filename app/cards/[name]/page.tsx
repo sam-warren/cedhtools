@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { CardDetailClient } from "./card-detail";
+import { CardDetailClient } from "@/components/cards/card-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { CardDetail, CommanderWithCardStats } from "@/types/api";

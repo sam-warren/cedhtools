@@ -15,7 +15,7 @@ import {
   PAGE_SIZE,
   BATCH_SIZE,
 } from './utils';
-import { validateDecklistWithRetry } from '../scrollrack';
+import { validateDecklistWithRetry } from '../api/scrollrack';
 
 // ============================================
 // Configuration

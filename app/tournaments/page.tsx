@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { TournamentBrowser } from "./tournament-browser";
+import { TournamentBrowser } from "@/components/tournaments/tournament-browser";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata = {

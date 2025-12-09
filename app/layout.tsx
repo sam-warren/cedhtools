@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { Navigation } from "@/components/navigation";
+import { Navigation } from "@/components/shared/navigation";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 const defaultUrl = process.env.VERCEL_URL

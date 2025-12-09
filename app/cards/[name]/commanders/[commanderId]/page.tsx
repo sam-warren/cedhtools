@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { CardCommanderDetail } from "./card-commander-detail";
+import { CardCommanderDetail } from "@/components/cards/card-commander-detail";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PageProps {

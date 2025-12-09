@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/time-period";
-import { CommanderDetail } from "./commander-detail";
-import { RecentEntries } from "./recent-entries";
-import { AnalyzeCTA } from "./analyze-cta";
+import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/utils/time-period";
+import { CommanderDetail } from "@/components/commanders/commander-detail";
+import { RecentEntries } from "@/components/commanders/recent-entries";
+import { AnalyzeCTA } from "@/components/commanders/analyze-cta";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CommanderDetail as CommanderDetailType, EntryInfo } from "@/types/api";
 

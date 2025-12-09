@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { RecentDecksSection } from "./recent-decks-section";
+import { RecentDecks } from "@/components/shared/recent-decks";
 
 export default function Home() {
   return (
@@ -33,7 +33,9 @@ export default function Home() {
       </section>
 
       {/* Recent Decks - Jump Back In */}
-      <RecentDecksSection />
+      <section className="mb-12">
+        <RecentDecks />
+      </section>
 
       {/* Features */}
       <section className="grid md:grid-cols-3 gap-8 mb-16">

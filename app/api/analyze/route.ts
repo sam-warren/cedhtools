@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
-import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/time-period";
+import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/utils/time-period";
 
 /**
  * POST /api/analyze

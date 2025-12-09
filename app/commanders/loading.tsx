@@ -1,4 +1,4 @@
-import { CommanderCardSkeleton } from "@/components/commander-card";
+import { CommanderCardSkeleton } from "@/components/shared/commander-card";
 
 export default function Loading() {
   return (

@@ -10,18 +10,18 @@
 import {
   generateWeeklyRanges,
   listTournaments
-} from '../topdeck';
+} from '../api/topdeck';
 import type {
   DeckObj,
   StandingPlayer,
   TopdeckTournament,
   TournamentRound
-} from '../topdeck/types';
+} from '../api/topdeck/types';
 import {
   getCommanderCards,
   getMainboardCards,
   normalizeCommanderName
-} from '../topdeck/types';
+} from '../api/topdeck/types';
 import {
   type SupabaseAdmin,
   type SyncStats,
@@ -29,9 +29,7 @@ import {
   createProgressLogger,
   normalizeText,
   getFrontFaceName,
-  isDFCName,
   PAGE_SIZE,
-  BATCH_SIZE,
 } from './utils';
 
 // ============================================
@@ -71,10 +69,12 @@ async function preloadPlayerCache(
   supabase: SupabaseAdmin,
   logger: ProgressLogger
 ): Promise<PlayerCache> {
-  logger.log('Pre-loading player cache...');
+  const startTime = Date.now();
+  logger.debug('Pre-loading player cache...');
   const cache: PlayerCache = {};
   let offset = 0;
   let total = 0;
+  let pages = 0;
   
   while (true) {
     const { data, error } = await supabase
@@ -94,10 +94,11 @@ async function preloadPlayerCache(
     
     total += data.length;
     offset += PAGE_SIZE;
+    pages++;
     if (data.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${total} players into cache`);
+  logger.log(`Loaded ${logger.formatNumber(total)} players into cache (${pages} pages, ${Date.now() - startTime}ms)`);
   return cache;
 }
 
@@ -105,10 +106,12 @@ async function preloadCommanderCache(
   supabase: SupabaseAdmin,
   logger: ProgressLogger
 ): Promise<CommanderCache> {
-  logger.log('Pre-loading commander cache...');
+  const startTime = Date.now();
+  logger.debug('Pre-loading commander cache...');
   const cache: CommanderCache = {};
   let offset = 0;
   let total = 0;
+  let pages = 0;
   
   while (true) {
     const { data, error } = await supabase
@@ -129,10 +132,11 @@ async function preloadCommanderCache(
     
     total += data.length;
     offset += PAGE_SIZE;
+    pages++;
     if (data.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${total} commanders into cache`);
+  logger.log(`Loaded ${logger.formatNumber(total)} commanders into cache (${pages} pages, ${Date.now() - startTime}ms)`);
   return cache;
 }
 
@@ -140,10 +144,12 @@ async function preloadCardCache(
   supabase: SupabaseAdmin,
   logger: ProgressLogger
 ): Promise<CardCache> {
-  logger.log('Pre-loading card cache...');
+  const startTime = Date.now();
+  logger.debug('Pre-loading card cache...');
   const cache: CardCache = {};
   let offset = 0;
   let total = 0;
+  let pages = 0;
   
   while (true) {
     const { data, error } = await supabase
@@ -164,10 +170,11 @@ async function preloadCardCache(
     
     total += data.length;
     offset += PAGE_SIZE;
+    pages++;
     if (data.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${total} cards into cache`);
+  logger.log(`Loaded ${logger.formatNumber(total)} cards into cache (${pages} pages, ${Date.now() - startTime}ms)`);
   return cache;
 }
 
@@ -573,6 +580,17 @@ async function processRounds(
 }
 
 // ============================================
+// Tournament Processing Context
+// ============================================
+
+interface TournamentContext {
+  weekIdx: number;
+  totalWeeks: number;
+  tournamentIdx: number;
+  totalTournaments: number;
+}
+
+// ============================================
 // Tournament Processing
 // ============================================
 
@@ -582,11 +600,25 @@ async function processTournament(
   playerCache: PlayerCache,
   commanderCache: CommanderCache,
   cardCache: CardCache,
-  stats: SyncStats
-): Promise<void> {
+  stats: SyncStats,
+  logger: ProgressLogger,
+  context: TournamentContext
+): Promise<{ entries: number; games: number; cards: number; durationMs: number }> {
+  const tournamentStartTime = Date.now();
   const tournamentDate = new Date(tournament.startDate * 1000);
+  const tournamentName = tournament.tournamentName || 'Unnamed Tournament';
+
+  // Log tournament start with full context
+  logger.logTournamentStart(
+    tournamentName,
+    tournament.TID,
+    tournament.standings.length,
+    context.weekIdx,
+    context.totalWeeks
+  );
 
   // === PHASE 1: Collect all entities needed ===
+  const phase1Start = Date.now();
   const playersToUpsert: PlayerInput[] = [];
   const commandersToUpsert: CommanderInput[] = [];
   const cardsToUpsert: CardInput[] = [];
@@ -620,12 +652,26 @@ async function processTournament(
     }
   }
   
+  logger.logTournamentProgress(
+    tournamentName,
+    'Collect entities',
+    `${playersToUpsert.length} players, ${commandersToUpsert.length} commanders, ${cardsToUpsert.length} cards (${Date.now() - phase1Start}ms)`
+  );
+
   // === PHASE 2: Batch upsert all entities ===
+  const phase2Start = Date.now();
   await batchUpsertPlayers(supabase, playersToUpsert, playerCache);
   await batchUpsertCommanders(supabase, commandersToUpsert, commanderCache);
   await batchUpsertCards(supabase, cardsToUpsert, cardCache);
   
+  logger.logTournamentProgress(
+    tournamentName,
+    'Batch upsert',
+    `entities synced (${Date.now() - phase2Start}ms)`
+  );
+  
   // === PHASE 3: Insert tournament ===
+  const phase3Start = Date.now();
   const { data: tournamentRow, error: tournamentError } = await supabase
     .from('tournaments')
     .upsert({
@@ -642,9 +688,18 @@ async function processTournament(
   if (tournamentError) throw tournamentError;
   const tournamentId = tournamentRow.id;
 
+  logger.logTournamentProgress(
+    tournamentName,
+    'Tournament record',
+    `id=${tournamentId} (${Date.now() - phase3Start}ms)`
+  );
+
   // === PHASE 4: Process entries (now using cached IDs) ===
+  const phase4Start = Date.now();
   const entryMap = new Map<string, number>();
   const pendingDecklistItems: DecklistItem[] = [];
+  let entriesProcessed = 0;
+  let cardsProcessed = 0;
 
   for (let i = 0; i < tournament.standings.length; i++) {
     const standing = tournament.standings[i];
@@ -687,14 +742,26 @@ async function processTournament(
       entryMap.set(standing.id, entryId);
     }
     stats.entriesCreated++;
+    entriesProcessed++;
 
     if (standing.deckObj) {
+      const beforeCards = pendingDecklistItems.length;
       await processDeck(supabase, entryId, standing.deckObj, cardCache, stats, pendingDecklistItems);
+      cardsProcessed += pendingDecklistItems.length - beforeCards;
     }
     
     if (pendingDecklistItems.length >= DECKLIST_BATCH_SIZE) {
       await flushDecklistItems(supabase, pendingDecklistItems);
       pendingDecklistItems.length = 0;
+    }
+    
+    // Log progress every 10 entries for large tournaments
+    if (tournament.standings.length >= 30 && (i + 1) % 10 === 0) {
+      logger.logTournamentProgress(
+        tournamentName,
+        'Entries',
+        `${i + 1}/${tournament.standings.length} processed`
+      );
     }
   }
 
@@ -702,6 +769,16 @@ async function processTournament(
     await flushDecklistItems(supabase, pendingDecklistItems);
   }
 
+  logger.logTournamentProgress(
+    tournamentName,
+    'Entries complete',
+    `${entriesProcessed} entries, ${cardsProcessed} decklist items (${Date.now() - phase4Start}ms)`
+  );
+
+  // === PHASE 5: Process rounds/games ===
+  const phase5Start = Date.now();
+  const gamesBeforeCount = stats.gamesCreated;
+  
   await processRounds(
     supabase,
     tournamentId,
@@ -712,7 +789,24 @@ async function processTournament(
     stats
   );
 
+  const gamesCreated = stats.gamesCreated - gamesBeforeCount;
+  logger.logTournamentProgress(
+    tournamentName,
+    'Rounds complete',
+    `${tournament.rounds.length} rounds, ${gamesCreated} games (${Date.now() - phase5Start}ms)`
+  );
+
   stats.tournamentsProcessed++;
+  
+  const totalDuration = Date.now() - tournamentStartTime;
+  logger.logTournamentComplete(tournamentName, tournament.TID, entriesProcessed, gamesCreated, totalDuration);
+  
+  return {
+    entries: entriesProcessed,
+    games: gamesCreated,
+    cards: cardsProcessed,
+    durationMs: totalDuration,
+  };
 }
 
 // ============================================
@@ -753,14 +847,25 @@ export async function syncTournaments(
     errors: [],
   };
 
-  logger.log(`Syncing tournaments from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+  const syncStartTime = Date.now();
+  
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`SYNC JOB STARTED`);
+  logger.log(`Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.logMemory();
 
-  // Pre-load caches
+  // Pre-load caches with timing
+  logger.log(`Loading entity caches from database...`);
+  const cacheLoadStart = Date.now();
   const playerCache = await preloadPlayerCache(supabase, logger);
   const commanderCache = await preloadCommanderCache(supabase, logger);
   const cardCache = await preloadCardCache(supabase, logger);
+  logger.log(`Cache loading complete in ${Date.now() - cacheLoadStart}ms`);
+  logger.logMemory();
 
-  // Get existing tournament IDs
+  // Get existing tournament IDs with count
+  logger.log(`Checking existing tournaments...`);
   const existingTids = new Set<string>();
   const { data: existingTournaments } = await supabase
     .from('tournaments')
@@ -771,22 +876,45 @@ export async function syncTournaments(
       existingTids.add(t.tid);
     }
   }
-  logger.log(`Found ${existingTids.size} existing tournaments`);
+  logger.log(`Found ${logger.formatNumber(existingTids.size)} existing tournaments in database`);
 
-  // Process week by week
+  // Calculate total tournaments to process (estimate for ETA)
   const weeks = [...generateWeeklyRanges(startDate, endDate)];
-  logger.startPhase('Processing weeks', weeks.length);
+  logger.log(`Will process ${weeks.length} weeks of tournament data`);
+  
+  // Start the main processing phase
+  logger.startPhase('Sync Tournaments', weeks.length);
+
+  // Track cumulative stats for reporting
+  let totalTournamentsThisRun = 0;
+  let totalEntriesThisRun = 0;
+  let totalGamesThisRun = 0;
+  let totalCardsThisRun = 0;
 
   for (let weekIdx = 0; weekIdx < weeks.length; weekIdx++) {
+    const weekStartTime = Date.now();
     const week = weeks[weekIdx];
+    
+    // Week header
+    const weekStartDate = new Date(week.start * 1000);
+    const weekEndDate = new Date(week.end * 1000);
+    logger.log(`📆 ══════════════════════════════════════════════════════════════════════`);
+    logger.log(`📆 WEEK ${weekIdx + 1}/${weeks.length}: ${week.label}`);
+    logger.log(`📆 Date range: ${weekStartDate.toISOString().split('T')[0]} to ${weekEndDate.toISOString().split('T')[0]}`);
+    logger.log(`📆 ══════════════════════════════════════════════════════════════════════`);
 
+    // Fetch tournaments for this week
     let tournaments;
     try {
+      logger.debug(`Fetching tournaments from TopDeck API...`);
+      const fetchStart = Date.now();
       tournaments = await listTournaments(week.start, week.end);
+      logger.debug(`API response: ${tournaments.length} tournaments in ${Date.now() - fetchStart}ms`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.log(`Failed to fetch week ${week.label}: ${errorMsg}`);
+      logger.error(`Failed to fetch week ${week.label}: ${errorMsg}`);
       stats.errors.push(`Week ${week.label}: ${errorMsg}`);
+      logger.logWeekSummary(week.label, weekIdx, weeks.length, 0, 0, 1, Date.now() - weekStartTime);
       continue;
     }
 
@@ -796,38 +924,101 @@ export async function syncTournaments(
 
     if (skippedCount > 0) {
       stats.tournamentsSkipped += skippedCount;
+      logger.debug(`Skipping ${skippedCount} existing tournaments`);
     }
 
     if (newTournaments.length === 0) {
+      logger.log(`No new tournaments this week (${skippedCount} already synced)`);
       logger.increment();
+      logger.logWeekSummary(week.label, weekIdx, weeks.length, 0, skippedCount, 0, Date.now() - weekStartTime);
       continue;
     }
 
-    logger.log(`Week ${week.label}: ${newTournaments.length} new tournaments`);
+    logger.log(`Found ${newTournaments.length} new tournaments to process (${skippedCount} skipped)`);
 
-    for (const tournament of newTournaments) {
+    // Process each tournament
+    let weekTournamentsProcessed = 0;
+    let weekErrors = 0;
+    let weekEntries = 0;
+    let weekGames = 0;
+    let weekCards = 0;
+
+    for (let tIdx = 0; tIdx < newTournaments.length; tIdx++) {
+      const tournament = newTournaments[tIdx];
+      
       if (!tournament.standings || tournament.standings.length === 0) {
+        logger.debug(`Skipping ${tournament.TID}: no standings data`);
         stats.tournamentsSkipped++;
         continue;
       }
 
       try {
-        await processTournament(
+        const result = await processTournament(
           supabase,
           tournament,
           playerCache,
           commanderCache,
           cardCache,
-          stats
+          stats,
+          logger,
+          {
+            weekIdx,
+            totalWeeks: weeks.length,
+            tournamentIdx: tIdx,
+            totalTournaments: newTournaments.length,
+          }
         );
+        
         existingTids.add(tournament.TID);
+        weekTournamentsProcessed++;
+        weekEntries += result.entries;
+        weekGames += result.games;
+        weekCards += result.cards;
+        
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack : '';
+        logger.error(`Tournament ${tournament.TID} failed: ${errorMsg}`);
+        if (stack) logger.debug(`Stack trace: ${stack}`);
         stats.errors.push(`${tournament.TID}: ${errorMsg}`);
+        weekErrors++;
       }
     }
 
     logger.increment();
+    
+    // Update cumulative totals
+    totalTournamentsThisRun += weekTournamentsProcessed;
+    totalEntriesThisRun += weekEntries;
+    totalGamesThisRun += weekGames;
+    totalCardsThisRun += weekCards;
+
+    // Week summary with detailed stats
+    const weekDuration = Date.now() - weekStartTime;
+    logger.logWeekSummary(
+      week.label,
+      weekIdx,
+      weeks.length,
+      weekTournamentsProcessed,
+      skippedCount,
+      weekErrors,
+      weekDuration
+    );
+    
+    // Cumulative progress update
+    logger.log(`📊 Cumulative: ${logger.formatNumber(totalTournamentsThisRun)} tournaments, ${logger.formatNumber(totalEntriesThisRun)} entries, ${logger.formatNumber(totalGamesThisRun)} games, ${logger.formatNumber(totalCardsThisRun)} decklist items`);
+
+    // Clear caches between weeks to prevent memory buildup during long jobs
+    const playerCacheSize = Object.keys(playerCache).length;
+    const commanderCacheSize = Object.keys(commanderCache).length;
+    const cardCacheSize = Object.keys(cardCache).length;
+    
+    for (const key in playerCache) delete playerCache[key];
+    for (const key in commanderCache) delete commanderCache[key];
+    for (const key in cardCache) delete cardCache[key];
+    
+    logger.debug(`Cleared caches: ${logger.formatNumber(playerCacheSize)} players, ${logger.formatNumber(commanderCacheSize)} commanders, ${logger.formatNumber(cardCacheSize)} cards`);
+    logger.logMemory();
 
     // Small delay between weeks
     if (weekIdx < weeks.length - 1) {
@@ -836,6 +1027,28 @@ export async function syncTournaments(
   }
 
   logger.endPhase();
+  
+  // Final job summary
+  const totalDuration = Date.now() - syncStartTime;
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`🎉 SYNC JOB COMPLETE`);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`Total duration: ${Math.round(totalDuration / 1000 / 60)} minutes (${totalDuration}ms)`);
+  logger.log(`Tournaments: ${logger.formatNumber(stats.tournamentsProcessed)} processed, ${logger.formatNumber(stats.tournamentsSkipped)} skipped`);
+  logger.log(`Entries: ${logger.formatNumber(stats.entriesCreated)}`);
+  logger.log(`Games: ${logger.formatNumber(stats.gamesCreated)}`);
+  logger.log(`Commanders: ${logger.formatNumber(stats.commandersCreated)}`);
+  logger.log(`Cards: ${logger.formatNumber(stats.cardsCreated)}`);
+  if (stats.errors.length > 0) {
+    logger.warn(`Errors: ${stats.errors.length}`);
+    stats.errors.slice(0, 10).forEach(err => logger.error(`  - ${err}`));
+    if (stats.errors.length > 10) {
+      logger.warn(`  ... and ${stats.errors.length - 10} more errors`);
+    }
+  }
+  logger.logMemory();
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  
   return stats;
 }
 

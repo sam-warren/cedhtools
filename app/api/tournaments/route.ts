@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
-import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/time-period";
+import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/utils/time-period";
 
 export type SortBy = "date" | "size" | "top_cut";
 export type SortOrder = "asc" | "desc";

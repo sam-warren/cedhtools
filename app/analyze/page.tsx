@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { DeckAnalyzer } from "./deck-analyzer";
+import { DeckAnalyzer } from "@/components/analyze/deck-analyzer";
 
 export const metadata: Metadata = {
   title: "Analyze Deck",

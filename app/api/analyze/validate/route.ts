@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateDecklist, ScrollrackClientError } from "@/lib/scrollrack";
+import { validateDecklist, ScrollrackClientError } from "@/lib/api/scrollrack";
 
 /**
  * POST /api/analyze/validate

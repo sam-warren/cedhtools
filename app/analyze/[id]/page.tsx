@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { AnalysisResults, AnalysisResultsSkeleton, type AnalysisResponse } from "../analysis-results";
-import { getDeckById, getAnalysis, saveAnalysis } from "@/lib/recent-decks";
-import { parseDecklist, prepareForValidation } from "@/lib/decklist-parser";
+import { AnalysisResults, AnalysisResultsSkeleton, type AnalysisResponse } from "@/components/analyze/analysis-results";
+import { getDeckById, getAnalysis, saveAnalysis } from "@/lib/storage";
+import { parseDecklist, prepareForValidation } from "@/lib/parsers";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -69,8 +69,8 @@ export default function AnalysisPage() {
       }
       
       // Step 2: Parse the decklist to get card names
-      const parsed = parseDecklist(deck.decklist);
-      const cardNames = parsed.mainboard.map(card => card.name);
+      const cards = parseDecklist(deck.decklist);
+      const cardNames = cards.map(card => card.name);
       
       // Step 3: Analyze the decklist
       return analyzeDecklist(deck.commanderName, cardNames);
