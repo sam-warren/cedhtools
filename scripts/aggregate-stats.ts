@@ -821,7 +821,7 @@ async function aggregateStats(): Promise<void> {
   const supabase = createSupabaseAdmin();
   
   console.log('═'.repeat(60));
-  console.log('cEDH Tools - Stats Aggregation');
+  console.log('cedhtools - Stats Aggregation');
   console.log('═'.repeat(60));
   console.log(`Minimum date for stats: ${MIN_STATS_DATE}`);
   console.log('');

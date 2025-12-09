@@ -147,9 +147,14 @@ function CommanderBrowserSkeleton() {
     <div>
       {/* Filters skeleton */}
       <div className="flex flex-wrap gap-4 mb-6">
+        {/* Search bar skeleton */}
+        <div className="flex-1 min-w-[200px] max-w-sm h-10 bg-muted rounded-md animate-pulse" />
+        {/* Sort dropdown skeleton */}
         <div className="h-10 w-40 bg-muted rounded-md animate-pulse" />
-        <div className="h-10 w-40 bg-muted rounded-md animate-pulse" />
-        <div className="h-10 w-32 bg-muted rounded-md animate-pulse" />
+        {/* Time period dropdown skeleton */}
+        <div className="h-10 w-36 bg-muted rounded-md animate-pulse" />
+        {/* Size filter dropdown skeleton */}
+        <div className="h-10 w-36 bg-muted rounded-md animate-pulse" />
       </div>
 
       {/* Grid skeleton */}

@@ -1,4 +1,4 @@
-// API Response Types for cEDH Tools
+// API Response Types for cedhtools
 
 export type SortBy = "popularity" | "conversion" | "win_rate";
 export type TimePeriod = "1_month" | "3_months" | "6_months" | "1_year" | "all_time";

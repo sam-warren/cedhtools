@@ -1045,7 +1045,7 @@ async function syncTournaments(): Promise<SyncStats> {
 
 async function main() {
   console.log('═'.repeat(60));
-  console.log('cEDH Tools - Tournament Sync');
+  console.log('cedhtools - Tournament Sync');
   console.log('═'.repeat(60));
 
   try {

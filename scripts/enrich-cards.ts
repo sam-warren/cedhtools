@@ -685,7 +685,7 @@ async function validateDecklists(
 
 async function main(): Promise<void> {
   console.log('═'.repeat(60));
-  console.log('cEDH Tools - Data Enrichment');
+  console.log('cedhtools - Data Enrichment');
   console.log('═'.repeat(60));
   console.log('Pipeline: seed -> enrich -> aggregate');
   console.log('');

@@ -1,4 +1,4 @@
--- cEDH Tools Database Schema
+-- cedhtools Database Schema
 -- Initial migration for tournament data pipeline
 
 -- ============================================

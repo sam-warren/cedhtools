@@ -1,4 +1,4 @@
-// Supabase Database Types for cEDH Tools
+// Supabase Database Types for cedhtools
 // These types define our database schema for use with the Supabase client
 
 export interface Database {
