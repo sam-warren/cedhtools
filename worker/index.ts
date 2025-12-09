@@ -1,0 +1,385 @@
+#!/usr/bin/env npx tsx
+/**
+ * Job Queue Worker
+ * 
+ * A long-running process that polls the database for pending jobs
+ * and executes them. Designed to run on a server with PM2.
+ * 
+ * Usage:
+ *   npx tsx worker/index.ts
+ *   
+ * Or with PM2:
+ *   pm2 start ecosystem.config.js
+ * 
+ * Environment variables required:
+ * - NEXT_PUBLIC_SUPABASE_URL: Supabase URL
+ * - SUPABASE_SERVICE_ROLE_KEY: Supabase service role key
+ * - TOPDECK_API_KEY: TopDeck.gg API key
+ * - WORKER_ID: Unique identifier for this worker instance (optional)
+ */
+
+import { config } from 'dotenv';
+config({ path: '.env.local' });
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  createSupabaseAdmin,
+  createProgressLogger,
+  type SyncStats,
+  type EnrichmentStats,
+  type AggregationStats,
+} from '../lib/jobs';
+import { syncTournaments, syncTournamentsFromDate } from '../lib/jobs/sync';
+import { enrichData, enrichDataFull } from '../lib/jobs/enrich';
+import { aggregateStats } from '../lib/jobs/aggregate';
+
+// ============================================
+// Configuration
+// ============================================
+
+const POLL_INTERVAL_MS = 5000; // Check for jobs every 5 seconds
+const WORKER_ID = process.env.WORKER_ID || `worker-${uuidv4().slice(0, 8)}`;
+const JOB_TYPES = ['daily_update', 'full_seed', 'sync', 'enrich', 'aggregate'];
+
+// ============================================
+// Types
+// ============================================
+
+interface Job {
+  id: number;
+  job_type: string;
+  status: string;
+  config: Record<string, unknown>;
+  created_at: string;
+}
+
+interface JobResult {
+  sync?: SyncStats;
+  enrich?: EnrichmentStats;
+  aggregate?: AggregationStats;
+  duration_ms: number;
+}
+
+// ============================================
+// Logging
+// ============================================
+
+function log(message: string, level: 'info' | 'warn' | 'error' = 'info') {
+  const timestamp = new Date().toISOString();
+  const prefix = {
+    info: '📋',
+    warn: '⚠️',
+    error: '❌',
+  }[level];
+  console.log(`[${timestamp}] ${prefix} [${WORKER_ID}] ${message}`);
+}
+
+// ============================================
+// Job Execution
+// ============================================
+
+async function executeDailyUpdate(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  config: Record<string, unknown>
+): Promise<JobResult> {
+  const startTime = Date.now();
+  const logger = createProgressLogger((msg) => log(msg));
+  
+  log('Starting daily update pipeline...');
+  
+  // Sync last 7 days (or configured)
+  const daysBack = (config.days_back as number) || 7;
+  const startDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  
+  const syncStats = await syncTournaments(supabase, {
+    startDate,
+    endDate: new Date(),
+    logger,
+  });
+  
+  log(`Sync complete: ${syncStats.tournamentsProcessed} tournaments processed`);
+  
+  // Enrich new data (incremental)
+  const enrichStats = await enrichData(supabase, {
+    incremental: true,
+    skipValidation: false,
+    logger,
+  });
+  
+  log(`Enrich complete: ${enrichStats.cardsEnriched} cards, ${enrichStats.commandersEnriched} commanders`);
+  
+  // Re-aggregate stats
+  const aggregateStatsResult = await aggregateStats(supabase, { logger });
+  
+  log(`Aggregate complete: ${aggregateStatsResult.commanderWeeklyStats} commander stats`);
+  
+  return {
+    sync: syncStats,
+    enrich: enrichStats,
+    aggregate: aggregateStatsResult,
+    duration_ms: Date.now() - startTime,
+  };
+}
+
+async function executeFullSeed(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  config: Record<string, unknown>
+): Promise<JobResult> {
+  const startTime = Date.now();
+  const logger = createProgressLogger((msg) => log(msg));
+  
+  const startDateStr = (config.start_date as string) || '2025-05-19';
+  const startDate = new Date(startDateStr);
+  
+  log(`Starting full seed from ${startDate.toISOString()}...`);
+  
+  // Full sync from start date
+  const syncStats = await syncTournamentsFromDate(supabase, startDate, logger);
+  log(`Sync complete: ${syncStats.tournamentsProcessed} tournaments processed`);
+  
+  // Full enrich
+  const skipValidation = (config.skip_validation as boolean) ?? false;
+  const enrichStats = await enrichData(supabase, {
+    incremental: false,
+    skipValidation,
+    logger,
+  });
+  
+  log(`Enrich complete: ${enrichStats.cardsEnriched} cards enriched`);
+  
+  // Aggregate stats
+  const aggregateStatsResult = await aggregateStats(supabase, { logger });
+  log(`Aggregate complete: ${aggregateStatsResult.commanderWeeklyStats} stats created`);
+  
+  return {
+    sync: syncStats,
+    enrich: enrichStats,
+    aggregate: aggregateStatsResult,
+    duration_ms: Date.now() - startTime,
+  };
+}
+
+async function executeSync(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  config: Record<string, unknown>
+): Promise<JobResult> {
+  const startTime = Date.now();
+  const logger = createProgressLogger((msg) => log(msg));
+  
+  const daysBack = (config.days_back as number) || 7;
+  const startDate = config.start_date 
+    ? new Date(config.start_date as string)
+    : new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+  
+  log(`Starting sync from ${startDate.toISOString()}...`);
+  
+  const syncStats = await syncTournaments(supabase, {
+    startDate,
+    endDate: new Date(),
+    logger,
+  });
+  
+  return {
+    sync: syncStats,
+    duration_ms: Date.now() - startTime,
+  };
+}
+
+async function executeEnrich(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  config: Record<string, unknown>
+): Promise<JobResult> {
+  const startTime = Date.now();
+  const logger = createProgressLogger((msg) => log(msg));
+  
+  const incremental = (config.incremental as boolean) ?? true;
+  const skipValidation = (config.skip_validation as boolean) ?? false;
+  
+  log(`Starting enrich (incremental: ${incremental}, skip_validation: ${skipValidation})...`);
+  
+  let enrichStats: EnrichmentStats;
+  if (incremental) {
+    enrichStats = await enrichData(supabase, { incremental: true, skipValidation, logger });
+  } else {
+    enrichStats = await enrichDataFull(supabase, logger);
+  }
+  
+  return {
+    enrich: enrichStats,
+    duration_ms: Date.now() - startTime,
+  };
+}
+
+async function executeAggregate(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  _config: Record<string, unknown>
+): Promise<JobResult> {
+  const startTime = Date.now();
+  const logger = createProgressLogger((msg) => log(msg));
+  
+  log('Starting stats aggregation...');
+  
+  const aggregateStatsResult = await aggregateStats(supabase, { logger });
+  
+  return {
+    aggregate: aggregateStatsResult,
+    duration_ms: Date.now() - startTime,
+  };
+}
+
+async function executeJob(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  job: Job
+): Promise<JobResult> {
+  switch (job.job_type) {
+    case 'daily_update':
+      return executeDailyUpdate(supabase, job.config);
+    case 'full_seed':
+      return executeFullSeed(supabase, job.config);
+    case 'sync':
+      return executeSync(supabase, job.config);
+    case 'enrich':
+      return executeEnrich(supabase, job.config);
+    case 'aggregate':
+      return executeAggregate(supabase, job.config);
+    default:
+      throw new Error(`Unknown job type: ${job.job_type}`);
+  }
+}
+
+// ============================================
+// Job Claiming & Processing
+// ============================================
+
+async function claimJob(supabase: SupabaseClient): Promise<Job | null> {
+  const { data, error } = await supabase.rpc('claim_job', {
+    p_job_types: JOB_TYPES,
+    p_worker_id: WORKER_ID,
+  });
+  
+  if (error) {
+    log(`Error claiming job: ${error.message}`, 'error');
+    return null;
+  }
+  
+  return data as Job | null;
+}
+
+async function completeJob(
+  supabase: SupabaseClient,
+  jobId: number,
+  result: JobResult
+): Promise<void> {
+  const { error } = await supabase.rpc('complete_job', {
+    p_job_id: jobId,
+    p_result: result,
+  });
+  
+  if (error) {
+    log(`Error completing job ${jobId}: ${error.message}`, 'error');
+  }
+}
+
+async function failJob(
+  supabase: SupabaseClient,
+  jobId: number,
+  errorMessage: string
+): Promise<void> {
+  const { error } = await supabase.rpc('fail_job', {
+    p_job_id: jobId,
+    p_error: errorMessage,
+  });
+  
+  if (error) {
+    log(`Error failing job ${jobId}: ${error.message}`, 'error');
+  }
+}
+
+async function processJob(supabase: ReturnType<typeof createSupabaseAdmin>, job: Job): Promise<void> {
+  log(`Processing job ${job.id} (${job.job_type})...`);
+  
+  try {
+    const result = await executeJob(supabase, job);
+    await completeJob(supabase, job.id, result);
+    log(`Job ${job.id} completed in ${result.duration_ms}ms`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Job ${job.id} failed: ${errorMessage}`, 'error');
+    await failJob(supabase, job.id, errorMessage);
+  }
+}
+
+// ============================================
+// Main Loop
+// ============================================
+
+let isShuttingDown = false;
+
+async function pollForJobs(supabase: ReturnType<typeof createSupabaseAdmin>): Promise<void> {
+  while (!isShuttingDown) {
+    try {
+      const job = await claimJob(supabase);
+      
+      if (job) {
+        await processJob(supabase, job);
+      } else {
+        // No jobs available, wait before polling again
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log(`Error in job poll loop: ${errorMessage}`, 'error');
+      // Wait a bit before retrying on error
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS * 2));
+    }
+  }
+}
+
+async function main(): Promise<void> {
+  log('Worker starting...');
+  log(`Worker ID: ${WORKER_ID}`);
+  log(`Job types: ${JOB_TYPES.join(', ')}`);
+  log(`Poll interval: ${POLL_INTERVAL_MS}ms`);
+  
+  // Validate environment
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const topdeckKey = process.env.TOPDECK_API_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    log('Missing required Supabase environment variables', 'error');
+    process.exit(1);
+  }
+  
+  if (!topdeckKey) {
+    log('Missing TOPDECK_API_KEY - sync jobs will fail', 'warn');
+  }
+  
+  const supabase = createSupabaseAdmin();
+  
+  // Handle graceful shutdown
+  const shutdown = () => {
+    log('Shutdown signal received, finishing current job...');
+    isShuttingDown = true;
+  };
+  
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+  
+  log('Worker ready, polling for jobs...');
+  
+  await pollForJobs(supabase);
+  
+  log('Worker shutdown complete');
+}
+
+// ============================================
+// Entry Point
+// ============================================
+
+main().catch((error) => {
+  log(`Fatal error: ${error.message}`, 'error');
+  process.exit(1);
+});
+

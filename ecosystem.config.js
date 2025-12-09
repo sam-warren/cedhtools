@@ -1,29 +1,59 @@
+/**
+ * PM2 Ecosystem Configuration
+ * 
+ * Usage:
+ *   pm2 start ecosystem.config.js
+ *   pm2 stop cedhtools-worker
+ *   pm2 logs cedhtools-worker
+ *   pm2 monit
+ * 
+ * For production:
+ *   pm2 start ecosystem.config.js --env production
+ */
+
 module.exports = {
-  apps: [{
-    name: 'cedhtools-worker',
-    script: 'client/dist/etl/etl/worker.js',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      SUPABASE_URL: process.env.SUPABASE_URL,
-      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
-      TOPDECK_API_KEY: process.env.TOPDECK_API_KEY,
-      TOPDECK_API_BASE_URL: process.env.TOPDECK_API_BASE_URL,
-      MOXFIELD_API_BASE_URL: process.env.MOXFIELD_API_BASE_URL,
-      MOXFIELD_USER_AGENT: process.env.MOXFIELD_USER_AGENT,
-      ETL_REQUESTS_PER_SECOND: process.env.ETL_REQUESTS_PER_SECOND,
-      ETL_CONCURRENCY_LIMIT: process.env.ETL_CONCURRENCY_LIMIT
+  apps: [
+    {
+      name: 'cedhtools-worker',
+      script: 'npx',
+      args: 'tsx worker/index.ts',
+      cwd: __dirname,
+      
+      // Environment variables (override with --env production)
+      env: {
+        NODE_ENV: 'development',
+        WORKER_ID: 'worker-dev',
+      },
+      env_production: {
+        NODE_ENV: 'production',
+        WORKER_ID: 'worker-prod-1',
+      },
+      
+      // Process management
+      instances: 1,           // Single instance (jobs shouldn't run in parallel)
+      exec_mode: 'fork',
+      
+      // Auto-restart configuration
+      autorestart: true,
+      watch: false,           // Don't watch for file changes in production
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 5000,    // Wait 5s before restarting
+      
+      // Logging
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      error_file: './logs/worker-error.log',
+      out_file: './logs/worker-out.log',
+      merge_logs: true,
+      
+      // Memory management
+      max_memory_restart: '1G',
+      
+      // Graceful shutdown
+      kill_timeout: 7200000,  // 2 hours to finish current job (seed jobs are long)
+      wait_ready: true,
+      listen_timeout: 10000,
     },
-    error_file: '/var/www/cedhtools/logs/err.log',
-    out_file: '/var/www/cedhtools/logs/out.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss',
-    merge_logs: true
-  }]
-}; 
+  ],
+};
+

@@ -1,1 +1,0 @@
-alter table deck_analyses add column deck_name text;
