@@ -34,3 +34,4 @@ CREATE INDEX IF NOT EXISTS idx_entries_commander_id ON entries(commander_id);
 COMMENT ON FUNCTION get_commander_seat_stats IS 'Efficiently aggregates seat position win rates for a commander';
 
 
+

@@ -94,3 +94,4 @@ CREATE INDEX IF NOT EXISTS idx_card_commander_weekly_stats_card_commander
 
 COMMENT ON FUNCTION get_commander_card_stats IS 'Efficiently aggregates card stats for a commander with optional date filter';
 
+

@@ -7,9 +7,20 @@
     "lint": "eslint .",
     "db:sync": "npx tsx scripts/sync-tournaments.ts",
     "db:enrich": "npx tsx scripts/enrich-cards.ts",
+    "db:enrich:full": "npx tsx scripts/enrich-cards.ts --full",
+    "db:enrich:fast": "npx tsx scripts/enrich-cards.ts --skip-validation",
     "db:aggregate": "npx tsx scripts/aggregate-stats.ts",
     "db:merge-dfc": "npx tsx scripts/merge-dfc-duplicates.ts",
-    "db:seed": "npm run db:sync && npm run db:enrich && npm run db:aggregate"
+    "db:seed": "npm run db:sync && npm run db:enrich && npm run db:aggregate",
+    "db:seed:fast": "npm run db:sync && npm run db:enrich:fast && npm run db:aggregate",
+    "db:seed:prod": "dotenv -e .env.production -- npm run db:seed",
+    "db:seed:prod:fast": "dotenv -e .env.production -- npm run db:seed:fast",
+    "worker": "npx tsx worker/index.ts",
+    "worker:prod": "dotenv -e .env.production -- npx tsx worker/index.ts",
+    "job:enqueue": "npx tsx scripts/enqueue-job.ts",
+    "job:status": "npx tsx scripts/enqueue-job.ts status",
+    "job:daily": "npx tsx scripts/enqueue-job.ts daily_update",
+    "job:seed": "npx tsx scripts/enqueue-job.ts full_seed"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -62,6 +73,7 @@
     "recharts": "2.15.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.0",
+    "uuid": "^11.1.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "zod": "^4.1.13"
@@ -71,6 +83,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.8",
     "postcss": "^8",

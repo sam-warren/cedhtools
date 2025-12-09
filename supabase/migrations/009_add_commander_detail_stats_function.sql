@@ -54,3 +54,4 @@ $$ LANGUAGE plpgsql STABLE;
 
 COMMENT ON FUNCTION get_commander_detail_stats IS 'Efficiently aggregates weekly commander stats with meta share data';
 
+
