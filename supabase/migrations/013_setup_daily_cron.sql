@@ -13,10 +13,30 @@ GRANT USAGE ON SCHEMA cron TO postgres;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cron TO postgres;
 
 -- Remove existing jobs first (makes this idempotent)
--- cron.unschedule() returns false if job doesn't exist, so this is safe
-SELECT cron.unschedule('nightly-data-update');
-SELECT cron.unschedule('reset-stuck-jobs');
-SELECT cron.unschedule('cleanup-old-jobs');
+-- Wrap in DO block to handle case where jobs don't exist yet
+DO $$
+BEGIN
+  PERFORM cron.unschedule('nightly-data-update');
+EXCEPTION WHEN OTHERS THEN
+  -- Job doesn't exist, ignore
+END;
+$$;
+
+DO $$
+BEGIN
+  PERFORM cron.unschedule('reset-stuck-jobs');
+EXCEPTION WHEN OTHERS THEN
+  -- Job doesn't exist, ignore
+END;
+$$;
+
+DO $$
+BEGIN
+  PERFORM cron.unschedule('cleanup-old-jobs');
+EXCEPTION WHEN OTHERS THEN
+  -- Job doesn't exist, ignore
+END;
+$$;
 
 -- Create the cron job for nightly updates
 -- This simply inserts a job into the queue - the worker handles execution

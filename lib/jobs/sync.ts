@@ -39,6 +39,7 @@ import {
 // ============================================
 
 const DECKLIST_BATCH_SIZE = 500;
+const ENTITY_BATCH_SIZE = 200;
 
 // ============================================
 // Cache Types
@@ -171,7 +172,200 @@ async function preloadCardCache(
 }
 
 // ============================================
-// Upsert Functions
+// Batch Upsert Functions (Optimized for remote DB)
+// ============================================
+
+interface PlayerInput {
+  name: string;
+  topdeckId: string | null;
+}
+
+async function batchUpsertPlayers(
+  supabase: SupabaseAdmin,
+  players: PlayerInput[],
+  cache: PlayerCache
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  
+  // Filter to only players not in cache
+  const toInsert = players.filter(p => !p.topdeckId || !cache[p.topdeckId]);
+  
+  // Return cached results for those already known
+  for (const p of players) {
+    if (p.topdeckId && cache[p.topdeckId]) {
+      result.set(p.topdeckId, cache[p.topdeckId]);
+    }
+  }
+  
+  if (toInsert.length === 0) return result;
+  
+  // Batch insert with ON CONFLICT DO NOTHING
+  const insertData = toInsert.map(p => ({
+    name: p.name,
+    topdeck_id: p.topdeckId,
+  }));
+  
+  for (let i = 0; i < insertData.length; i += ENTITY_BATCH_SIZE) {
+    const batch = insertData.slice(i, i + ENTITY_BATCH_SIZE);
+    await supabase
+      .from('players')
+      .upsert(batch, { onConflict: 'topdeck_id', ignoreDuplicates: true });
+  }
+  
+  // Query back all IDs we need
+  const topdeckIds = toInsert
+    .map(p => p.topdeckId)
+    .filter((id): id is string => id !== null);
+  
+  if (topdeckIds.length > 0) {
+    for (let i = 0; i < topdeckIds.length; i += ENTITY_BATCH_SIZE) {
+      const batch = topdeckIds.slice(i, i + ENTITY_BATCH_SIZE);
+      const { data } = await supabase
+        .from('players')
+        .select('id, topdeck_id')
+        .in('topdeck_id', batch);
+      
+      if (data) {
+        for (const row of data) {
+          if (row.topdeck_id) {
+            cache[row.topdeck_id] = row.id;
+            result.set(row.topdeck_id, row.id);
+          }
+        }
+      }
+    }
+  }
+  
+  return result;
+}
+
+interface CommanderInput {
+  name: string;
+}
+
+async function batchUpsertCommanders(
+  supabase: SupabaseAdmin,
+  commanders: CommanderInput[],
+  cache: CommanderCache
+): Promise<void> {
+  // Normalize names and filter to only new ones
+  const toInsert: { name: string; normalizedName: string }[] = [];
+  
+  for (const cmd of commanders) {
+    const normalizedName = normalizeText(cmd.name);
+    const frontFaceName = getFrontFaceName(normalizedName);
+    
+    if (!cache[normalizedName] && !cache[frontFaceName]) {
+      toInsert.push({ name: cmd.name, normalizedName });
+    }
+  }
+  
+  if (toInsert.length === 0) return;
+  
+  // Deduplicate
+  const uniqueNames = [...new Set(toInsert.map(c => c.normalizedName))];
+  
+  // Batch insert
+  const insertData = uniqueNames.map(name => ({
+    name,
+    color_id: '',
+  }));
+  
+  for (let i = 0; i < insertData.length; i += ENTITY_BATCH_SIZE) {
+    const batch = insertData.slice(i, i + ENTITY_BATCH_SIZE);
+    await supabase
+      .from('commanders')
+      .upsert(batch, { onConflict: 'name', ignoreDuplicates: true });
+  }
+  
+  // Query back all IDs
+  for (let i = 0; i < uniqueNames.length; i += ENTITY_BATCH_SIZE) {
+    const batch = uniqueNames.slice(i, i + ENTITY_BATCH_SIZE);
+    const { data } = await supabase
+      .from('commanders')
+      .select('id, name')
+      .in('name', batch);
+    
+    if (data) {
+      for (const row of data) {
+        cache[row.name] = row.id;
+        if (row.name.includes(' // ')) {
+          const frontFace = row.name.split(' // ')[0].trim();
+          cache[frontFace] = row.id;
+        }
+      }
+    }
+  }
+}
+
+interface CardInput {
+  name: string;
+  oracleId: string | null;
+}
+
+async function batchUpsertCards(
+  supabase: SupabaseAdmin,
+  cards: CardInput[],
+  cache: CardCache
+): Promise<void> {
+  // Normalize names and filter to only new ones
+  const toInsert: { normalizedName: string; oracleId: string | null }[] = [];
+  
+  for (const card of cards) {
+    const normalizedName = normalizeText(card.name);
+    const frontFaceName = getFrontFaceName(normalizedName);
+    
+    if (!cache[normalizedName] && !cache[frontFaceName]) {
+      toInsert.push({ normalizedName, oracleId: card.oracleId });
+    }
+  }
+  
+  if (toInsert.length === 0) return;
+  
+  // Deduplicate by name
+  const uniqueByName = new Map<string, string | null>();
+  for (const c of toInsert) {
+    if (!uniqueByName.has(c.normalizedName)) {
+      uniqueByName.set(c.normalizedName, c.oracleId);
+    }
+  }
+  
+  const uniqueCards = Array.from(uniqueByName.entries()).map(([name, oracleId]) => ({
+    name,
+    oracle_id: oracleId,
+  }));
+  
+  // Batch insert
+  for (let i = 0; i < uniqueCards.length; i += ENTITY_BATCH_SIZE) {
+    const batch = uniqueCards.slice(i, i + ENTITY_BATCH_SIZE);
+    await supabase
+      .from('cards')
+      .upsert(batch, { onConflict: 'name', ignoreDuplicates: true });
+  }
+  
+  // Query back all IDs
+  const allNames = Array.from(uniqueByName.keys());
+  for (let i = 0; i < allNames.length; i += ENTITY_BATCH_SIZE) {
+    const batch = allNames.slice(i, i + ENTITY_BATCH_SIZE);
+    const { data } = await supabase
+      .from('cards')
+      .select('id, name')
+      .in('name', batch);
+    
+    if (data) {
+      for (const row of data) {
+        cache[row.name] = row.id;
+        if (row.name.includes(' // ')) {
+          const frontFace = row.name.split(' // ')[0].trim();
+          cache[frontFace] = row.id;
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// Single Upsert Functions (fallback, uses cache)
 // ============================================
 
 async function upsertPlayer(
@@ -184,40 +378,14 @@ async function upsertPlayer(
     return cache[topdeckId];
   }
 
-  if (topdeckId) {
-    const { data: existing } = await supabase
-      .from('players')
-      .select('id')
-      .eq('topdeck_id', topdeckId)
-      .single();
-
-    if (existing) {
-      cache[topdeckId] = existing.id;
-      return existing.id;
-    }
-  }
-
+  // Single insert with conflict handling
   const { data, error } = await supabase
     .from('players')
-    .insert({ name, topdeck_id: topdeckId })
+    .upsert({ name, topdeck_id: topdeckId }, { onConflict: 'topdeck_id' })
     .select('id')
     .single();
 
-  if (error) {
-    if (error.code === '23505' && topdeckId) {
-      const { data: existing } = await supabase
-        .from('players')
-        .select('id')
-        .eq('topdeck_id', topdeckId)
-        .single();
-
-      if (existing) {
-        cache[topdeckId] = existing.id;
-        return existing.id;
-      }
-    }
-    throw error;
-  }
+  if (error) throw error;
 
   if (topdeckId) {
     cache[topdeckId] = data.id;
@@ -233,82 +401,18 @@ async function upsertCommander(
   const normalizedName = normalizeText(name);
   const frontFaceName = getFrontFaceName(normalizedName);
 
-  if (cache[normalizedName]) {
-    return cache[normalizedName];
-  }
-  if (cache[frontFaceName]) {
-    return cache[frontFaceName];
-  }
+  // Check cache first
+  if (cache[normalizedName]) return cache[normalizedName];
+  if (cache[frontFaceName]) return cache[frontFaceName];
 
-  if (!isDFCName(normalizedName)) {
-    const { data: dfcVersion } = await supabase
-      .from('commanders')
-      .select('id, name')
-      .like('name', `${normalizedName} // %`)
-      .limit(1)
-      .single();
-    
-    if (dfcVersion) {
-      cache[normalizedName] = dfcVersion.id;
-      cache[dfcVersion.name] = dfcVersion.id;
-      cache[frontFaceName] = dfcVersion.id;
-      return dfcVersion.id;
-    }
-  }
-
-  if (isDFCName(normalizedName)) {
-    const { data: shortVersion } = await supabase
-      .from('commanders')
-      .select('id')
-      .eq('name', frontFaceName)
-      .single();
-    
-    if (shortVersion) {
-      await supabase
-        .from('commanders')
-        .update({ name: normalizedName })
-        .eq('id', shortVersion.id);
-      
-      cache[normalizedName] = shortVersion.id;
-      cache[frontFaceName] = shortVersion.id;
-      return shortVersion.id;
-    }
-  }
-
-  const { data: existing } = await supabase
-    .from('commanders')
-    .select('id')
-    .eq('name', normalizedName)
-    .single();
-
-  if (existing) {
-    cache[normalizedName] = existing.id;
-    cache[frontFaceName] = existing.id;
-    return existing.id;
-  }
-
+  // Single upsert with conflict handling
   const { data, error } = await supabase
     .from('commanders')
-    .insert({ name: normalizedName, color_id: '' })
+    .upsert({ name: normalizedName, color_id: '' }, { onConflict: 'name' })
     .select('id')
     .single();
 
-  if (error) {
-    if (error.code === '23505') {
-      const { data: existing } = await supabase
-        .from('commanders')
-        .select('id')
-        .eq('name', normalizedName)
-        .single();
-
-      if (existing) {
-        cache[normalizedName] = existing.id;
-        cache[frontFaceName] = existing.id;
-        return existing.id;
-      }
-    }
-    throw error;
-  }
+  if (error) throw error;
 
   cache[normalizedName] = data.id;
   cache[frontFaceName] = data.id;
@@ -324,82 +428,18 @@ async function upsertCard(
   const normalizedName = normalizeText(name);
   const frontFaceName = getFrontFaceName(normalizedName);
 
-  if (cache[normalizedName]) {
-    return cache[normalizedName];
-  }
-  if (cache[frontFaceName]) {
-    return cache[frontFaceName];
-  }
+  // Check cache first
+  if (cache[normalizedName]) return cache[normalizedName];
+  if (cache[frontFaceName]) return cache[frontFaceName];
 
-  if (!isDFCName(normalizedName)) {
-    const { data: dfcVersion } = await supabase
-      .from('cards')
-      .select('id, name')
-      .like('name', `${normalizedName} // %`)
-      .limit(1)
-      .single();
-    
-    if (dfcVersion) {
-      cache[normalizedName] = dfcVersion.id;
-      cache[dfcVersion.name] = dfcVersion.id;
-      cache[frontFaceName] = dfcVersion.id;
-      return dfcVersion.id;
-    }
-  }
-
-  if (isDFCName(normalizedName)) {
-    const { data: shortVersion } = await supabase
-      .from('cards')
-      .select('id')
-      .eq('name', frontFaceName)
-      .single();
-    
-    if (shortVersion) {
-      await supabase
-        .from('cards')
-        .update({ name: normalizedName })
-        .eq('id', shortVersion.id);
-      
-      cache[normalizedName] = shortVersion.id;
-      cache[frontFaceName] = shortVersion.id;
-      return shortVersion.id;
-    }
-  }
-
-  const { data: existing } = await supabase
-    .from('cards')
-    .select('id')
-    .eq('name', normalizedName)
-    .single();
-
-  if (existing) {
-    cache[normalizedName] = existing.id;
-    cache[frontFaceName] = existing.id;
-    return existing.id;
-  }
-
+  // Single upsert with conflict handling
   const { data, error } = await supabase
     .from('cards')
-    .insert({ name: normalizedName, oracle_id: oracleId })
+    .upsert({ name: normalizedName, oracle_id: oracleId }, { onConflict: 'name' })
     .select('id')
     .single();
 
-  if (error) {
-    if (error.code === '23505') {
-      const { data: existing } = await supabase
-        .from('cards')
-        .select('id')
-        .eq('name', normalizedName)
-        .single();
-
-      if (existing) {
-        cache[normalizedName] = existing.id;
-        cache[frontFaceName] = existing.id;
-        return existing.id;
-      }
-    }
-    throw error;
-  }
+  if (error) throw error;
 
   cache[normalizedName] = data.id;
   cache[frontFaceName] = data.id;
@@ -546,6 +586,46 @@ async function processTournament(
 ): Promise<void> {
   const tournamentDate = new Date(tournament.startDate * 1000);
 
+  // === PHASE 1: Collect all entities needed ===
+  const playersToUpsert: PlayerInput[] = [];
+  const commandersToUpsert: CommanderInput[] = [];
+  const cardsToUpsert: CardInput[] = [];
+  
+  // Collect from standings
+  for (const standing of tournament.standings) {
+    playersToUpsert.push({ name: standing.name, topdeckId: standing.id });
+    
+    const commanderName = normalizeCommanderName(standing.deckObj);
+    if (commanderName) {
+      commandersToUpsert.push({ name: commanderName });
+    }
+    
+    if (standing.deckObj) {
+      const mainboardCards = getMainboardCards(standing.deckObj);
+      const commanderCards = getCommanderCards(standing.deckObj);
+      for (const card of [...mainboardCards, ...commanderCards]) {
+        cardsToUpsert.push({ name: card.name, oracleId: card.oracleId });
+      }
+    }
+  }
+  
+  // Collect from rounds
+  for (const round of tournament.rounds) {
+    for (const table of round.tables) {
+      for (const player of table.players) {
+        if (player.id) {
+          playersToUpsert.push({ name: player.name, topdeckId: player.id });
+        }
+      }
+    }
+  }
+  
+  // === PHASE 2: Batch upsert all entities ===
+  await batchUpsertPlayers(supabase, playersToUpsert, playerCache);
+  await batchUpsertCommanders(supabase, commandersToUpsert, commanderCache);
+  await batchUpsertCards(supabase, cardsToUpsert, cardCache);
+  
+  // === PHASE 3: Insert tournament ===
   const { data: tournamentRow, error: tournamentError } = await supabase
     .from('tournaments')
     .upsert({
@@ -562,6 +642,7 @@ async function processTournament(
   if (tournamentError) throw tournamentError;
   const tournamentId = tournamentRow.id;
 
+  // === PHASE 4: Process entries (now using cached IDs) ===
   const entryMap = new Map<string, number>();
   const pendingDecklistItems: DecklistItem[] = [];
 
@@ -772,4 +853,5 @@ export async function syncTournamentsFromDate(
     logger,
   });
 }
+
 

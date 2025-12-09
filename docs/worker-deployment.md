@@ -77,7 +77,7 @@ su - cedhtools
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/cedhtools.git
+git clone https://github.com/sam-warren/cedhtools.git
 cd cedhtools
 
 # Install dependencies
