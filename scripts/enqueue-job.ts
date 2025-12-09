@@ -31,6 +31,21 @@ interface JobConfig {
   skip_validation?: boolean;
 }
 
+interface JobRecord {
+  id: number;
+  job_type: string;
+  status: string;
+  priority: number;
+  config: JobConfig;
+  started_at: string | null;
+  completed_at: string | null;
+  result: unknown;
+  error: string | null;
+  worker_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================
 // CLI Argument Parsing
 // ============================================
@@ -99,11 +114,12 @@ async function enqueueJob(jobType: JobType, config: JobConfig): Promise<void> {
   console.log(`Enqueueing ${jobType} job...`);
   console.log('Config:', JSON.stringify(config, null, 2));
   
-  const { data, error } = await supabase.rpc('enqueue_job', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('enqueue_job', {
     p_job_type: jobType,
     p_config: config,
     p_priority: jobType === 'full_seed' ? 1 : 5,
-  });
+  }) as { data: JobRecord | null; error: { message: string } | null };
   
   if (error) {
     console.error('Error enqueueing job:', error.message);
@@ -111,8 +127,8 @@ async function enqueueJob(jobType: JobType, config: JobConfig): Promise<void> {
   }
   
   console.log('✅ Job enqueued successfully!');
-  console.log('Job ID:', data.id);
-  console.log('Status:', data.status);
+  console.log('Job ID:', data?.id);
+  console.log('Status:', data?.status);
   console.log('\nMonitor with: npx tsx scripts/enqueue-job.ts status');
 }
 
@@ -125,7 +141,7 @@ async function showStatus(): Promise<void> {
     .from('jobs')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(20) as { data: JobRecord[] | null; error: { message: string } | null };
   
   if (error) {
     console.error('Error fetching jobs:', error.message);

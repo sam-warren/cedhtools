@@ -3,7 +3,7 @@ import { CommanderBrowser } from "./commander-browser";
 import { CommanderCardSkeleton } from "@/components/commander-card";
 import { createClient } from "@/lib/db/server";
 import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/time-period";
-import type { CommanderListItem, SortBy } from "@/types/api";
+import type { CommanderListItem } from "@/types/api";
 
 export const metadata = {
   title: "Commanders",
@@ -32,7 +32,6 @@ async function fetchInitialCommanders(): Promise<CommandersResponse | null> {
   try {
     const supabase = await createClient();
     const timePeriod: TimePeriod = "6_months";
-    const sortBy: SortBy = "popularity";
     const limit = 100;
     const minEntries = 5;
 
@@ -88,19 +87,8 @@ async function fetchInitialCommanders(): Promise<CommandersResponse | null> {
       });
     }
 
-    // Sort by default sort (popularity)
-    commandersWithStats.sort((a, b) => {
-      switch (sortBy) {
-        case "popularity":
-          return b.entries - a.entries;
-        case "conversion":
-          return b.conversion_score - a.conversion_score;
-        case "win_rate":
-          return b.win_rate - a.win_rate;
-        default:
-          return b.entries - a.entries;
-      }
-    });
+    // Sort by default (popularity)
+    commandersWithStats.sort((a, b) => b.entries - a.entries);
 
     const paginatedCommanders = commandersWithStats.slice(0, limit);
 

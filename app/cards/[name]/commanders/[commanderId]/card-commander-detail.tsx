@@ -148,12 +148,11 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
     }));
   };
 
-  // Process trend data for win rate chart (weighted by games played)
+  // Process trend data for win rate chart (weighted by entries)
   const winRateChartData = trend && trend.length > 0
     ? aggregateToMonthly(trend, (item) => {
-        const games = item.wins + item.draws + item.losses;
-        return { value: item.win_rate * 100, weight: games };
-      }).map(d => ({ month: d.month, winRate: d.value, games: d.weight }))
+        return { value: item.win_rate * 100, weight: item.entries };
+      }).map(d => ({ month: d.month, winRate: d.value, entries: d.weight }))
     : [];
 
   // Process play rate trend data (weighted average of play rate per month)
@@ -301,7 +300,7 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
                           formatter={(value, name, item) => (
                             <div className="space-y-0.5">
                               <div className="font-medium">{Number(value).toFixed(1)}%</div>
-                              <div className="text-xs text-muted-foreground">{Math.round(item.payload.games)} games</div>
+                              <div className="text-xs text-muted-foreground">{Math.round(item.payload.entries)} decks</div>
                             </div>
                           )}
                         />

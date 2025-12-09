@@ -154,8 +154,8 @@ async function fetchCommanderData(
       losses_bracket: e.losses_bracket,
       draws: e.draws,
       decklist: e.decklist,
-      player: e.player as EntryInfo["player"],
-      tournament: e.tournament as EntryInfo["tournament"],
+      player: Array.isArray(e.player) ? e.player[0] : e.player,
+      tournament: Array.isArray(e.tournament) ? e.tournament[0] : e.tournament,
     }));
     
     return {

@@ -164,8 +164,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         losses_bracket: e.losses_bracket,
         draws: e.draws,
         decklist: e.decklist,
-        player: e.player,
-        tournament: e.tournament,
+        player: Array.isArray(e.player) ? e.player[0] : e.player,
+        tournament: Array.isArray(e.tournament) ? e.tournament[0] : e.tournament,
       })) || [],
       trend: trendData,
     });
