@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { RecentDecksSection } from "./recent-decks-section";
 
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-16 md:py-24">
       {/* Hero */}
-      <section className="max-w-2xl mb-20">
+      <section className="max-w-2xl mb-16">
         <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-6">
           cEDH deck analysis powered by tournament data
         </h1>
@@ -31,8 +32,11 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Recent Decks - Jump Back In */}
+      <RecentDecksSection />
+
       {/* Features */}
-      <section className="grid md:grid-cols-3 gap-8 mb-20">
+      <section className="grid md:grid-cols-3 gap-8 mb-16">
         <Feature
           title="Commander Statistics"
           description="Conversion rates, win rates, and seat position analysis for every competitive commander."

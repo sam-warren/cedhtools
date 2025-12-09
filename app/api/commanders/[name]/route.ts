@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/time-period";
 
 interface RouteContext {
   params: Promise<{ name: string }>;
 }
 
-export type TimePeriod = "1_month" | "3_months" | "6_months" | "1_year" | "all_time";
-
-function getTimePeriodDays(period: TimePeriod): number | null {
-  switch (period) {
-    case "1_month":
-      return 30;
-    case "3_months":
-      return 90;
-    case "6_months":
-      return 180;
-    case "1_year":
-      return 365;
-    case "all_time":
-      return null;
-  }
+interface RpcWeeklyStat {
+  week_start: string;
+  entries: number;
+  top_cuts: number;
+  expected_top_cuts: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  week_total_entries: number;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -27,14 +22,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const { name: encodedName } = await context.params;
     const name = decodeURIComponent(encodedName);
     const searchParams = request.nextUrl.searchParams;
-    const timePeriod = (searchParams.get("timePeriod") as TimePeriod) ?? "3_months";
+    const timePeriod = (searchParams.get("timePeriod") as TimePeriod) ?? "6_months";
     const minTournamentSize = searchParams.has("minTournamentSize")
       ? parseInt(searchParams.get("minTournamentSize")!)
       : 0;
     
     const supabase = await createClient();
     
-    // Get commander
     const { data: commander, error: commanderError } = await supabase
       .from("commanders")
       .select("*")
@@ -48,95 +42,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
     
-    // Calculate date filter
-    const days = getTimePeriodDays(timePeriod);
-    const dateFilter = days
-      ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
-      : null;
+    const dateFilter = getTimePeriodDateOnly(timePeriod);
     
-    // Get aggregate stats from pre-aggregated weekly stats table (paginated)
-    // This ensures we get stats from ALL entries, not just a limited subset
-    interface WeeklyStat {
-      entries: number;
-      top_cuts: number;
-      wins: number;
-      draws: number;
-      losses: number;
-      week_start: string;
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      'get_commander_detail_stats',
+      {
+        commander_id_param: commander.id,
+        date_filter: dateFilter
+      }
+    );
+
+    if (rpcError) {
+      throw new Error(`RPC error: ${rpcError.message}`);
     }
     
-    const weeklyStats: WeeklyStat[] = [];
-    let statsOffset = 0;
-    const statsPageSize = 1000;
-    
-    while (true) {
-      let statsQuery = supabase
-        .from("commander_weekly_stats")
-        .select("entries, top_cuts, wins, draws, losses, week_start")
-        .eq("commander_id", commander.id)
-        .order("id", { ascending: true })
-        .range(statsOffset, statsOffset + statsPageSize - 1);
-      
-      if (dateFilter) {
-        statsQuery = statsQuery.gte("week_start", dateFilter);
-      }
-      
-      const { data, error } = await statsQuery;
-      if (error) throw error;
-      
-      const page = data as WeeklyStat[] | null;
-      if (!page || page.length === 0) break;
-      
-      weeklyStats.push(...page);
-      statsOffset += statsPageSize;
-      
-      if (page.length < statsPageSize) break;
-    }
-    
-    // Get total entries per week across ALL commanders for meta share calculation
-    // Must paginate to get all rows (Supabase default limit is 1000)
-    const weeklyTotals = new Map<string, number>();
-    let totalsOffset = 0;
-    const totalsPageSize = 1000;
-    
-    while (true) {
-      let totalQuery = supabase
-        .from("commander_weekly_stats")
-        .select("week_start, entries")
-        .order("id", { ascending: true })
-        .range(totalsOffset, totalsOffset + totalsPageSize - 1);
-      
-      if (dateFilter) {
-        totalQuery = totalQuery.gte("week_start", dateFilter);
-      }
-      
-      const { data: pageStats, error: pageError } = await totalQuery;
-      
-      if (pageError) throw pageError;
-      
-      const stats = pageStats as { week_start: string; entries: number }[] | null;
-      if (!stats || stats.length === 0) break;
-      
-      // Sum entries per week
-      for (const stat of stats) {
-        const current = weeklyTotals.get(stat.week_start) || 0;
-        weeklyTotals.set(stat.week_start, current + stat.entries);
-      }
-      
-      totalsOffset += totalsPageSize;
-      if (stats.length < totalsPageSize) break;
-    }
+    const weeklyStats = (rpcData as RpcWeeklyStat[]) || [];
     
     // Aggregate from weekly stats
     let totalEntries = 0;
     let topCuts = 0;
+    let expectedTopCuts = 0;
     let wins = 0;
     let draws = 0;
     let losses = 0;
     
-    for (const week of (weeklyStats || []) as WeeklyStat[]) {
+    for (const week of weeklyStats) {
       totalEntries += week.entries;
       topCuts += week.top_cuts;
+      expectedTopCuts += week.expected_top_cuts || 0;
       wins += week.wins;
       draws += week.draws;
       losses += week.losses;
@@ -145,18 +78,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const totalGames = wins + draws + losses;
     const winRate = totalGames > 0 ? wins / totalGames : 0;
     const conversionRate = totalEntries > 0 ? topCuts / totalEntries : 0;
+    const conversionScore = expectedTopCuts > 0 ? (topCuts / expectedTopCuts) * 100 : 100;
     
     // Format weekly trend data with meta share
-    const trendData = ((weeklyStats || []) as WeeklyStat[])
+    const trendData = weeklyStats
       .sort((a, b) => a.week_start.localeCompare(b.week_start))
       .map((week) => {
         const weekTotalGames = week.wins + week.draws + week.losses;
-        const weekTotalEntries = weeklyTotals.get(week.week_start) || 1;
+        const weekTotalEntries = week.week_total_entries || 1;
+        const weekExpectedTopCuts = week.expected_top_cuts || 0;
         return {
           week_start: week.week_start,
           entries: week.entries,
           top_cuts: week.top_cuts,
           conversion_rate: week.entries > 0 ? week.top_cuts / week.entries : 0,
+          conversion_score: weekExpectedTopCuts > 0 ? (week.top_cuts / weekExpectedTopCuts) * 100 : 100,
           win_rate: weekTotalGames > 0 ? week.wins / weekTotalGames : 0,
           meta_share: week.entries / weekTotalEntries,
         };
@@ -191,7 +127,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         )
       `)
       .eq("commander_id", commander.id)
-      .order("id", { ascending: false }); // Order by entry ID (most recent first)
+      .order("id", { ascending: false });
     
     if (dateFilterISO) {
       entriesQuery = entriesQuery.gte("tournament.tournament_date", dateFilterISO);
@@ -216,6 +152,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         draws,
         losses,
         conversion_rate: conversionRate,
+        conversion_score: conversionScore,
         win_rate: winRate,
       },
       entries: entries?.map((e) => ({

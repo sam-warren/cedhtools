@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/time-period";
 
-export type TimePeriod = "1_month" | "3_months" | "6_months" | "1_year" | "all_time";
-
-function getTimePeriodDays(period: TimePeriod): number | null {
-  switch (period) {
-    case "1_month":
-      return 30;
-    case "3_months":
-      return 90;
-    case "6_months":
-      return 180;
-    case "1_year":
-      return 365;
-    case "all_time":
-      return null;
-  }
-}
+export type SortBy = "date" | "size" | "top_cut";
+export type SortOrder = "asc" | "desc";
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,22 +16,62 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.has("offset")
       ? parseInt(searchParams.get("offset")!)
       : 0;
-    const timePeriod = (searchParams.get("timePeriod") as TimePeriod) ?? "3_months";
+    const timePeriod = (searchParams.get("timePeriod") as TimePeriod) ?? "6_months";
+    
+    // New filters
+    const search = searchParams.get("search") ?? undefined;
+    const minSize = searchParams.has("minSize")
+      ? parseInt(searchParams.get("minSize")!)
+      : undefined;
+    const maxSize = searchParams.has("maxSize")
+      ? parseInt(searchParams.get("maxSize")!)
+      : undefined;
+    const topCut = searchParams.has("topCut")
+      ? parseInt(searchParams.get("topCut")!)
+      : undefined;
+    
+    // Sorting
+    const sortBy = (searchParams.get("sortBy") as SortBy) ?? "date";
+    const sortOrder = (searchParams.get("sortOrder") as SortOrder) ?? "desc";
 
     // Calculate date filter
-    const days = getTimePeriodDays(timePeriod);
-    const dateFilter = days
-      ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
-      : null;
+    const dateFilter = getTimePeriodDateFilter(timePeriod);
 
     // Build query
     let query = supabase
       .from("tournaments")
-      .select("*", { count: "exact" })
-      .order("tournament_date", { ascending: false });
+      .select("*", { count: "exact" });
 
+    // Apply date filter
     if (dateFilter) {
       query = query.gte("tournament_date", dateFilter);
+    }
+    
+    // Apply search filter
+    if (search) {
+      query = query.ilike("name", `%${search}%`);
+    }
+    
+    // Apply size filters
+    if (minSize !== undefined) {
+      query = query.gte("size", minSize);
+    }
+    if (maxSize !== undefined) {
+      query = query.lte("size", maxSize);
+    }
+    
+    // Apply top cut filter
+    if (topCut !== undefined) {
+      query = query.eq("top_cut", topCut);
+    }
+    
+    // Apply sorting
+    const sortColumn = sortBy === "date" ? "tournament_date" : sortBy === "size" ? "size" : "top_cut";
+    query = query.order(sortColumn, { ascending: sortOrder === "asc" });
+    
+    // Secondary sort by date if not already sorting by date
+    if (sortBy !== "date") {
+      query = query.order("tournament_date", { ascending: false });
     }
 
     // Apply pagination

@@ -31,6 +31,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       commander_id: number;
       entries: number;
       top_cuts: number;
+      expected_top_cuts: number;
       wins: number;
       draws: number;
       losses: number;
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           commander_id,
           entries,
           top_cuts,
+          expected_top_cuts,
           wins,
           draws,
           losses,
@@ -85,6 +87,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       };
       entries: number;
       top_cuts: number;
+      expected_top_cuts: number;
       wins: number;
       draws: number;
       losses: number;
@@ -97,6 +100,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         commander,
         entries: 0,
         top_cuts: 0,
+        expected_top_cuts: 0,
         wins: 0,
         draws: 0,
         losses: 0,
@@ -104,6 +108,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       
       existing.entries += stat.entries;
       existing.top_cuts += stat.top_cuts;
+      existing.expected_top_cuts += stat.expected_top_cuts || 0;
       existing.wins += stat.wins;
       existing.draws += stat.draws;
       existing.losses += stat.losses;
@@ -115,6 +120,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const commanders = Array.from(commanderMap.values())
       .map((stat) => {
         const totalGames = stat.wins + stat.draws + stat.losses;
+        // Conversion score: (actual top cuts / expected top cuts) * 100
+        const conversionScore = stat.expected_top_cuts > 0 
+          ? (stat.top_cuts / stat.expected_top_cuts) * 100 
+          : 100;
         return {
           id: stat.commander.id,
           name: stat.commander.name,
@@ -126,6 +135,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           losses: stat.losses,
           win_rate: totalGames > 0 ? stat.wins / totalGames : 0,
           conversion_rate: stat.entries > 0 ? stat.top_cuts / stat.entries : 0,
+          conversion_score: conversionScore,
         };
       })
       .sort((a, b) => b.entries - a.entries);

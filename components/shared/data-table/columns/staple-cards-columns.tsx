@@ -6,6 +6,21 @@ import { DataTableColumnHeader } from "../column-header";
 import { ManaCost } from "@/components/shared/mana-cost";
 import type { CardWithStats } from "@/types/api";
 
+/**
+ * Format a delta value with +/- sign, but only if the rounded value is non-zero.
+ * Handles edge cases like -0.00 which should display as 0.00.
+ */
+function formatDelta(value: number, decimals: number): string {
+  const formatted = value.toFixed(decimals);
+  // Check if the formatted string represents zero (handles both "0.00" and "-0.00")
+  const isZero = parseFloat(formatted) === 0;
+  if (isZero) {
+    // Return absolute zero without sign
+    return (0).toFixed(decimals);
+  }
+  return (value > 0 ? "+" : "") + formatted;
+}
+
 export function createStapleCardsColumns(
   commanderId: number
 ): ColumnDef<CardWithStats>[] {
@@ -78,6 +93,7 @@ export function createStapleCardsColumns(
       ),
       cell: ({ row }) => {
         const delta = row.original.win_rate_delta;
+        const deltaPercent = delta * 100;
         return (
           <div
             className={`text-right ${
@@ -88,22 +104,36 @@ export function createStapleCardsColumns(
                   : "text-muted-foreground"
             }`}
           >
-            {delta >= 0 ? "+" : ""}
-            {(delta * 100).toFixed(1)}%
+            {formatDelta(deltaPercent, 2)}%
           </div>
         );
       },
     },
     {
-      accessorKey: "conversion_rate",
+      accessorKey: "conversion_score_delta",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Conversion" className="justify-end" />
+        <DataTableColumnHeader column={column} title="Conv. Δ" className="justify-end" />
       ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          {(row.original.conversion_rate * 100).toFixed(1)}%
-        </div>
-      ),
+      cell: ({ row }) => {
+        const delta = row.original.conversion_score_delta;
+        // Handle NaN or undefined
+        if (delta == null || isNaN(delta)) {
+          return <div className="text-right text-muted-foreground">—</div>;
+        }
+        return (
+          <div
+            className={`text-right ${
+              delta > 5
+                ? "text-green-500"
+                : delta < -5
+                  ? "text-red-500"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {formatDelta(delta, 0)}
+          </div>
+        );
+      },
     },
   ];
 }

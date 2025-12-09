@@ -258,6 +258,7 @@ export interface Database {
           entries: number;
           entries_with_decklists: number;
           top_cuts: number;
+          expected_top_cuts: number; // Sum of (topCut/tournamentSize) for each entry
           wins: number;
           draws: number;
           losses: number;
@@ -271,6 +272,7 @@ export interface Database {
           entries?: number;
           entries_with_decklists?: number;
           top_cuts?: number;
+          expected_top_cuts?: number;
           wins?: number;
           draws?: number;
           losses?: number;
@@ -284,6 +286,7 @@ export interface Database {
           entries?: number;
           entries_with_decklists?: number;
           top_cuts?: number;
+          expected_top_cuts?: number;
           wins?: number;
           draws?: number;
           losses?: number;
@@ -300,6 +303,7 @@ export interface Database {
           week_start: string;
           entries: number;
           top_cuts: number;
+          expected_top_cuts: number; // Sum of (topCut/tournamentSize) for each entry
           wins: number;
           draws: number;
           losses: number;
@@ -313,6 +317,7 @@ export interface Database {
           week_start: string;
           entries?: number;
           top_cuts?: number;
+          expected_top_cuts?: number;
           wins?: number;
           draws?: number;
           losses?: number;
@@ -326,9 +331,43 @@ export interface Database {
           week_start?: string;
           entries?: number;
           top_cuts?: number;
+          expected_top_cuts?: number;
           wins?: number;
           draws?: number;
           losses?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      seat_position_weekly_stats: {
+        Row: {
+          id: number;
+          commander_id: number;
+          seat_position: number;
+          week_start: string;
+          games: number;
+          wins: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          commander_id: number;
+          seat_position: number;
+          week_start: string;
+          games?: number;
+          wins?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          commander_id?: number;
+          seat_position?: number;
+          week_start?: string;
+          games?: number;
+          wins?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -363,6 +402,8 @@ export type CommanderWeeklyStats = Database["public"]["Tables"]["commander_weekl
 export type CommanderWeeklyStatsInsert = Database["public"]["Tables"]["commander_weekly_stats"]["Insert"];
 export type CardCommanderWeeklyStats = Database["public"]["Tables"]["card_commander_weekly_stats"]["Row"];
 export type CardCommanderWeeklyStatsInsert = Database["public"]["Tables"]["card_commander_weekly_stats"]["Insert"];
+export type SeatPositionWeeklyStats = Database["public"]["Tables"]["seat_position_weekly_stats"]["Row"];
+export type SeatPositionWeeklyStatsInsert = Database["public"]["Tables"]["seat_position_weekly_stats"]["Insert"];
 
 // Extended types for API responses
 export interface CommanderWithStats extends Commander {
@@ -372,6 +413,7 @@ export interface CommanderWithStats extends Commander {
   draws: number;
   losses: number;
   conversion_rate: number;
+  conversion_score: number; // (top_cuts / expected_top_cuts) * 100
   win_rate: number;
   meta_share: number;
 }
@@ -397,9 +439,11 @@ export interface WeeklyDataPoint {
   week_start: string;
   entries: number;
   top_cuts: number;
+  expected_top_cuts: number;
   wins: number;
   draws: number;
   losses: number;
   conversion_rate: number;
+  conversion_score: number; // (top_cuts / expected_top_cuts) * 100
   win_rate: number;
 }

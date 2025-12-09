@@ -7,13 +7,19 @@ import type { CommanderListItem } from "@/types/api";
 
 interface CommanderCardProps {
   commander: CommanderListItem;
-  rank?: number;
 }
 
-export function CommanderCard({ commander, rank }: CommanderCardProps) {
-  const conversionPercent = (commander.conversion_rate * 100).toFixed(1);
+export function CommanderCard({ commander }: CommanderCardProps) {
+  const conversionScore = Math.round(commander.conversion_score);
   const winRatePercent = (commander.win_rate * 100).toFixed(1);
   const metaPercent = (commander.meta_share * 100).toFixed(1);
+
+  // Color coding for conversion score: green (>105), neutral (95-105), red (<95)
+  const getConversionScoreColor = (score: number) => {
+    if (score > 105) return "text-green-500";
+    if (score < 95) return "text-red-500";
+    return "text-muted-foreground";
+  };
 
   return (
     <Link href={`/commanders/${encodeURIComponent(commander.name)}`}>
@@ -21,11 +27,6 @@ export function CommanderCard({ commander, rank }: CommanderCardProps) {
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              {rank && (
-                <span className="text-xs font-mono text-muted-foreground">
-                  #{rank}
-                </span>
-              )}
               <h3 className="font-semibold text-base leading-tight truncate">
                 {commander.name}
               </h3>
@@ -36,9 +37,11 @@ export function CommanderCard({ commander, rank }: CommanderCardProps) {
         <CardContent className="pt-0">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-muted-foreground text-xs">Conversion</p>
-              <p className="font-semibold text-lg stat-positive">
-                {conversionPercent}%
+              <p className="text-muted-foreground text-xs" title="Conversion Score: 100 = expected, &gt;100 = better than expected">
+                Conv. Score
+              </p>
+              <p className={`font-semibold text-lg ${getConversionScoreColor(conversionScore)}`}>
+                {conversionScore}
               </p>
             </div>
             <div>

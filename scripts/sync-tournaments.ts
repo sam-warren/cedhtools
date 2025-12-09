@@ -69,6 +69,124 @@ import {
 // ============================================
 
 const START_DATE = new Date('2025-05-19T00:00:00Z');
+const DECKLIST_BATCH_SIZE = 500; // Batch size for decklist_items inserts
+const PAGE_SIZE = 1000; // For pre-loading existing data
+
+// ============================================
+// Telemetry / Progress Tracking
+// ============================================
+
+class ProgressTracker {
+  private startTime: number;
+  private phaseStartTime: number;
+  private totalItems: number;
+  private processedItems: number;
+  private phaseName: string;
+
+  constructor() {
+    this.startTime = Date.now();
+    this.phaseStartTime = Date.now();
+    this.totalItems = 0;
+    this.processedItems = 0;
+    this.phaseName = '';
+  }
+
+  startPhase(name: string, totalItems: number): void {
+    this.phaseName = name;
+    this.totalItems = totalItems;
+    this.processedItems = 0;
+    this.phaseStartTime = Date.now();
+    console.log(`\n⏱️  Starting: ${name} (${totalItems} items)`);
+  }
+
+  update(processed: number): void {
+    this.processedItems = processed;
+  }
+
+  increment(count: number = 1): void {
+    this.processedItems += count;
+  }
+
+  getElapsed(): string {
+    const elapsed = Date.now() - this.startTime;
+    return this.formatDuration(elapsed);
+  }
+
+  getPhaseElapsed(): string {
+    const elapsed = Date.now() - this.phaseStartTime;
+    return this.formatDuration(elapsed);
+  }
+
+  getETA(): string {
+    if (this.processedItems === 0 || this.totalItems === 0) return 'calculating...';
+    
+    const elapsed = Date.now() - this.phaseStartTime;
+    const rate = this.processedItems / elapsed; // items per ms
+    const remaining = this.totalItems - this.processedItems;
+    const etaMs = remaining / rate;
+    
+    return this.formatDuration(etaMs);
+  }
+
+  getProgress(): string {
+    if (this.totalItems === 0) return '0%';
+    const pct = (this.processedItems / this.totalItems * 100).toFixed(1);
+    return `${pct}%`;
+  }
+
+  getRate(): string {
+    const elapsed = (Date.now() - this.phaseStartTime) / 1000; // seconds
+    if (elapsed === 0) return '0/s';
+    const rate = this.processedItems / elapsed;
+    return `${rate.toFixed(1)}/s`;
+  }
+
+  logProgress(extra?: string): void {
+    const progress = this.getProgress();
+    const elapsed = this.getPhaseElapsed();
+    const eta = this.getETA();
+    const rate = this.getRate();
+    
+    let status = `[${progress}] ${this.processedItems}/${this.totalItems} | ⏱️ ${elapsed} | ETA: ${eta} | ${rate}`;
+    if (extra) status += ` | ${extra}`;
+    
+    // Use \r to overwrite line for cleaner output
+    process.stdout.write(`\r  📊 ${status}    `);
+  }
+
+  logLine(message: string): void {
+    console.log(`  ${message}`);
+  }
+
+  endPhase(): void {
+    const elapsed = this.getPhaseElapsed();
+    const rate = this.getRate();
+    console.log(`\n  ✅ ${this.phaseName} complete: ${this.processedItems} items in ${elapsed} (${rate})`);
+  }
+
+  summary(): void {
+    console.log(`\n⏱️  Total execution time: ${this.getElapsed()}`);
+  }
+
+  private formatDuration(ms: number): string {
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    
+    const seconds = Math.floor(ms / 1000) % 60;
+    const minutes = Math.floor(ms / (1000 * 60)) % 60;
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+}
+
+// Global progress tracker
+const progress = new ProgressTracker();
 
 // ============================================
 // Text Normalization
@@ -103,6 +221,23 @@ function normalizeText(text: string): string {
     .replace(/\u2026/g, '...')
     // Trim whitespace
     .trim();
+}
+
+/**
+ * Extract front face name from a card name (for DFC lookup)
+ */
+function getFrontFaceName(name: string): string {
+  if (name.includes(' // ')) {
+    return name.split(' // ')[0].trim();
+  }
+  return name;
+}
+
+/**
+ * Check if this is a DFC name (contains " // ")
+ */
+function isDFCName(name: string): boolean {
+  return name.includes(' // ');
 }
 
 // ============================================
@@ -145,6 +280,113 @@ interface CommanderCache {
 
 interface CardCache {
   [name: string]: number; // Maps card name to our card ID
+}
+
+// ============================================
+// Cache Pre-loading (reduces DB queries from millions to thousands)
+// ============================================
+
+async function preloadPlayerCache(
+  supabase: ReturnType<typeof createSupabaseAdmin>
+): Promise<PlayerCache> {
+  console.log('  📦 Pre-loading player cache...');
+  const cache: PlayerCache = {};
+  let offset = 0;
+  let total = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('players')
+      .select('id, topdeck_id')
+      .not('topdeck_id', 'is', null)
+      .range(offset, offset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    
+    for (const player of data) {
+      if (player.topdeck_id) {
+        cache[player.topdeck_id] = player.id;
+      }
+    }
+    
+    total += data.length;
+    offset += PAGE_SIZE;
+    if (data.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Loaded ${total} players into cache`);
+  return cache;
+}
+
+async function preloadCommanderCache(
+  supabase: ReturnType<typeof createSupabaseAdmin>
+): Promise<CommanderCache> {
+  console.log('  📦 Pre-loading commander cache...');
+  const cache: CommanderCache = {};
+  let offset = 0;
+  let total = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('commanders')
+      .select('id, name')
+      .range(offset, offset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    
+    for (const cmd of data) {
+      cache[cmd.name] = cmd.id;
+      // Also cache front-face name for DFC lookup
+      if (cmd.name.includes(' // ')) {
+        const frontFace = cmd.name.split(' // ')[0].trim();
+        cache[frontFace] = cmd.id;
+      }
+    }
+    
+    total += data.length;
+    offset += PAGE_SIZE;
+    if (data.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Loaded ${total} commanders into cache`);
+  return cache;
+}
+
+async function preloadCardCache(
+  supabase: ReturnType<typeof createSupabaseAdmin>
+): Promise<CardCache> {
+  console.log('  📦 Pre-loading card cache...');
+  const cache: CardCache = {};
+  let offset = 0;
+  let total = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, name')
+      .range(offset, offset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    
+    for (const card of data) {
+      cache[card.name] = card.id;
+      // Also cache front-face name for DFC lookup
+      if (card.name.includes(' // ')) {
+        const frontFace = card.name.split(' // ')[0].trim();
+        cache[frontFace] = card.id;
+      }
+    }
+    
+    total += data.length;
+    offset += PAGE_SIZE;
+    if (data.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Loaded ${total} cards into cache`);
+  return cache;
 }
 
 // ============================================
@@ -215,15 +457,58 @@ async function upsertCommander(
   name: string,
   cache: CommanderCache
 ): Promise<number> {
-  // Normalize name to prevent duplicates from encoding differences
+  // Normalize text encoding only (preserve DFC names)
   const normalizedName = normalizeText(name);
+  const frontFaceName = getFrontFaceName(normalizedName);
 
-  // Check cache first
+  // Check cache first (try both exact name and front-face)
   if (cache[normalizedName]) {
     return cache[normalizedName];
   }
+  if (cache[frontFaceName]) {
+    // Front-face name maps to a DFC version (or itself)
+    return cache[frontFaceName];
+  }
 
-  // Try to find existing
+  // CASE 1: We have a SHORT name - check if DFC version exists
+  if (!isDFCName(normalizedName)) {
+    const { data: dfcVersion } = await supabase
+      .from('commanders')
+      .select('id, name')
+      .like('name', `${normalizedName} // %`)
+      .limit(1)
+      .single();
+    
+    if (dfcVersion) {
+      cache[normalizedName] = dfcVersion.id;
+      cache[dfcVersion.name] = dfcVersion.id;
+      cache[frontFaceName] = dfcVersion.id;
+      return dfcVersion.id;
+    }
+  }
+
+  // CASE 2: We have a DFC name - check if SHORT version exists and UPGRADE it
+  if (isDFCName(normalizedName)) {
+    const { data: shortVersion } = await supabase
+      .from('commanders')
+      .select('id')
+      .eq('name', frontFaceName)
+      .single();
+    
+    if (shortVersion) {
+      // Upgrade the short name record to use the full DFC name
+      await supabase
+        .from('commanders')
+        .update({ name: normalizedName })
+        .eq('id', shortVersion.id);
+      
+      cache[normalizedName] = shortVersion.id;
+      cache[frontFaceName] = shortVersion.id;
+      return shortVersion.id;
+    }
+  }
+
+  // Try to find exact match
   const { data: existing } = await supabase
     .from('commanders')
     .select('id')
@@ -232,9 +517,11 @@ async function upsertCommander(
 
   if (existing) {
     cache[normalizedName] = existing.id;
+    cache[frontFaceName] = existing.id;
     return existing.id;
   }
 
+  // Insert new commander
   const { data, error } = await supabase
     .from('commanders')
     .insert({ name: normalizedName, color_id: '' })
@@ -251,6 +538,7 @@ async function upsertCommander(
 
       if (existing) {
         cache[normalizedName] = existing.id;
+        cache[frontFaceName] = existing.id;
         return existing.id;
       }
     }
@@ -258,6 +546,7 @@ async function upsertCommander(
   }
 
   cache[normalizedName] = data.id;
+  cache[frontFaceName] = data.id;
   return data.id;
 }
 
@@ -267,15 +556,58 @@ async function upsertCard(
   oracleId: string | null,
   cache: CardCache
 ): Promise<number> {
-  // Normalize name to prevent duplicates from encoding differences
+  // Normalize text encoding only (preserve DFC names)
   const normalizedName = normalizeText(name);
+  const frontFaceName = getFrontFaceName(normalizedName);
 
-  // Check cache first
+  // Check cache first (try both exact name and front-face)
   if (cache[normalizedName]) {
     return cache[normalizedName];
   }
+  if (cache[frontFaceName]) {
+    // Front-face name maps to a DFC version (or itself)
+    return cache[frontFaceName];
+  }
 
-  // Try to find existing
+  // CASE 1: We have a SHORT name - check if DFC version exists
+  if (!isDFCName(normalizedName)) {
+    const { data: dfcVersion } = await supabase
+      .from('cards')
+      .select('id, name')
+      .like('name', `${normalizedName} // %`)
+      .limit(1)
+      .single();
+    
+    if (dfcVersion) {
+      cache[normalizedName] = dfcVersion.id;
+      cache[dfcVersion.name] = dfcVersion.id;
+      cache[frontFaceName] = dfcVersion.id;
+      return dfcVersion.id;
+    }
+  }
+
+  // CASE 2: We have a DFC name - check if SHORT version exists and UPGRADE it
+  if (isDFCName(normalizedName)) {
+    const { data: shortVersion } = await supabase
+      .from('cards')
+      .select('id')
+      .eq('name', frontFaceName)
+      .single();
+    
+    if (shortVersion) {
+      // Upgrade the short name record to use the full DFC name
+      await supabase
+        .from('cards')
+        .update({ name: normalizedName })
+        .eq('id', shortVersion.id);
+      
+      cache[normalizedName] = shortVersion.id;
+      cache[frontFaceName] = shortVersion.id;
+      return shortVersion.id;
+    }
+  }
+
+  // Try to find exact match
   const { data: existing } = await supabase
     .from('cards')
     .select('id')
@@ -284,10 +616,11 @@ async function upsertCard(
 
   if (existing) {
     cache[normalizedName] = existing.id;
+    cache[frontFaceName] = existing.id;
     return existing.id;
   }
 
-  // Insert new card with normalized name
+  // Insert new card
   const { data, error } = await supabase
     .from('cards')
     .insert({ name: normalizedName, oracle_id: oracleId })
@@ -304,6 +637,7 @@ async function upsertCard(
 
       if (existing) {
         cache[normalizedName] = existing.id;
+        cache[frontFaceName] = existing.id;
         return existing.id;
       }
     }
@@ -311,6 +645,7 @@ async function upsertCard(
   }
 
   cache[normalizedName] = data.id;
+  cache[frontFaceName] = data.id;
   return data.id;
 }
 
@@ -343,6 +678,7 @@ async function processTournament(
 
   // 2. Process standings (create players, commanders, entries)
   const entryMap = new Map<string, number>(); // Maps player topdeck ID to entry ID
+  const pendingDecklistItems: DecklistItem[] = []; // Collect for batch insert
 
   for (let i = 0; i < tournament.standings.length; i++) {
     const standing = tournament.standings[i];
@@ -391,8 +727,19 @@ async function processTournament(
 
     // Process decklist cards (validation is done separately in enrich-cards.ts)
     if (standing.deckObj) {
-      await processDeck(supabase, entryId, standing.deckObj, cardCache, stats);
+      await processDeck(supabase, entryId, standing.deckObj, cardCache, stats, pendingDecklistItems);
     }
+    
+    // Flush decklist items periodically to manage memory
+    if (pendingDecklistItems.length >= DECKLIST_BATCH_SIZE) {
+      await flushDecklistItems(supabase, pendingDecklistItems);
+      pendingDecklistItems.length = 0; // Clear the array
+    }
+  }
+
+  // Flush remaining decklist items
+  if (pendingDecklistItems.length > 0) {
+    await flushDecklistItems(supabase, pendingDecklistItems);
   }
 
   // 3. Process rounds/games for seat position tracking
@@ -409,12 +756,19 @@ async function processTournament(
   stats.tournamentsProcessed++;
 }
 
+interface DecklistItem {
+  entry_id: number;
+  card_id: number;
+  quantity: number;
+}
+
 async function processDeck(
   supabase: ReturnType<typeof createSupabaseAdmin>,
   entryId: number,
   deckObj: DeckObj,
   cardCache: CardCache,
-  stats: SyncStats
+  stats: SyncStats,
+  pendingItems: DecklistItem[] // Collect items for batch insert
 ): Promise<void> {
   // Get all cards (mainboard + commanders)
   const mainboardCards = getMainboardCards(deckObj);
@@ -425,15 +779,36 @@ async function processDeck(
     const cardId = await upsertCard(supabase, card.name, card.oracleId, cardCache);
     stats.cardsCreated++;
 
-    // Insert decklist item (ignore conflicts)
-    await supabase
-      .from('decklist_items')
-      .upsert({
-        entry_id: entryId,
-        card_id: cardId,
-        quantity: card.count,
-      }, { onConflict: 'entry_id,card_id', ignoreDuplicates: true });
+    // Collect for batch insert instead of inserting one by one
+    pendingItems.push({
+      entry_id: entryId,
+      card_id: cardId,
+      quantity: card.count,
+    });
   }
+}
+
+async function flushDecklistItems(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  items: DecklistItem[]
+): Promise<number> {
+  if (items.length === 0) return 0;
+  
+  let inserted = 0;
+  
+  // Insert in batches to avoid memory issues
+  for (let i = 0; i < items.length; i += DECKLIST_BATCH_SIZE) {
+    const batch = items.slice(i, i + DECKLIST_BATCH_SIZE);
+    
+    const { error } = await supabase
+      .from('decklist_items')
+      .upsert(batch, { onConflict: 'entry_id,card_id', ignoreDuplicates: true });
+    
+    if (error) throw error;
+    inserted += batch.length;
+  }
+  
+  return inserted;
 }
 
 async function processRounds(
@@ -448,7 +823,7 @@ async function processRounds(
   // Build a map of player names to their topdeck IDs from standings
   const playerNameToId = new Map<string, string>();
   for (const standing of standings) {
-    if (standing.id) {
+    if (standing.id && standing.name) {
       playerNameToId.set(standing.name.toLowerCase(), standing.id);
     }
   }
@@ -462,7 +837,7 @@ async function processRounds(
 
       // Find winner player ID
       let winnerPlayerId: number | null = null;
-      if (!isDraw && table.winner) {
+      if (!isDraw && table.winner && typeof table.winner === 'string') {
         const winnerTopdeckId = playerNameToId.get(table.winner.toLowerCase());
         if (winnerTopdeckId && playerCache[winnerTopdeckId]) {
           winnerPlayerId = playerCache[winnerTopdeckId];
@@ -531,13 +906,16 @@ async function syncTournaments(): Promise<SyncStats> {
     errors: [],
   };
 
-  // Shared caches (persist across weeks for efficiency)
-  const playerCache: PlayerCache = {};
-  const commanderCache: CommanderCache = {};
-  const cardCache: CardCache = {};
-
   console.log('🚀 Starting tournament sync...');
   console.log(`📅 Processing tournaments from ${START_DATE.toISOString()} to now`);
+  console.log('');
+  
+  // Pre-load existing data into caches (massive speedup - avoids millions of DB lookups)
+  console.log('📦 Pre-loading existing data into caches...');
+  const playerCache = await preloadPlayerCache(supabase);
+  const commanderCache = await preloadCommanderCache(supabase);
+  const cardCache = await preloadCardCache(supabase);
+  console.log('');
 
   // Get all existing tournament IDs upfront
   const existingTids = new Set<string>();
@@ -554,19 +932,34 @@ async function syncTournaments(): Promise<SyncStats> {
 
   // Process week by week (fetch → process → move on)
   const weeks = [...generateWeeklyRanges(START_DATE, new Date())];
+  
+  progress.startPhase('Processing weeks', weeks.length);
 
   for (let weekIdx = 0; weekIdx < weeks.length; weekIdx++) {
     const week = weeks[weekIdx];
-    console.log(`\n${'─'.repeat(50)}`);
-    console.log(`📅 Week ${weekIdx + 1}/${weeks.length}: ${week.label}`);
-    console.log('─'.repeat(50));
+    
+    // Update progress with ETA
+    progress.update(weekIdx);
+    const eta = progress.getETA();
+    const elapsed = progress.getElapsed();
+    
+    console.log(`\n${'─'.repeat(60)}`);
+    console.log(`📅 Week ${weekIdx + 1}/${weeks.length}: ${week.label} | ⏱️ ${elapsed} elapsed | ETA: ${eta}`);
+    console.log('─'.repeat(60));
 
     // Fetch tournaments for this week
     let tournaments;
     try {
       tournaments = await listTournaments(week.start, week.end);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      let errorMsg: string;
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMsg = JSON.stringify(error);
+      } else {
+        errorMsg = String(error);
+      }
       console.error(`❌ Failed to fetch week: ${errorMsg}`);
       stats.errors.push(`Week ${week.label}: ${errorMsg}`);
       continue;
@@ -601,7 +994,8 @@ async function syncTournaments(): Promise<SyncStats> {
       }
 
       try {
-        process.stdout.write(`    [${i + 1}/${newTournaments.length}] ${tournament.tournamentName.substring(0, 40)}...`);
+        const tournamentStart = Date.now();
+        process.stdout.write(`    [${i + 1}/${newTournaments.length}] ${tournament.tournamentName.substring(0, 40).padEnd(40)}...`);
 
         await processTournament(
           supabase,
@@ -615,19 +1009,32 @@ async function syncTournaments(): Promise<SyncStats> {
         // Mark as processed so we don't retry on crash
         existingTids.add(tournament.TID);
 
-        console.log(' ✅');
+        const tournamentTime = ((Date.now() - tournamentStart) / 1000).toFixed(1);
+        console.log(` ✅ (${tournamentTime}s)`);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
+        let errorMsg: string;
+        if (error instanceof Error) {
+          errorMsg = error.message;
+        } else if (typeof error === 'object' && error !== null) {
+          errorMsg = JSON.stringify(error);
+        } else {
+          errorMsg = String(error);
+        }
         console.log(` ❌ ${errorMsg}`);
         stats.errors.push(`${tournament.TID}: ${errorMsg}`);
       }
     }
+
+    progress.increment();
 
     // Small delay between weeks to be nice to the API
     if (weekIdx < weeks.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 350));
     }
   }
+
+  progress.endPhase();
+  progress.summary();
 
   return stats;
 }

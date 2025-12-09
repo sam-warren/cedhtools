@@ -12,6 +12,8 @@ import { Laptop, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+const ICON_SIZE = 16;
+
 const ThemeSwitcher = () => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -21,11 +23,14 @@ const ThemeSwitcher = () => {
     setMounted(true);
   }, []);
 
+  // Render a placeholder button with same dimensions to prevent layout shift
   if (!mounted) {
-    return null;
+    return (
+      <Button variant="ghost" size="sm" disabled className="opacity-0">
+        <Sun size={ICON_SIZE} />
+      </Button>
+    );
   }
-
-  const ICON_SIZE = 16;
 
   return (
     <DropdownMenu>

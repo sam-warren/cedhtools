@@ -8,9 +8,6 @@
  * Environment variables required:
  * - NEXT_PUBLIC_SUPABASE_URL: Supabase URL
  * - SUPABASE_SERVICE_ROLE_KEY: Supabase service role key
- * 
- * Note: Seat position stats are NOT aggregated here - they are queried
- * directly from game_players table in the API for simplicity.
  */
 
 import { config } from 'dotenv';
@@ -24,6 +21,70 @@ import type { Database } from '../lib/db/types';
 // ============================================
 
 const PAGE_SIZE = 1000;
+
+// Minimum date for temporal stats - data before this date is excluded
+// This helps avoid showing incomplete/sparse early data
+const MIN_STATS_DATE = '2024-06-01';
+
+// ============================================
+// Telemetry / Progress Tracking
+// ============================================
+
+class ProgressTracker {
+  private startTime: number;
+  private phaseStartTime: number;
+  private phaseName: string;
+
+  constructor() {
+    this.startTime = Date.now();
+    this.phaseStartTime = Date.now();
+    this.phaseName = '';
+  }
+
+  startPhase(name: string): void {
+    this.phaseName = name;
+    this.phaseStartTime = Date.now();
+    console.log(`\n⏱️  Starting: ${name}`);
+  }
+
+  getElapsed(): string {
+    const elapsed = Date.now() - this.startTime;
+    return this.formatDuration(elapsed);
+  }
+
+  getPhaseElapsed(): string {
+    const elapsed = Date.now() - this.phaseStartTime;
+    return this.formatDuration(elapsed);
+  }
+
+  endPhase(): void {
+    const elapsed = this.getPhaseElapsed();
+    console.log(`  ✅ ${this.phaseName} complete in ${elapsed}`);
+  }
+
+  summary(): void {
+    console.log(`\n⏱️  Total execution time: ${this.getElapsed()}`);
+  }
+
+  private formatDuration(ms: number): string {
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    
+    const seconds = Math.floor(ms / 1000) % 60;
+    const minutes = Math.floor(ms / (1000 * 60)) % 60;
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+}
+
+// Global progress tracker
+const progress = new ProgressTracker();
 
 // ============================================
 // Supabase Client
@@ -80,8 +141,9 @@ async function aggregateCommanderWeeklyStats(
   await supabase.from('commander_weekly_stats').delete().neq('id', 0);
   
   // First, load all tournaments into a map (avoid nested query issues)
-  console.log('  📥 Loading tournament data...');
-  const tournamentMap = new Map<number, { tournament_date: string; top_cut: number }>();
+  // Only include tournaments on or after MIN_STATS_DATE
+  console.log(`  📥 Loading tournament data (from ${MIN_STATS_DATE})...`);
+  const tournamentMap = new Map<number, { tournament_date: string; top_cut: number; size: number }>();
   
   // Pagination offset for fetching tournaments in batches of PAGE_SIZE.
   // Supabase has a default limit of 1000 rows per query, so we paginate
@@ -90,24 +152,25 @@ async function aggregateCommanderWeeklyStats(
   while (true) {
     const { data, error } = await supabase
       .from('tournaments')
-      .select('id, tournament_date, top_cut')
+      .select('id, tournament_date, top_cut, size')
+      .gte('tournament_date', MIN_STATS_DATE)
       .order('id', { ascending: true })
       .range(tournamentOffset, tournamentOffset + PAGE_SIZE - 1);
     
     if (error) throw error;
     
-    const tournaments = data as { id: number; tournament_date: string; top_cut: number }[] | null;
+    const tournaments = data as { id: number; tournament_date: string; top_cut: number; size: number }[] | null;
     if (!tournaments || tournaments.length === 0) break;
     
     for (const t of tournaments) {
-      tournamentMap.set(t.id, { tournament_date: t.tournament_date, top_cut: t.top_cut });
+      tournamentMap.set(t.id, { tournament_date: t.tournament_date, top_cut: t.top_cut, size: t.size });
     }
     
     tournamentOffset += PAGE_SIZE;
     if (tournaments.length < PAGE_SIZE) break;
   }
   
-  console.log(`  ✅ Loaded ${tournamentMap.size} tournaments`);
+  console.log(`  ✅ Loaded ${tournamentMap.size} tournaments (from ${MIN_STATS_DATE})`);
   
   // Group by commander and week
   const statsMap = new Map<string, {
@@ -116,6 +179,7 @@ async function aggregateCommanderWeeklyStats(
     entries: number;
     entries_with_decklists: number;
     top_cuts: number;
+    expected_top_cuts: number; // Sum of (topCut/tournamentSize) for conversion score
     wins: number;
     draws: number;
     losses: number;
@@ -182,6 +246,7 @@ async function aggregateCommanderWeeklyStats(
         entries: 0,
         entries_with_decklists: 0,
         top_cuts: 0,
+        expected_top_cuts: 0,
         wins: 0,
         draws: 0,
         losses: 0,
@@ -197,6 +262,13 @@ async function aggregateCommanderWeeklyStats(
       existing.wins += entry.wins_swiss + entry.wins_bracket;
       existing.draws += entry.draws;
       existing.losses += entry.losses_swiss + entry.losses_bracket;
+      
+      // Calculate expected top cuts (probability of making top cut in this tournament)
+      // This is used for conversion score: (actual top cuts / expected top cuts) * 100
+      // A score > 100 means the commander performs better than expected given tournament sizes
+      if (tournament.size > 0) {
+        existing.expected_top_cuts += tournament.top_cut / tournament.size;
+      }
       
       // Check if made top cut.
       // tournament.top_cut is an integer from the tournaments table, populated by sync-tournaments.ts
@@ -264,31 +336,33 @@ async function aggregateCardCommanderWeeklyStats(
   await supabase.from('card_commander_weekly_stats').delete().neq('id', 0);
   
   // First, load all tournaments into a map
-  console.log('  📥 Loading tournament data...');
-  const tournamentMap = new Map<number, { tournament_date: string; top_cut: number }>();
+  // Only include tournaments on or after MIN_STATS_DATE
+  console.log(`  📥 Loading tournament data (from ${MIN_STATS_DATE})...`);
+  const tournamentMap = new Map<number, { tournament_date: string; top_cut: number; size: number }>();
   
   let tournamentOffset = 0;
   while (true) {
     const { data, error } = await supabase
       .from('tournaments')
-      .select('id, tournament_date, top_cut')
+      .select('id, tournament_date, top_cut, size')
+      .gte('tournament_date', MIN_STATS_DATE)
       .order('id', { ascending: true })
       .range(tournamentOffset, tournamentOffset + PAGE_SIZE - 1);
     
     if (error) throw error;
     
-    const tournaments = data as { id: number; tournament_date: string; top_cut: number }[] | null;
+    const tournaments = data as { id: number; tournament_date: string; top_cut: number; size: number }[] | null;
     if (!tournaments || tournaments.length === 0) break;
     
     for (const t of tournaments) {
-      tournamentMap.set(t.id, { tournament_date: t.tournament_date, top_cut: t.top_cut });
+      tournamentMap.set(t.id, { tournament_date: t.tournament_date, top_cut: t.top_cut, size: t.size });
     }
     
     tournamentOffset += PAGE_SIZE;
     if (tournaments.length < PAGE_SIZE) break;
   }
   
-  console.log(`  ✅ Loaded ${tournamentMap.size} tournaments`);
+  console.log(`  ✅ Loaded ${tournamentMap.size} tournaments (from ${MIN_STATS_DATE})`);
   
   // Now load all entries with commanders AND valid decklists only
   // This ensures card stats only reflect legal commander decklists
@@ -303,6 +377,7 @@ async function aggregateCardCommanderWeeklyStats(
     draws: number;
     tournament_date: string;
     top_cut: number;
+    tournament_size: number;
   }>();
   
   let entryOffset = 0;
@@ -377,6 +452,7 @@ async function aggregateCardCommanderWeeklyStats(
         draws: entry.draws,
         tournament_date: tournament.tournament_date,
         top_cut: tournament.top_cut,
+        tournament_size: tournament.size,
       });
     }
     
@@ -403,6 +479,7 @@ async function aggregateCardCommanderWeeklyStats(
     week_start: string;
     entries: number;
     top_cuts: number;
+    expected_top_cuts: number; // Sum of (topCut/tournamentSize) for conversion score
     wins: number;
     draws: number;
     losses: number;
@@ -451,6 +528,7 @@ async function aggregateCardCommanderWeeklyStats(
         week_start: weekStart,
         entries: 0,
         top_cuts: 0,
+        expected_top_cuts: 0,
         wins: 0,
         draws: 0,
         losses: 0,
@@ -460,6 +538,12 @@ async function aggregateCardCommanderWeeklyStats(
       existing.wins += entry.wins_swiss + entry.wins_bracket;
       existing.draws += entry.draws;
       existing.losses += entry.losses_swiss + entry.losses_bracket;
+      
+      // Calculate expected top cuts (probability of making top cut in this tournament)
+      // This is used for conversion score: (actual top cuts / expected top cuts) * 100
+      if (entry.tournament_size > 0) {
+        existing.expected_top_cuts += entry.top_cut / entry.tournament_size;
+      }
       
       if (isTopCut) {
         existing.top_cuts += 1;
@@ -500,6 +584,235 @@ async function aggregateCardCommanderWeeklyStats(
   return statsArray.length;
 }
 
+/**
+ * Aggregates seat position win rates per commander per week.
+ * 
+ * This enables temporal filtering for the "Win Rate by Seat" chart.
+ * Data is aggregated from game_players + games + entries tables.
+ */
+async function aggregateSeatPositionWeeklyStats(
+  supabase: ReturnType<typeof createSupabaseAdmin>
+): Promise<number> {
+  console.log('📊 Aggregating seat position weekly stats...');
+  
+  // Clear existing stats
+  await supabase.from('seat_position_weekly_stats').delete().neq('id', 0);
+  
+  // Load tournaments into a map for date lookup
+  console.log(`  📥 Loading tournament data (from ${MIN_STATS_DATE})...`);
+  const tournamentMap = new Map<number, { tournament_date: string }>();
+  
+  let tournamentOffset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('id, tournament_date')
+      .gte('tournament_date', MIN_STATS_DATE)
+      .order('id', { ascending: true })
+      .range(tournamentOffset, tournamentOffset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    
+    const tournaments = data as { id: number; tournament_date: string }[] | null;
+    if (!tournaments || tournaments.length === 0) break;
+    
+    for (const t of tournaments) {
+      tournamentMap.set(t.id, { tournament_date: t.tournament_date });
+    }
+    
+    tournamentOffset += PAGE_SIZE;
+    if (tournaments.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Loaded ${tournamentMap.size} tournaments`);
+  
+  // Load games into a map for winner lookup
+  console.log('  📥 Loading games...');
+  const gameMap = new Map<number, { 
+    tournament_id: number; 
+    winner_player_id: number | null;
+    is_draw: boolean;
+  }>();
+  
+  let gameOffset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('games')
+      .select('id, tournament_id, winner_player_id, is_draw')
+      .order('id', { ascending: true })
+      .range(gameOffset, gameOffset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    
+    interface GameData {
+      id: number;
+      tournament_id: number;
+      winner_player_id: number | null;
+      is_draw: boolean;
+    }
+    
+    const games = data as GameData[] | null;
+    if (!games || games.length === 0) break;
+    
+    for (const g of games) {
+      // Only include games from tournaments in our date range
+      if (tournamentMap.has(g.tournament_id)) {
+        gameMap.set(g.id, {
+          tournament_id: g.tournament_id,
+          winner_player_id: g.winner_player_id,
+          is_draw: g.is_draw,
+        });
+      }
+    }
+    
+    gameOffset += PAGE_SIZE;
+    if (games.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Loaded ${gameMap.size} games`);
+  
+  // Load entries to get commander_id for each entry
+  console.log('  📥 Loading entries for commander lookup...');
+  const entryCommanderMap = new Map<number, number>(); // entry_id -> commander_id
+  
+  let entryOffset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('entries')
+      .select('id, commander_id')
+      .not('commander_id', 'is', null)
+      .order('id', { ascending: true })
+      .range(entryOffset, entryOffset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    
+    const entries = data as { id: number; commander_id: number }[] | null;
+    if (!entries || entries.length === 0) break;
+    
+    for (const e of entries) {
+      entryCommanderMap.set(e.id, e.commander_id);
+    }
+    
+    entryOffset += PAGE_SIZE;
+    if (entries.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Loaded ${entryCommanderMap.size} entries`);
+  
+  // Now process game_players to aggregate stats
+  console.log('  📥 Processing game players...');
+  
+  const statsMap = new Map<string, {
+    commander_id: number;
+    seat_position: number;
+    week_start: string;
+    games: number;
+    wins: number;
+  }>();
+  
+  let gpOffset = 0;
+  let totalProcessed = 0;
+  let skippedNoGame = 0;
+  let skippedNoEntry = 0;
+  let skippedNoCommander = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('game_players')
+      .select('game_id, player_id, entry_id, seat_position')
+      .order('id', { ascending: true })
+      .range(gpOffset, gpOffset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    
+    interface GamePlayerData {
+      game_id: number;
+      player_id: number;
+      entry_id: number | null;
+      seat_position: number;
+    }
+    
+    const gamePlayers = data as GamePlayerData[] | null;
+    if (!gamePlayers || gamePlayers.length === 0) break;
+    
+    for (const gp of gamePlayers) {
+      // Get game info
+      const game = gameMap.get(gp.game_id);
+      if (!game) {
+        skippedNoGame++;
+        continue;
+      }
+      
+      // Get commander from entry
+      if (!gp.entry_id) {
+        skippedNoEntry++;
+        continue;
+      }
+      
+      const commanderId = entryCommanderMap.get(gp.entry_id);
+      if (!commanderId) {
+        skippedNoCommander++;
+        continue;
+      }
+      
+      // Get tournament date for week bucketing
+      const tournament = tournamentMap.get(game.tournament_id);
+      if (!tournament) continue; // Should not happen since we filtered games
+      
+      const weekStart = getWeekStart(new Date(tournament.tournament_date));
+      const key = `${commanderId}-${gp.seat_position}-${weekStart}`;
+      
+      const existing = statsMap.get(key) || {
+        commander_id: commanderId,
+        seat_position: gp.seat_position,
+        week_start: weekStart,
+        games: 0,
+        wins: 0,
+      };
+      
+      existing.games += 1;
+      
+      // Count win if this player won (not a draw and player_id matches winner)
+      if (!game.is_draw && game.winner_player_id === gp.player_id) {
+        existing.wins += 1;
+      }
+      
+      statsMap.set(key, existing);
+    }
+    
+    totalProcessed += gamePlayers.length;
+    if (totalProcessed % 10000 === 0) {
+      console.log(`  📦 Processed ${totalProcessed} game players...`);
+    }
+    
+    gpOffset += PAGE_SIZE;
+    if (gamePlayers.length < PAGE_SIZE) break;
+  }
+  
+  console.log(`  ✅ Processed ${totalProcessed} game players`);
+  if (skippedNoGame > 0) console.log(`  ⚠️ Skipped ${skippedNoGame} (game not in date range)`);
+  if (skippedNoEntry > 0) console.log(`  ⚠️ Skipped ${skippedNoEntry} (no entry_id)`);
+  if (skippedNoCommander > 0) console.log(`  ⚠️ Skipped ${skippedNoCommander} (no commander for entry)`);
+  
+  // Insert aggregated stats
+  const statsArray = Array.from(statsMap.values());
+  
+  if (statsArray.length > 0) {
+    // Insert in batches of 1000
+    for (let i = 0; i < statsArray.length; i += 1000) {
+      const batch = statsArray.slice(i, i + 1000);
+      const { error: insertError } = await supabase
+        .from('seat_position_weekly_stats')
+        .insert(batch);
+      
+      if (insertError) throw insertError;
+    }
+  }
+  
+  console.log(`  ✅ Created ${statsArray.length} seat position weekly stat records`);
+  return statsArray.length;
+}
+
 // ============================================
 // Main Function
 // ============================================
@@ -510,17 +823,29 @@ async function aggregateStats(): Promise<void> {
   console.log('═'.repeat(60));
   console.log('cEDH Tools - Stats Aggregation');
   console.log('═'.repeat(60));
-  console.log('Note: Seat position stats are queried directly from game_players');
+  console.log(`Minimum date for stats: ${MIN_STATS_DATE}`);
   console.log('');
   
+  progress.startPhase('Aggregating commander weekly stats');
   const commanderStats = await aggregateCommanderWeeklyStats(supabase);
+  progress.endPhase();
+  
+  progress.startPhase('Aggregating card-commander weekly stats');
   const cardCommanderStats = await aggregateCardCommanderWeeklyStats(supabase);
+  progress.endPhase();
+  
+  progress.startPhase('Aggregating seat position weekly stats');
+  const seatStats = await aggregateSeatPositionWeeklyStats(supabase);
+  progress.endPhase();
   
   console.log('\n' + '═'.repeat(60));
   console.log('Aggregation Complete!');
   console.log('═'.repeat(60));
+  progress.summary();
+  console.log('');
   console.log(`Commander weekly stats:      ${commanderStats}`);
   console.log(`Card-commander weekly stats: ${cardCommanderStats}`);
+  console.log(`Seat position weekly stats:  ${seatStats}`);
 }
 
 // ============================================

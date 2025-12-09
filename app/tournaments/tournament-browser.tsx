@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,8 +19,14 @@ import {
   Trophy,
   ExternalLink,
   RefreshCw,
+  Search,
+  ArrowDown,
+  X,
+  Loader2,
 } from "lucide-react";
-import type { TimePeriod } from "@/types/api";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
+import { TIME_PERIOD_OPTIONS, type TimePeriod } from "@/lib/time-period";
 
 interface Tournament {
   id: number;
@@ -32,74 +39,151 @@ interface Tournament {
   bracket_url: string | null;
 }
 
-const timeOptions: { value: TimePeriod; label: string }[] = [
-  { value: "1_month", label: "Past Month" },
-  { value: "3_months", label: "Past 3 Months" },
-  { value: "6_months", label: "Past 6 Months" },
-  { value: "1_year", label: "Past Year" },
+interface TournamentsResponse {
+  tournaments: Tournament[];
+  total: number;
+}
+
+interface FiltersData {
+  topCuts: number[];
+  sizeRange: { min: number; max: number };
+}
+
+type SortBy = "date" | "size" | "top_cut";
+type SortOrder = "asc" | "desc";
+
+const sizeOptions: { value: string; label: string }[] = [
+  { value: "0", label: "All Sizes" },
+  { value: "16", label: "16+ Players" },
+  { value: "32", label: "32+ Players" },
+  { value: "60", label: "60+ Players" },
+  { value: "100", label: "100+ Players" },
 ];
 
-/**
- * Future Enhancement: Additional Filters
- * 
- * Consider adding filters for:
- * - Tournament size (min/max players)
- * - Top cut size (e.g., Top 4, Top 8, Top 16)
- * - Number of Swiss rounds
- * - Specific date range picker
- * - Tournament name search
- * 
- * These would require extending the /api/tournaments endpoint to accept
- * additional query parameters and filter the database query accordingly.
- */
+const sortOptions: { value: SortBy; label: string }[] = [
+  { value: "date", label: "Date" },
+  { value: "size", label: "Size" },
+  { value: "top_cut", label: "Top Cut" },
+];
+
+// Default filter values
+const DEFAULT_TIME_PERIOD: TimePeriod = "6_months";
+const DEFAULT_MIN_SIZE = "0";
+const DEFAULT_TOP_CUT = "all";
+const DEFAULT_SORT_BY: SortBy = "date";
+const DEFAULT_SORT_ORDER: SortOrder = "desc";
+
+async function fetchTournaments(params: {
+  limit: number;
+  offset: number;
+  timePeriod: TimePeriod;
+  sortBy: SortBy;
+  sortOrder: SortOrder;
+  search: string;
+  minSize: string;
+  topCut: string;
+}): Promise<TournamentsResponse> {
+  const searchParams = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+    timePeriod: params.timePeriod,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+  });
+
+  if (params.search) searchParams.set("search", params.search);
+  if (params.minSize !== "0") searchParams.set("minSize", params.minSize);
+  if (params.topCut !== "all") searchParams.set("topCut", params.topCut);
+
+  const response = await fetch(`/api/tournaments?${searchParams}`);
+  if (!response.ok) throw new Error("Failed to fetch tournaments");
+  return response.json();
+}
+
+async function fetchFilters(): Promise<FiltersData> {
+  const response = await fetch("/api/tournaments/filters");
+  if (!response.ok) throw new Error("Failed to fetch filters");
+  return response.json();
+}
+
 export function TournamentBrowser() {
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("1_month");
-  const [offset, setOffset] = useState(0);
-  const [total, setTotal] = useState(0);
-  const limit = 20;
+  // Hydration safety - ensure consistent initial render
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  const fetchTournaments = async (append = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Filters
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>(DEFAULT_TIME_PERIOD);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [minSize, setMinSize] = useState(DEFAULT_MIN_SIZE);
+  const [topCutFilter, setTopCutFilter] = useState<string>(DEFAULT_TOP_CUT);
+  const [sortBy, setSortBy] = useState<SortBy>(DEFAULT_SORT_BY);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(DEFAULT_SORT_ORDER);
 
-      const currentOffset = append ? offset : 0;
+  // Debounce search
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
-      const params = new URLSearchParams({
-        limit: String(limit),
-        offset: String(currentOffset),
-        timePeriod,
-      });
+  // Pagination - display count
+  const [displayCount, setDisplayCount] = useState(20);
+  const limit = 100; // Fetch more upfront
 
-      const response = await fetch(`/api/tournaments?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch tournaments");
+  // Check if any filters are non-default
+  const hasActiveFilters =
+    timePeriod !== DEFAULT_TIME_PERIOD ||
+    searchQuery !== "" ||
+    minSize !== DEFAULT_MIN_SIZE ||
+    topCutFilter !== DEFAULT_TOP_CUT ||
+    sortBy !== DEFAULT_SORT_BY ||
+    sortOrder !== DEFAULT_SORT_ORDER;
 
-      const data = await response.json();
-
-      if (append) {
-        setTournaments((prev) => [...prev, ...data.tournaments]);
-      } else {
-        setTournaments(data.tournaments);
-      }
-
-      setTotal(data.total);
-      setOffset(currentOffset + data.tournaments.length);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
+  const clearFilters = () => {
+    setTimePeriod(DEFAULT_TIME_PERIOD);
+    setSearchQuery("");
+    setMinSize(DEFAULT_MIN_SIZE);
+    setTopCutFilter(DEFAULT_TOP_CUT);
+    setSortBy(DEFAULT_SORT_BY);
+    setSortOrder(DEFAULT_SORT_ORDER);
   };
 
-  useEffect(() => {
-    setOffset(0);
-    fetchTournaments(false);
-  }, [timePeriod]);
+  // Fetch filter options
+  const { data: filtersData } = useQuery({
+    queryKey: ["tournament-filters"],
+    queryFn: fetchFilters,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  const hasMore = tournaments.length < total;
+  // Fetch tournaments with keepPreviousData for smooth transitions
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["tournaments", timePeriod, debouncedSearch, minSize, topCutFilter, sortBy, sortOrder],
+    queryFn: () =>
+      fetchTournaments({
+        limit,
+        offset: 0,
+        timePeriod,
+        sortBy,
+        sortOrder,
+        search: debouncedSearch,
+        minSize,
+        topCut: topCutFilter,
+      }),
+    placeholderData: keepPreviousData,
+  });
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [timePeriod, debouncedSearch, minSize, topCutFilter, sortBy, sortOrder]);
+
+  const tournaments = data?.tournaments ?? [];
+  const total = data?.total ?? 0;
+  const displayedTournaments = tournaments.slice(0, displayCount);
+  const hasMore = displayCount < tournaments.length || displayCount < total;
+
+  const loadMore = () => {
+    setDisplayCount((prev) => Math.min(prev + 20, tournaments.length));
+  };
+
+  // Show skeleton on server and initial client render for hydration safety
+  const showInitialLoading = !mounted || isLoading;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -109,34 +193,123 @@ export function TournamentBrowser() {
     });
   };
 
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+  };
+
   return (
     <div>
+      {/* Search */}
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search tournaments..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
         <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {timeOptions.map((opt) => (
+            {TIME_PERIOD_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={minSize} onValueChange={setMinSize}>
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sizeOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={topCutFilter} onValueChange={setTopCutFilter}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Top Cut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Top Cuts</SelectItem>
+            {filtersData?.topCuts.map((tc) => (
+              <SelectItem key={tc} value={String(tc)}>
+                Top {tc}
+              </SelectItem>
+            ))}
+            <SelectItem value="0">Swiss Only</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center">
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+            <SelectTrigger className="w-28 rounded-r-none border-r-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleSortOrder}
+            title={sortOrder === "asc" ? "Ascending" : "Descending"}
+            className="rounded-l-none"
+          >
+            <ArrowDown 
+              className={`h-4 w-4 transition-transform duration-200 ${
+                sortOrder === "asc" ? "rotate-180" : ""
+              }`} 
+            />
+          </Button>
+        </div>
+
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10">
+            <X className="w-4 h-4 mr-1" />
+            Clear Filters
+          </Button>
+        )}
       </div>
 
-      {/* Results count */}
-      <p className="text-sm text-muted-foreground mb-4">
-        Showing {tournaments.length} of {total} tournaments
-      </p>
+      {/* Results count with loading indicator */}
+      <div className="flex items-center gap-2 mb-4">
+        <p className="text-sm text-muted-foreground">
+          {showInitialLoading
+            ? "Loading tournaments..."
+            : `Showing ${displayedTournaments.length} of ${total} tournaments`}
+        </p>
+        {mounted && isFetching && !isLoading && (
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        )}
+      </div>
 
       {/* Error state */}
-      {error && (
+      {mounted && error && (
         <div className="text-center py-8">
-          <p className="text-destructive mb-4">{error}</p>
-          <Button onClick={() => fetchTournaments()} variant="outline">
+          <p className="text-destructive mb-4">
+            {error instanceof Error ? error.message : "An error occurred"}
+          </p>
+          <Button onClick={() => refetch()} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
@@ -144,28 +317,25 @@ export function TournamentBrowser() {
       )}
 
       {/* Tournament list */}
-      {!error && (
-        <div className="space-y-4">
-          {tournaments.map((tournament) => (
-            <TournamentCard key={tournament.id} tournament={tournament} formatDate={formatDate} />
-          ))}
+      {!(mounted && error) && (
+        <div className={`space-y-4 ${mounted && isFetching && !isLoading ? "opacity-60" : ""} transition-opacity duration-200`}>
+          {showInitialLoading
+            ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
+            : displayedTournaments.map((tournament) => (
+                <TournamentCard key={tournament.id} tournament={tournament} formatDate={formatDate} />
+              ))}
 
-          {loading &&
-            [...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
-            ))}
-
-          {!loading && tournaments.length === 0 && (
+          {!showInitialLoading && displayedTournaments.length === 0 && (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                No tournaments found for the selected time period.
+                No tournaments found matching your filters.
               </CardContent>
             </Card>
           )}
 
-          {hasMore && !loading && (
+          {hasMore && !showInitialLoading && (
             <div className="flex justify-center mt-6">
-              <Button onClick={() => fetchTournaments(true)} variant="outline">
+              <Button onClick={loadMore} variant="outline">
                 Load More
               </Button>
             </div>
@@ -192,15 +362,14 @@ function TournamentCard({ tournament, formatDate }: { tournament: Tournament; fo
                 <Users className="w-4 h-4" />
                 {tournament.size} players
               </span>
-              {/* 
-                Display top cut info only if tournament has a top cut (> 0).
-                Tournaments with top_cut = 0 are Swiss-only events with no elimination bracket.
-                The top_cut value is populated from TopDeck.gg API data in sync-tournaments.ts.
-              */}
-              {tournament.top_cut > 0 && (
+              {tournament.top_cut > 0 ? (
                 <span className="flex items-center gap-1">
                   <Trophy className="w-4 h-4" />
                   Top {tournament.top_cut}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-muted-foreground/60">
+                  Swiss Only
                 </span>
               )}
             </div>

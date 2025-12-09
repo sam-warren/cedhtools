@@ -14,6 +14,7 @@ export interface CommanderListItem {
   draws: number;
   losses: number;
   conversion_rate: number;
+  conversion_score: number; // (top_cuts / expected_top_cuts) * 100 - accounts for tournament size
   win_rate: number;
   meta_share: number;
 }
@@ -57,6 +58,7 @@ export interface TrendDataPoint {
   entries: number;
   top_cuts: number;
   conversion_rate: number;
+  conversion_score: number; // (top_cuts / expected_top_cuts) * 100
   win_rate: number;
   meta_share: number;
 }
@@ -72,6 +74,7 @@ export interface CommanderDetail {
     draws: number;
     losses: number;
     conversion_rate: number;
+    conversion_score: number; // (top_cuts / expected_top_cuts) * 100
     win_rate: number;
   };
   entries: EntryInfo[];
@@ -98,6 +101,8 @@ export interface CardWithStats extends CardInfo {
   win_rate: number;
   win_rate_delta: number; // Difference from commander's overall win rate
   conversion_rate: number;
+  conversion_score: number; // (top_cuts / expected_top_cuts) * 100
+  conversion_score_delta: number; // Difference from commander's overall conversion score
 }
 
 export interface CommanderCardsResponse {
@@ -105,6 +110,7 @@ export interface CommanderCardsResponse {
   commander_name: string;
   total_entries: number;
   commander_win_rate: number;
+  commander_conversion_score: number;
   cards: CardWithStats[];
 }
 
@@ -141,9 +147,11 @@ export interface CardCommanderStats {
     play_rate: number;
     win_rate: number;
     conversion_rate: number;
+    conversion_score: number; // (top_cuts / expected_top_cuts) * 100
   };
+  commander_win_rate: number; // Commander's overall win rate for comparison
   trend: TrendDataPoint[];
-  popularity_trend: { week_start: string; entries: number }[];
+  play_rate_trend: { week_start: string; play_rate: number; entries: number; commander_entries: number }[];
 }
 
 // Card detail types
@@ -158,6 +166,7 @@ export interface CommanderWithCardStats {
   losses: number;
   win_rate: number;
   conversion_rate: number;
+  conversion_score: number; // (top_cuts / expected_top_cuts) * 100
 }
 
 export interface CardDetail extends CardInfo {

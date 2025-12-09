@@ -9,12 +9,14 @@ export const metadata = {
 
 export default function TournamentsPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Tournament Results</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto px-4 py-12 md:py-16">
+      <div className="max-w-2xl mb-12">
+        <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-6">
+          Tournament Results
+        </h1>
+        <p className="text-lg text-muted-foreground">
           Browse recent competitive EDH tournaments, view standings, and explore
-          winning decklists.
+          winning decklists from events worldwide.
         </p>
       </div>
 
@@ -34,5 +36,3 @@ function TournamentsSkeleton() {
     </div>
   );
 }
-
-

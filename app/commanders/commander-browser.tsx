@@ -10,22 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { CommanderListItem, SortBy, TimePeriod } from "@/types/api";
-import { RefreshCw, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { TIME_PERIOD_OPTIONS, type TimePeriod } from "@/lib/time-period";
+import type { CommanderListItem, SortBy } from "@/types/api";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { RefreshCw, Search, X, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const sortOptions: { value: SortBy; label: string }[] = [
   { value: "popularity", label: "Popularity" },
-  { value: "conversion", label: "Conversion Rate" },
+  { value: "conversion", label: "Conversion Score" },
   { value: "win_rate", label: "Win Rate" },
-];
-
-const timeOptions: { value: TimePeriod; label: string }[] = [
-  { value: "1_month", label: "Past Month" },
-  { value: "3_months", label: "Past 3 Months" },
-  { value: "6_months", label: "Past 6 Months" },
-  { value: "1_year", label: "Past Year" },
-  { value: "all_time", label: "All Time" },
 ];
 
 const sizeOptions: { value: string; label: string }[] = [
@@ -35,67 +30,115 @@ const sizeOptions: { value: string; label: string }[] = [
   { value: "60", label: "60+ Players" },
 ];
 
-export function CommanderBrowser() {
-  const [commanders, setCommanders] = useState<CommanderListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
+// Default filter values
+const DEFAULT_SORT_BY: SortBy = "popularity";
+const DEFAULT_TIME_PERIOD: TimePeriod = "6_months";
+const DEFAULT_MIN_SIZE = "0";
+
+interface CommandersResponse {
+  commanders: CommanderListItem[];
+  total: number;
+}
+
+interface CommanderBrowserProps {
+  initialData?: CommandersResponse;
+}
+
+async function fetchCommanders(params: {
+  limit: number;
+  offset: number;
+  timePeriod: TimePeriod;
+  sortBy: SortBy;
+  minTournamentSize: string;
+  search: string;
+}): Promise<CommandersResponse> {
+  const searchParams = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+    timePeriod: params.timePeriod,
+    sortBy: params.sortBy,
+    minEntries: "5",
+    minTournamentSize: params.minTournamentSize,
+  });
+
+  if (params.search) searchParams.set("search", params.search);
+
+  const response = await fetch(`/api/commanders?${searchParams}`);
+  if (!response.ok) throw new Error("Failed to fetch commanders");
+  return response.json();
+}
+
+export function CommanderBrowser({ initialData }: CommanderBrowserProps) {
+  // Hydration safety - ensure consistent initial render
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Filters
-  const [sortBy, setSortBy] = useState<SortBy>("popularity");
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("3_months");
-  const [minTournamentSize, setMinTournamentSize] = useState("0");
+  const [sortBy, setSortBy] = useState<SortBy>(DEFAULT_SORT_BY);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>(DEFAULT_TIME_PERIOD);
+  const [minTournamentSize, setMinTournamentSize] = useState(DEFAULT_MIN_SIZE);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Debounce search to avoid too many requests
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Pagination
-  const [offset, setOffset] = useState(0);
-  const limit = 24;
+  const [displayCount, setDisplayCount] = useState(24);
+  const limit = 100; // Fetch more, display less
 
-  const fetchCommanders = async (append = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Check if filters match the default values (which initialData was fetched with)
+  const isDefaultFilters = 
+    sortBy === DEFAULT_SORT_BY &&
+    timePeriod === DEFAULT_TIME_PERIOD &&
+    minTournamentSize === DEFAULT_MIN_SIZE &&
+    debouncedSearch === "";
 
-      const currentOffset = append ? offset : 0;
+  // Check if any filters are non-default
+  const hasActiveFilters =
+    sortBy !== DEFAULT_SORT_BY ||
+    timePeriod !== DEFAULT_TIME_PERIOD ||
+    minTournamentSize !== DEFAULT_MIN_SIZE ||
+    searchQuery !== "";
 
-      const params = new URLSearchParams({
-        limit: String(limit),
-        offset: String(currentOffset),
-        timePeriod,
-        sortBy,
-        minEntries: "5",
-        minTournamentSize,
-      });
-
-      if (searchQuery) params.set("search", searchQuery);
-
-      const response = await fetch(`/api/commanders?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch commanders");
-
-      const data = await response.json();
-
-      if (append) {
-        setCommanders((prev) => [...prev, ...data.commanders]);
-      } else {
-        setCommanders(data.commanders);
-      }
-
-      setTotal(data.total);
-      setOffset(currentOffset + data.commanders.length);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
+  const clearFilters = () => {
+    setSortBy(DEFAULT_SORT_BY);
+    setTimePeriod(DEFAULT_TIME_PERIOD);
+    setMinTournamentSize(DEFAULT_MIN_SIZE);
+    setSearchQuery("");
   };
 
-  useEffect(() => {
-    setOffset(0);
-    fetchCommanders(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, timePeriod, minTournamentSize, searchQuery]);
+  // Use TanStack Query with keepPreviousData for smooth transitions
+  // Pass initialData only when filters match defaults
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["commanders", sortBy, timePeriod, minTournamentSize, debouncedSearch],
+    queryFn: () =>
+      fetchCommanders({
+        limit,
+        offset: 0,
+        timePeriod,
+        sortBy,
+        minTournamentSize,
+        search: debouncedSearch,
+      }),
+    placeholderData: keepPreviousData,
+    initialData: isDefaultFilters ? initialData : undefined,
+    // Skip initial fetch if we have initial data and filters are default
+    staleTime: isDefaultFilters && initialData ? 1000 * 60 * 5 : 0,
+  });
 
-  const hasMore = commanders.length < total;
+  const commanders = data?.commanders ?? [];
+  const total = data?.total ?? 0;
+  const displayedCommanders = commanders.slice(0, displayCount);
+  const hasMore = displayCount < commanders.length || displayCount < total;
+
+  const loadMore = () => {
+    setDisplayCount((prev) => Math.min(prev + 24, commanders.length));
+  };
+
+  // Show skeleton on server and initial client render for hydration safety
+  // But if we have initialData, we can show it immediately
+  const hasInitialContent = initialData && isDefaultFilters;
+  const showInitialLoading = !mounted || (isLoading && !hasInitialContent);
 
   return (
     <div>
@@ -129,7 +172,7 @@ export function CommanderBrowser() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {timeOptions.map((opt) => (
+            {TIME_PERIOD_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -149,18 +192,34 @@ export function CommanderBrowser() {
             ))}
           </SelectContent>
         </Select>
+
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10">
+            <X className="w-4 h-4 mr-1" />
+            Clear Filters
+          </Button>
+        )}
       </div>
 
-      {/* Results count */}
-      <p className="text-sm text-muted-foreground mb-4">
-        Showing {commanders.length} of {total} commanders
-      </p>
+      {/* Results count with loading indicator */}
+      <div className="flex items-center gap-2 mb-4">
+        <p className="text-sm text-muted-foreground">
+          {showInitialLoading 
+            ? "Loading commanders..." 
+            : `Showing ${displayedCommanders.length} of ${total} commanders`}
+        </p>
+        {mounted && isFetching && !isLoading && (
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        )}
+      </div>
 
       {/* Error state */}
-      {error && (
+      {mounted && error && (
         <div className="text-center py-8">
-          <p className="text-destructive mb-4">{error}</p>
-          <Button onClick={() => fetchCommanders()} variant="outline">
+          <p className="text-destructive mb-4">
+            {error instanceof Error ? error.message : "An error occurred"}
+          </p>
+          <Button onClick={() => refetch()} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
@@ -168,26 +227,24 @@ export function CommanderBrowser() {
       )}
 
       {/* Commander grid */}
-      {!error && (
+      {!(mounted && error) && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {commanders.map((commander, index) => (
-              <CommanderCard
-                key={commander.id}
-                commander={commander}
-                rank={index + 1}
-              />
-            ))}
-
-            {loading &&
-              [...Array(8)].map((_, i) => <CommanderCardSkeleton key={i} />)}
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ${mounted && isFetching && !isLoading ? "opacity-60" : ""} transition-opacity duration-200`}>
+            {showInitialLoading
+              ? [...Array(8)].map((_, i) => <CommanderCardSkeleton key={i} />)
+              : displayedCommanders.map((commander) => (
+                  <CommanderCard
+                    key={commander.id}
+                    commander={commander}
+                  />
+                ))}
           </div>
 
           {/* Load more button */}
-          {hasMore && !loading && (
+          {hasMore && !showInitialLoading && (
             <div className="flex justify-center mt-8">
               <Button
-                onClick={() => fetchCommanders(true)}
+                onClick={loadMore}
                 variant="outline"
                 size="lg"
               >

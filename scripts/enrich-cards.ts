@@ -38,7 +38,119 @@ const SCRYFALL_BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
 const ORACLE_CARDS_FILE = './oracle_cards.scryfall.json';
 const BATCH_SIZE = 500;
 const PAGE_SIZE = 1000;
-const VALIDATION_DELAY_MS = 50; // Delay between Scrollrack API calls
+const VALIDATION_CONCURRENCY = 10; // Number of parallel Scrollrack calls
+const VALIDATION_DELAY_MS = 20; // Small delay between batches
+
+// ============================================
+// Telemetry / Progress Tracking
+// ============================================
+
+class ProgressTracker {
+  private startTime: number;
+  private phaseStartTime: number;
+  private totalItems: number;
+  private processedItems: number;
+  private phaseName: string;
+
+  constructor() {
+    this.startTime = Date.now();
+    this.phaseStartTime = Date.now();
+    this.totalItems = 0;
+    this.processedItems = 0;
+    this.phaseName = '';
+  }
+
+  startPhase(name: string, totalItems: number): void {
+    this.phaseName = name;
+    this.totalItems = totalItems;
+    this.processedItems = 0;
+    this.phaseStartTime = Date.now();
+    console.log(`\n⏱️  Starting: ${name} (${totalItems} items)`);
+  }
+
+  update(processed: number): void {
+    this.processedItems = processed;
+  }
+
+  increment(count: number = 1): void {
+    this.processedItems += count;
+  }
+
+  getElapsed(): string {
+    const elapsed = Date.now() - this.startTime;
+    return this.formatDuration(elapsed);
+  }
+
+  getPhaseElapsed(): string {
+    const elapsed = Date.now() - this.phaseStartTime;
+    return this.formatDuration(elapsed);
+  }
+
+  getETA(): string {
+    if (this.processedItems === 0 || this.totalItems === 0) return 'calculating...';
+    
+    const elapsed = Date.now() - this.phaseStartTime;
+    const rate = this.processedItems / elapsed; // items per ms
+    const remaining = this.totalItems - this.processedItems;
+    const etaMs = remaining / rate;
+    
+    return this.formatDuration(etaMs);
+  }
+
+  getProgress(): string {
+    if (this.totalItems === 0) return '0%';
+    const pct = (this.processedItems / this.totalItems * 100).toFixed(1);
+    return `${pct}%`;
+  }
+
+  getRate(): string {
+    const elapsed = (Date.now() - this.phaseStartTime) / 1000; // seconds
+    if (elapsed === 0) return '0/s';
+    const rate = this.processedItems / elapsed;
+    return `${rate.toFixed(1)}/s`;
+  }
+
+  logProgress(extra?: string): void {
+    const progress = this.getProgress();
+    const elapsed = this.getPhaseElapsed();
+    const eta = this.getETA();
+    const rate = this.getRate();
+    
+    let status = `[${progress}] ${this.processedItems}/${this.totalItems} | ⏱️ ${elapsed} | ETA: ${eta} | ${rate}`;
+    if (extra) status += ` | ${extra}`;
+    
+    process.stdout.write(`\r  📊 ${status}    `);
+  }
+
+  endPhase(): void {
+    const elapsed = this.getPhaseElapsed();
+    const rate = this.getRate();
+    console.log(`\n  ✅ ${this.phaseName} complete in ${elapsed} (${rate})`);
+  }
+
+  summary(): void {
+    console.log(`\n⏱️  Total execution time: ${this.getElapsed()}`);
+  }
+
+  private formatDuration(ms: number): string {
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    
+    const seconds = Math.floor(ms / 1000) % 60;
+    const minutes = Math.floor(ms / (1000 * 60)) % 60;
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+}
+
+// Global progress tracker
+const progress = new ProgressTracker();
 
 // ============================================
 // Types
@@ -213,6 +325,17 @@ async function loadScryfallData(): Promise<Map<string, ScryfallCard>> {
   for (const card of cards) {
     cardByOracleId.set(card.oracle_id, card);
     cardByName.set(card.name.toLowerCase(), card);
+    
+    // For double-faced cards (name contains " // "), also index by front face name
+    // This handles TopDeck data inconsistency where some entries use full DFC name
+    // and others use just the front face name
+    if (card.name.includes(' // ')) {
+      const frontFace = card.name.split(' // ')[0].toLowerCase();
+      // Only set if not already mapped (prefer exact matches)
+      if (!cardByName.has(frontFace)) {
+        cardByName.set(frontFace, card);
+      }
+    }
   }
   
   console.log(`✅ Loaded ${cardByOracleId.size} unique cards`);
@@ -286,6 +409,13 @@ async function enrichCards(
 ): Promise<void> {
   console.log('\n📊 Enriching cards table...');
   
+  // Get count first for progress tracking
+  const { count: totalCount } = await supabase
+    .from('cards')
+    .select('id', { count: 'exact', head: true });
+  
+  progress.startPhase('Enriching cards', totalCount ?? 0);
+  
   const cards: DbCard[] = [];
   let offset = 0;
   
@@ -306,8 +436,6 @@ async function enrichCards(
     
     if (page.length < PAGE_SIZE) break;
   }
-  
-  console.log(`  📦 Found ${cards.length} cards to enrich`);
   
   const byName = (scryfallCards as Map<string, ScryfallCard> & { byName: Map<string, ScryfallCard> }).byName;
   
@@ -344,10 +472,11 @@ async function enrichCards(
       }
     }
     
-    console.log(`  📦 Processed ${Math.min(i + BATCH_SIZE, cards.length)}/${cards.length} cards`);
+    progress.update(Math.min(i + BATCH_SIZE, cards.length));
+    progress.logProgress(`${stats.cardsEnriched} enriched, ${stats.cardsNotFound} not found`);
   }
   
-  console.log(`  ✅ Enriched ${stats.cardsEnriched} cards (${stats.cardsNotFound} not found in Scryfall)`);
+  progress.endPhase();
 }
 
 async function enrichCommanders(
@@ -456,12 +585,24 @@ async function validateDecklists(
   stats: EnrichmentStats
 ): Promise<void> {
   console.log('\n📊 Validating decklists via Scrollrack API...');
+  console.log(`  ⚡ Using ${VALIDATION_CONCURRENCY} parallel requests`);
   
-  // Get all entries with decklists
-  const entries: DbEntry[] = [];
+  // First, get total count for progress tracking
+  const { count: totalCount, error: countError } = await supabase
+    .from('entries')
+    .select('id', { count: 'exact', head: true })
+    .not('decklist', 'is', null);
+  
+  if (countError) throw countError;
+  
+  const totalEntries = totalCount ?? 0;
+  progress.startPhase('Validating decklists', totalEntries);
+  
+  // Process entries in streaming fashion - don't load all into memory
   let offset = 0;
   
   while (true) {
+    // Fetch a page of entries
     const { data, error } = await supabase
       .from('entries')
       .select('id, decklist')
@@ -471,58 +612,71 @@ async function validateDecklists(
     
     if (error) throw error;
     
-    const page = data as DbEntry[] | null;
-    if (!page || page.length === 0) break;
+    const entries = data as DbEntry[] | null;
+    if (!entries || entries.length === 0) break;
     
-    entries.push(...page);
-    offset += PAGE_SIZE;
-    
-    if (page.length < PAGE_SIZE) break;
-  }
-  
-  console.log(`  📦 Found ${entries.length} entries with decklists to validate`);
-  
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    
-    if (!entry.decklist) {
-      stats.decklistsSkipped++;
-      continue;
-    }
-    
-    try {
-      const validationResult = await validateDecklistWithRetry(entry.decklist);
-      stats.decklistsValidated++;
+    // Process this page in parallel chunks
+    for (let i = 0; i < entries.length; i += VALIDATION_CONCURRENCY) {
+      const chunk = entries.slice(i, i + VALIDATION_CONCURRENCY);
       
-      if (validationResult) {
-        const isValid = validationResult.valid;
-        
-        if (isValid) {
-          stats.decklistsValid++;
-        } else {
-          stats.decklistsInvalid++;
+      // Process chunk in parallel
+      const results = await Promise.allSettled(
+        chunk.map(async (entry) => {
+          if (!entry.decklist) {
+            return { id: entry.id, skipped: true };
+          }
+          
+          try {
+            const validationResult = await validateDecklistWithRetry(entry.decklist);
+            
+            if (validationResult) {
+              return { 
+                id: entry.id, 
+                valid: validationResult.valid,
+                skipped: false 
+              };
+            }
+            return { id: entry.id, valid: null, skipped: false };
+          } catch {
+            return { id: entry.id, valid: null, skipped: false };
+          }
+        })
+      );
+      
+      // Update database with results
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const { id, valid, skipped } = result.value;
+          
+          if (skipped) {
+            stats.decklistsSkipped++;
+          } else {
+            stats.decklistsValidated++;
+            
+            if (valid === true) {
+              stats.decklistsValid++;
+              await supabase.from('entries').update({ decklist_valid: true }).eq('id', id);
+            } else if (valid === false) {
+              stats.decklistsInvalid++;
+              await supabase.from('entries').update({ decklist_valid: false }).eq('id', id);
+            }
+            // valid === null means API failed, leave decklist_valid as NULL
+          }
         }
-        
-        await supabase
-          .from('entries')
-          .update({ decklist_valid: isValid })
-          .eq('id', entry.id);
       }
-      // If validationResult is null (API failed), decklist_valid remains NULL
-    } catch {
-      // Validation error - leave decklist_valid as NULL
+      
+      progress.increment(chunk.length);
+      progress.logProgress(`${stats.decklistsValid} valid, ${stats.decklistsInvalid} invalid`);
+      
+      // Small delay between parallel batches
+      await new Promise(resolve => setTimeout(resolve, VALIDATION_DELAY_MS));
     }
     
-    // Rate limiting - small delay between API calls
-    await new Promise(resolve => setTimeout(resolve, VALIDATION_DELAY_MS));
-    
-    // Progress logging every 100 entries
-    if ((i + 1) % 100 === 0) {
-      console.log(`  📦 Validated ${i + 1}/${entries.length} decklists (${stats.decklistsValid} valid, ${stats.decklistsInvalid} invalid)`);
-    }
+    offset += PAGE_SIZE;
+    if (entries.length < PAGE_SIZE) break;
   }
   
-  console.log(`  ✅ Validated ${stats.decklistsValidated} decklists (${stats.decklistsValid} valid, ${stats.decklistsInvalid} invalid, ${stats.decklistsSkipped} skipped)`);
+  progress.endPhase();
 }
 
 // ============================================
@@ -572,6 +726,8 @@ async function main(): Promise<void> {
   console.log('\n' + '═'.repeat(60));
   console.log('Enrichment Complete!');
   console.log('═'.repeat(60));
+  progress.summary();
+  console.log('');
   console.log(`Cards enriched:        ${stats.cardsEnriched}`);
   console.log(`Cards not found:       ${stats.cardsNotFound}`);
   console.log(`Commanders enriched:   ${stats.commandersEnriched}`);

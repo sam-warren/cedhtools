@@ -11,6 +11,7 @@ const navItems = [
   { href: "/commanders", label: "Commanders" },
   { href: "/analyze", label: "Analyze" },
   { href: "/tournaments", label: "Tournaments" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 export function Navigation() {

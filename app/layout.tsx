@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Navigation } from "@/components/navigation";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -44,15 +45,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="min-h-screen flex flex-col">
-            <Navigation />
-            <main className="flex-1">{children}</main>
-            <footer className="border-t py-6 mt-auto">
-              <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
-                Data sourced from TopDeck.gg tournament results. Not affiliated with Wizards of the Coast.
-              </div>
-            </footer>
-          </div>
+          <QueryProvider>
+            <div className="min-h-screen flex flex-col">
+              <Navigation />
+              <main className="flex-1">{children}</main>
+              <footer className="border-t py-6 mt-auto">
+                <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
+                  Data sourced from TopDeck.gg tournament results. Not affiliated with Wizards of the Coast.
+                </div>
+              </footer>
+            </div>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

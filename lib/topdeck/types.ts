@@ -143,6 +143,7 @@ export function getCommanderNames(deckObj: DeckObj | null): string[] {
 
 /**
  * Normalize commander name (sorted alphabetically, joined with " / ")
+ * Preserves full DFC names as provided by TopDeck
  */
 export function normalizeCommanderName(deckObj: DeckObj | null): CommanderName | null {
   const names = getCommanderNames(deckObj);
