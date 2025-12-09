@@ -420,7 +420,7 @@ export function AnalysisResultsSkeleton() {
   return (
     <div className="space-y-12">
       <div className="flex flex-col lg:flex-row gap-10">
-        <Skeleton className="w-[180px] aspect-[488/680] rounded-lg shrink-0" />
+        <Skeleton className="w-[180px] aspect-488/680 rounded-lg shrink-0" />
         <div className="flex-1 space-y-6">
           <div>
             <Skeleton className="h-6 w-32 mb-3" />

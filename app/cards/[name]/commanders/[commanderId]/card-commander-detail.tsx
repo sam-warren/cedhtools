@@ -37,7 +37,7 @@ function CardCommanderDetailSkeleton() {
   return (
     <div className="space-y-12">
       <div className="flex flex-col lg:flex-row gap-10">
-        <Skeleton className="w-44 aspect-[488/680] rounded-lg flex-shrink-0" />
+        <Skeleton className="w-44 aspect-488/680 rounded-lg flex-0" />
         <div className="flex-1 space-y-6">
           <div>
             <Skeleton className="h-4 w-32 mb-2" />
@@ -192,8 +192,8 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
       {/* Hero Section */}
       <section className="flex flex-col lg:flex-row gap-10">
         {/* Card Image */}
-        <div className="flex-shrink-0">
-          <div className="relative w-44 aspect-[488/680] rounded-lg overflow-hidden shadow-2xl bg-muted">
+        <div className="flex-0">
+          <div className="relative w-44 aspect-488/680 rounded-lg overflow-hidden shadow-2xl bg-muted">
             <Image
               src={cardImageUrl}
               alt={card.name}
