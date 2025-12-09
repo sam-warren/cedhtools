@@ -45,3 +45,6 @@ next-env.d.ts
 
 # worker logs
 /logs/*.log
+
+# supabase
+/supabase/.temp
