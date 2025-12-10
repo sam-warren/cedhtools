@@ -189,7 +189,7 @@ function CommanderDetailSkeleton() {
     <div className="space-y-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-8">
-        <Skeleton className="w-48 aspect-488/680 rounded-lg flex-0" />
+        <Skeleton className="w-48 aspect-[488/680] rounded-lg shrink-0" />
         <div className="flex-1 space-y-6">
           <Skeleton className="h-10 w-96" />
           <div className="flex gap-12">
@@ -203,15 +203,22 @@ function CommanderDetailSkeleton() {
         </div>
       </div>
 
-      {/* Charts section */}
-      <Skeleton className="h-64 w-full" />
-
       {/* Cards section */}
-      <div className="space-y-4">
+      <div className="space-y-4 border-t pt-12">
         <Skeleton className="h-6 w-32" />
         {[...Array(6)].map((_, i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
+      </div>
+
+      {/* Charts section */}
+      <div className="border-t pt-12">
+        <Skeleton className="h-6 w-48 mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-[220px] w-full" />
+          ))}
+        </div>
       </div>
     </div>
   );

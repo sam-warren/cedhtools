@@ -57,12 +57,14 @@ export function createStapleCardsColumns(
           typeLine.toLowerCase().includes(searchValue)
         );
       },
+      // Card name column takes remaining space (no fixed size)
     },
     {
       accessorKey: "mana_cost",
       header: "Mana Cost",
       cell: ({ row }) => <ManaCost cost={row.original.mana_cost} size="sm" />,
       enableSorting: false,
+      size: 140,
     },
     {
       accessorKey: "play_rate",
@@ -74,6 +76,7 @@ export function createStapleCardsColumns(
           {(row.original.play_rate * 100).toFixed(1)}%
         </div>
       ),
+      size: 110,
     },
     {
       accessorKey: "win_rate",
@@ -85,6 +88,7 @@ export function createStapleCardsColumns(
           {(row.original.win_rate * 100).toFixed(1)}%
         </div>
       ),
+      size: 110,
     },
     {
       accessorKey: "win_rate_delta",
@@ -108,6 +112,7 @@ export function createStapleCardsColumns(
           </div>
         );
       },
+      size: 90,
     },
     {
       accessorKey: "conversion_score_delta",
@@ -134,6 +139,7 @@ export function createStapleCardsColumns(
           </div>
         );
       },
+      size: 90,
     },
   ];
 }

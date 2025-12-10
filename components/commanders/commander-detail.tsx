@@ -221,6 +221,44 @@ export function CommanderDetail({ commanderName, initialData }: CommanderDetailP
         </div>
       </section>
 
+      {/* Staple Cards Section */}
+      <section className="border-t pt-12">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-medium">Staple Cards</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {cardsLoading ? "Loading cards..." : `${cards.length} cards played in ${displayCommander.name} decks`}
+            </p>
+          </div>
+          {cardsFetching && !cardsLoading && (
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        
+        {cardsLoading ? (
+          <div className="space-y-2">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : cards.length > 0 ? (
+          <DataTable
+            columns={stapleCardsColumns}
+            data={cards}
+            enableMinEntriesFilter
+            minEntriesOptions={[5, 10, 25, 50, 100]}
+            defaultMinEntries={5}
+            getRowEntries={(row) => row.entries}
+            defaultPageSize={10}
+            globalFilter
+          />
+        ) : (
+          <p className="text-muted-foreground py-8">
+            No card data available for this time period.
+          </p>
+        )}
+      </section>
+
       {/* Charts Section */}
       {(seatsLoading || displayCommander.trend?.length || (seatData && seatData.total_games > 0)) && (
         <section className="border-t pt-12">
@@ -424,44 +462,6 @@ export function CommanderDetail({ commanderName, initialData }: CommanderDetailP
           </div>
         </section>
       )}
-
-      {/* Staple Cards Section */}
-      <section className="border-t pt-12">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-medium">Staple Cards</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              {cardsLoading ? "Loading cards..." : `${cards.length} cards played in ${displayCommander.name} decks`}
-            </p>
-          </div>
-          {cardsFetching && !cardsLoading && (
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          )}
-        </div>
-        
-        {cardsLoading ? (
-          <div className="space-y-2">
-            {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        ) : cards.length > 0 ? (
-          <DataTable
-            columns={stapleCardsColumns}
-            data={cards}
-            enableMinEntriesFilter
-            minEntriesOptions={[5, 10, 25, 50, 100]}
-            defaultMinEntries={5}
-            getRowEntries={(row) => row.entries}
-            defaultPageSize={10}
-            globalFilter
-          />
-        ) : (
-          <p className="text-muted-foreground py-8">
-            No card data available for this time period.
-          </p>
-        )}
-      </section>
     </div>
   );
 }
