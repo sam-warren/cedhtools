@@ -5,6 +5,8 @@ import { createClient } from "@/lib/db/server";
 import { getTimePeriodDateFilter, type TimePeriod } from "@/lib/utils/time-period";
 import type { CommanderListItem } from "@/types/api";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: "Commanders",
   description: "Browse cEDH commanders by conversion rate, popularity, and color identity.",
