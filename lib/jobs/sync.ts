@@ -864,18 +864,27 @@ export async function syncTournaments(
   logger.log(`Cache loading complete in ${Date.now() - cacheLoadStart}ms`);
   logger.logMemory();
 
-  // Get existing tournament IDs with count
+  // Get existing tournament IDs with pagination (Supabase default limit is 1000)
   logger.log(`Checking existing tournaments...`);
   const existingTids = new Set<string>();
-  const { data: existingTournaments } = await supabase
-    .from('tournaments')
-    .select('tid');
+  let offset = 0;
+  
+  while (true) {
+    const { data: existingTournaments } = await supabase
+      .from('tournaments')
+      .select('tid')
+      .range(offset, offset + PAGE_SIZE - 1);
 
-  if (existingTournaments) {
+    if (!existingTournaments || existingTournaments.length === 0) break;
+    
     for (const t of existingTournaments as { tid: string }[]) {
       existingTids.add(t.tid);
     }
+    
+    offset += PAGE_SIZE;
+    if (existingTournaments.length < PAGE_SIZE) break;
   }
+  
   logger.log(`Found ${logger.formatNumber(existingTids.size)} existing tournaments in database`);
 
   // Calculate total tournaments to process (estimate for ETA)

@@ -12,3 +12,4 @@ ALTER TABLE entries RENAME COLUMN decklist_url TO decklist;
 
 
 
+

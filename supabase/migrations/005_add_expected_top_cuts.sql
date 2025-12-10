@@ -15,3 +15,4 @@ COMMENT ON COLUMN card_commander_weekly_stats.expected_top_cuts IS 'Sum of (topC
 
 
 
+
