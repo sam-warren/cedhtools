@@ -16,6 +16,9 @@ import {
   BATCH_SIZE,
 } from './utils';
 import { validateDecklistWithRetry } from '../api/scrollrack';
+import { Readable } from 'stream';
+import { parser } from 'stream-json';
+import { streamArray } from 'stream-json/streamers/StreamArray';
 
 // ============================================
 // Configuration
@@ -24,6 +27,7 @@ import { validateDecklistWithRetry } from '../api/scrollrack';
 const SCRYFALL_BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
 const VALIDATION_CONCURRENCY = 10;
 const VALIDATION_DELAY_MS = 20;
+const UPDATE_BATCH_SIZE = 100; // Batch size for DB updates
 
 // ============================================
 // Types
@@ -38,23 +42,18 @@ interface ScryfallBulkDataResponse {
   }>;
 }
 
-interface ScryfallCardFace {
-  name: string;
-  mana_cost?: string;
-  type_line?: string;
-  colors?: string[];
-}
-
-interface ScryfallCard {
-  id: string;
+/** 
+ * Scryfall card data - only the fields we need for enrichment.
+ * Streamed from bulk API to minimize memory usage.
+ */
+export interface ScryfallCard {
   oracle_id: string;
   name: string;
   type_line?: string;
   mana_cost?: string;
   cmc?: number;
   color_identity?: string[];
-  colors?: string[];
-  card_faces?: ScryfallCardFace[];
+  card_faces?: Array<{ mana_cost?: string }>;
 }
 
 interface DbCard {
@@ -82,22 +81,12 @@ interface DbEntry {
 // Helper Functions
 // ============================================
 
-/**
- * Extract mana_cost from a Scryfall card, handling multi-faced cards.
- */
 function extractManaCost(card: ScryfallCard): string | null {
-  if (card.mana_cost) {
-    return card.mana_cost;
-  }
-  if (card.card_faces && card.card_faces.length > 0 && card.card_faces[0].mana_cost) {
-    return card.card_faces[0].mana_cost;
-  }
+  if (card.mana_cost) return card.mana_cost;
+  if (card.card_faces?.[0]?.mana_cost) return card.card_faces[0].mana_cost;
   return null;
 }
 
-/**
- * Convert color identity array to WUBRG string.
- */
 function wubrgify(colorIdentity: string[]): string {
   let result = '';
   if (colorIdentity.includes('W')) result += 'W';
@@ -109,12 +98,23 @@ function wubrgify(colorIdentity: string[]): string {
 }
 
 // ============================================
-// Scryfall Data Loading
+// Scryfall Data Loading (Streaming)
 // ============================================
 
+/** Raw card from Scryfall API before we filter fields */
+interface ScryfallCardRaw {
+  oracle_id: string;
+  name: string;
+  type_line?: string;
+  mana_cost?: string;
+  cmc?: number;
+  color_identity?: string[];
+  card_faces?: Array<{ mana_cost?: string }>;
+}
+
 /**
- * Load Scryfall card data from their bulk API.
- * Returns a map of oracle_id -> card data and name -> card data.
+ * Load Scryfall card data using streaming to minimize memory.
+ * Only keeps fields needed for enrichment (~100MB vs ~800MB full).
  */
 export async function loadScryfallData(
   logger: ProgressLogger
@@ -136,7 +136,7 @@ export async function loadScryfallData(
     throw new Error('Could not find oracle_cards in Scryfall bulk data');
   }
   
-  logger.log('Downloading oracle_cards from Scryfall...');
+  logger.log('Streaming oracle_cards from Scryfall...');
   const downloadResponse = await fetch(oracleCardsEntry.download_uri, {
     headers: { 'Accept': '*/*', 'User-Agent': 'cedhtools/1.0' },
   });
@@ -145,25 +145,71 @@ export async function loadScryfallData(
     throw new Error(`Failed to download Scryfall data: ${downloadResponse.status}`);
   }
   
-  const cards: ScryfallCard[] = await downloadResponse.json();
+  if (!downloadResponse.body) {
+    throw new Error('Response body is null - cannot stream');
+  }
   
   const cardByOracleId = new Map<string, ScryfallCard>() as Map<string, ScryfallCard> & { byName: Map<string, ScryfallCard> };
   const cardByName = new Map<string, ScryfallCard>();
   
-  for (const card of cards) {
-    cardByOracleId.set(card.oracle_id, card);
-    cardByName.set(card.name.toLowerCase(), card);
-    
-    if (card.name.includes(' // ')) {
-      const frontFace = card.name.split(' // ')[0].toLowerCase();
-      if (!cardByName.has(frontFace)) {
-        cardByName.set(frontFace, card);
+  let processedCount = 0;
+  const startTime = Date.now();
+  
+  await new Promise<void>((resolve, reject) => {
+    const reader = downloadResponse.body!.getReader();
+    const nodeStream = new Readable({
+      async read() {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            this.push(null);
+          } else {
+            this.push(Buffer.from(value));
+          }
+        } catch (err) {
+          this.destroy(err as Error);
+        }
       }
-    }
-  }
+    });
+    
+    const pipeline = nodeStream.pipe(parser()).pipe(streamArray());
+    
+    pipeline.on('data', ({ value: raw }: { value: ScryfallCardRaw }) => {
+      const card: ScryfallCard = {
+        oracle_id: raw.oracle_id,
+        name: raw.name,
+        type_line: raw.type_line,
+        mana_cost: raw.mana_cost,
+        cmc: raw.cmc,
+        color_identity: raw.color_identity,
+        card_faces: raw.card_faces?.map(f => ({ mana_cost: f.mana_cost })),
+      };
+      
+      cardByOracleId.set(card.oracle_id, card);
+      cardByName.set(card.name.toLowerCase(), card);
+      
+      if (card.name.includes(' // ')) {
+        const frontFace = card.name.split(' // ')[0].toLowerCase();
+        if (!cardByName.has(frontFace)) {
+          cardByName.set(frontFace, card);
+        }
+      }
+      
+      processedCount++;
+      if (processedCount % 10000 === 0) {
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        logger.debug(`Streamed ${processedCount.toLocaleString()} cards... (${elapsed}s)`);
+      }
+    });
+    
+    pipeline.on('end', resolve);
+    pipeline.on('error', reject);
+  });
   
   cardByOracleId.byName = cardByName;
-  logger.log(`Loaded ${cardByOracleId.size} unique cards from Scryfall`);
+  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  logger.log(`Loaded ${cardByOracleId.size.toLocaleString()} cards from Scryfall in ${elapsed}s`);
+  logger.logMemory();
   
   return cardByOracleId;
 }
@@ -172,10 +218,6 @@ export async function loadScryfallData(
 // Enrichment Functions
 // ============================================
 
-/**
- * Enrich cards with Scryfall data.
- * In incremental mode, only processes cards with null scryfall_data.
- */
 async function enrichCards(
   supabase: SupabaseAdmin,
   scryfallCards: Map<string, ScryfallCard> & { byName: Map<string, ScryfallCard> },
@@ -183,96 +225,113 @@ async function enrichCards(
   logger: ProgressLogger,
   incremental: boolean
 ): Promise<void> {
-  logger.log('Enriching cards table...');
-  
-  // Build query based on mode
-  let query = supabase
-    .from('cards')
-    .select('id, name, oracle_id');
-  
-  if (incremental) {
-    query = query.is('scryfall_data', null);
-  }
-  
   // Get count for progress
-  const countQuery = supabase.from('cards').select('id', { count: 'exact', head: true });
-  if (incremental) {
-    countQuery.is('scryfall_data', null);
-  }
+  let countQuery = supabase.from('cards').select('id', { count: 'exact', head: true });
+  if (incremental) countQuery = countQuery.is('scryfall_data', null);
   const { count: totalCount } = await countQuery;
   
-  logger.startPhase('Enriching cards', totalCount ?? 0);
+  logger.startPhase('Enrich Cards', totalCount ?? 0);
   
-  const cards: DbCard[] = [];
+  const pendingUpdates: Array<{
+    id: number;
+    oracle_id: string;
+    type_line: string | null;
+    mana_cost: string | null;
+    cmc: number | null;
+    scryfall_data: Record<string, unknown>;
+  }> = [];
+  
   let offset = 0;
+  let totalProcessed = 0;
+  const byName = scryfallCards.byName;
   
   while (true) {
-    let fetchQuery = supabase
+    let query = supabase
       .from('cards')
       .select('id, name, oracle_id')
       .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     
-    if (incremental) {
-      fetchQuery = fetchQuery.is('scryfall_data', null);
-    }
+    if (incremental) query = query.is('scryfall_data', null);
     
-    const { data, error } = await fetchQuery;
-    
+    const { data, error } = await query;
     if (error) throw error;
     if (!data || data.length === 0) break;
     
-    cards.push(...(data as DbCard[]));
-    offset += PAGE_SIZE;
+    const cards = data as DbCard[];
     
-    if (data.length < PAGE_SIZE) break;
-  }
-  
-  const byName = scryfallCards.byName;
-  
-  for (let i = 0; i < cards.length; i += BATCH_SIZE) {
-    const batch = cards.slice(i, i + BATCH_SIZE);
-    
-    for (const card of batch) {
-      let scryfallCard = card.oracle_id 
-        ? scryfallCards.get(card.oracle_id)
-        : undefined;
-      
-      if (!scryfallCard && byName) {
-        scryfallCard = byName.get(card.name.toLowerCase());
-      }
+    for (const card of cards) {
+      let scryfallCard = card.oracle_id ? scryfallCards.get(card.oracle_id) : undefined;
+      if (!scryfallCard) scryfallCard = byName?.get(card.name.toLowerCase());
       
       if (!scryfallCard) {
         stats.cardsNotFound++;
         continue;
       }
       
-      const { error: updateError } = await supabase
-        .from('cards')
-        .update({
-          oracle_id: scryfallCard.oracle_id,
-          type_line: scryfallCard.type_line || null,
-          mana_cost: extractManaCost(scryfallCard),
-          cmc: scryfallCard.cmc ?? null,
-          scryfall_data: scryfallCard as unknown as Record<string, unknown>,
-        })
-        .eq('id', card.id);
+      pendingUpdates.push({
+        id: card.id,
+        oracle_id: scryfallCard.oracle_id,
+        type_line: scryfallCard.type_line || null,
+        mana_cost: extractManaCost(scryfallCard),
+        cmc: scryfallCard.cmc ?? null,
+        scryfall_data: scryfallCard as unknown as Record<string, unknown>,
+      });
       
-      if (!updateError) {
-        stats.cardsEnriched++;
+      // Flush batch when full
+      if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushed = await flushCardUpdates(supabase, pendingUpdates);
+        stats.cardsEnriched += flushed;
+        pendingUpdates.length = 0;
       }
     }
     
-    logger.update(Math.min(i + BATCH_SIZE, cards.length));
+    totalProcessed += cards.length;
+    logger.update(totalProcessed);
+    offset += PAGE_SIZE;
+    if (cards.length < PAGE_SIZE) break;
+  }
+  
+  // Flush remaining
+  if (pendingUpdates.length > 0) {
+    const flushed = await flushCardUpdates(supabase, pendingUpdates);
+    stats.cardsEnriched += flushed;
   }
   
   logger.endPhase();
 }
 
-/**
- * Enrich commanders with color identity.
- * In incremental mode, only processes commanders with empty color_id.
- */
+async function flushCardUpdates(
+  supabase: SupabaseAdmin,
+  updates: Array<{
+    id: number;
+    oracle_id: string;
+    type_line: string | null;
+    mana_cost: string | null;
+    cmc: number | null;
+    scryfall_data: Record<string, unknown>;
+  }>
+): Promise<number> {
+  if (updates.length === 0) return 0;
+  
+  // Use individual updates since cards table may not support upsert by id
+  let count = 0;
+  for (const update of updates) {
+    const { error } = await supabase
+      .from('cards')
+      .update({
+        oracle_id: update.oracle_id,
+        type_line: update.type_line,
+        mana_cost: update.mana_cost,
+        cmc: update.cmc,
+        scryfall_data: update.scryfall_data,
+      })
+      .eq('id', update.id);
+    if (!error) count++;
+  }
+  return count;
+}
+
 async function enrichCommanders(
   supabase: SupabaseAdmin,
   scryfallCards: Map<string, ScryfallCard> & { byName: Map<string, ScryfallCard> },
@@ -280,10 +339,17 @@ async function enrichCommanders(
   logger: ProgressLogger,
   incremental: boolean
 ): Promise<void> {
-  logger.log('Enriching commanders table...');
+  // Get count for progress
+  let countQuery = supabase.from('commanders').select('id', { count: 'exact', head: true });
+  if (incremental) countQuery = countQuery.eq('color_id', '');
+  const { count: totalCount } = await countQuery;
   
-  const commanders: DbCommander[] = [];
+  logger.startPhase('Enrich Commanders', totalCount ?? 0);
+  
+  const pendingUpdates: Array<{ id: number; color_id: string }> = [];
   let offset = 0;
+  let totalProcessed = 0;
+  const byName = scryfallCards.byName;
   
   while (true) {
     let query = supabase
@@ -292,65 +358,82 @@ async function enrichCommanders(
       .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     
-    if (incremental) {
-      query = query.eq('color_id', '');
-    }
+    if (incremental) query = query.eq('color_id', '');
     
     const { data, error } = await query;
-    
     if (error) throw error;
     if (!data || data.length === 0) break;
     
-    commanders.push(...(data as DbCommander[]));
-    offset += PAGE_SIZE;
+    const commanders = data as DbCommander[];
     
-    if (data.length < PAGE_SIZE) break;
-  }
-  
-  logger.log(`Found ${commanders.length} commanders to enrich`);
-  
-  const byName = scryfallCards.byName;
-  
-  for (const commander of commanders) {
-    const commanderNames = commander.name.split(' / ');
-    const combinedColorIdentity: string[] = [];
-    
-    for (const name of commanderNames) {
-      const scryfallCard = byName?.get(name.toLowerCase().trim());
-      if (scryfallCard?.color_identity) {
-        combinedColorIdentity.push(...scryfallCard.color_identity);
+    for (const commander of commanders) {
+      const commanderNames = commander.name.split(' / ');
+      const combinedColorIdentity: string[] = [];
+      
+      for (const name of commanderNames) {
+        const scryfallCard = byName?.get(name.toLowerCase().trim());
+        if (scryfallCard?.color_identity) {
+          combinedColorIdentity.push(...scryfallCard.color_identity);
+        }
+      }
+      
+      pendingUpdates.push({
+        id: commander.id,
+        color_id: wubrgify([...new Set(combinedColorIdentity)]),
+      });
+      
+      if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushed = await flushCommanderUpdates(supabase, pendingUpdates);
+        stats.commandersEnriched += flushed;
+        pendingUpdates.length = 0;
       }
     }
     
-    const colorId = wubrgify([...new Set(combinedColorIdentity)]);
-    
-    const { error: updateError } = await supabase
-      .from('commanders')
-      .update({ color_id: colorId })
-      .eq('id', commander.id);
-    
-    if (!updateError) {
-      stats.commandersEnriched++;
-    }
+    totalProcessed += commanders.length;
+    logger.update(totalProcessed);
+    offset += PAGE_SIZE;
+    if (commanders.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Enriched ${stats.commandersEnriched} commanders with color identity`);
+  if (pendingUpdates.length > 0) {
+    const flushed = await flushCommanderUpdates(supabase, pendingUpdates);
+    stats.commandersEnriched += flushed;
+  }
+  
+  logger.endPhase();
 }
 
-/**
- * Enrich tournaments with bracket URLs.
- * In incremental mode, only processes tournaments with null bracket_url.
- */
+async function flushCommanderUpdates(
+  supabase: SupabaseAdmin,
+  updates: Array<{ id: number; color_id: string }>
+): Promise<number> {
+  let count = 0;
+  for (const update of updates) {
+    const { error } = await supabase
+      .from('commanders')
+      .update({ color_id: update.color_id })
+      .eq('id', update.id);
+    if (!error) count++;
+  }
+  return count;
+}
+
 async function enrichTournaments(
   supabase: SupabaseAdmin,
   stats: EnrichmentStats,
   logger: ProgressLogger,
   incremental: boolean
 ): Promise<void> {
-  logger.log('Enriching tournaments table...');
+  // Get count for progress
+  let countQuery = supabase.from('tournaments').select('id', { count: 'exact', head: true });
+  if (incremental) countQuery = countQuery.is('bracket_url', null);
+  const { count: totalCount } = await countQuery;
   
-  const tournaments: DbTournament[] = [];
+  logger.startPhase('Enrich Tournaments', totalCount ?? 0);
+  
+  const pendingUpdates: Array<{ id: number; bracket_url: string }> = [];
   let offset = 0;
+  let totalProcessed = 0;
   
   while (true) {
     let query = supabase
@@ -359,67 +442,79 @@ async function enrichTournaments(
       .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     
-    if (incremental) {
-      query = query.is('bracket_url', null);
-    }
+    if (incremental) query = query.is('bracket_url', null);
     
     const { data, error } = await query;
-    
     if (error) throw error;
     if (!data || data.length === 0) break;
     
-    tournaments.push(...(data as DbTournament[]));
-    offset += PAGE_SIZE;
+    const tournaments = data as DbTournament[];
     
-    if (data.length < PAGE_SIZE) break;
-  }
-  
-  logger.log(`Found ${tournaments.length} tournaments to update`);
-  
-  for (const tournament of tournaments) {
-    const { error: updateError } = await supabase
-      .from('tournaments')
-      .update({ bracket_url: `https://topdeck.gg/bracket/${tournament.tid}` })
-      .eq('id', tournament.id);
-    
-    if (!updateError) {
-      stats.tournamentsEnriched++;
+    for (const tournament of tournaments) {
+      pendingUpdates.push({
+        id: tournament.id,
+        bracket_url: `https://topdeck.gg/bracket/${tournament.tid}`,
+      });
+      
+      if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushed = await flushTournamentUpdates(supabase, pendingUpdates);
+        stats.tournamentsEnriched += flushed;
+        pendingUpdates.length = 0;
+      }
     }
+    
+    totalProcessed += tournaments.length;
+    logger.update(totalProcessed);
+    offset += PAGE_SIZE;
+    if (tournaments.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Updated ${stats.tournamentsEnriched} tournaments with bracket_url`);
+  if (pendingUpdates.length > 0) {
+    const flushed = await flushTournamentUpdates(supabase, pendingUpdates);
+    stats.tournamentsEnriched += flushed;
+  }
+  
+  logger.endPhase();
 }
 
-/**
- * Validate decklists via Scrollrack API.
- * In incremental mode, only processes entries with null decklist_valid.
- */
+async function flushTournamentUpdates(
+  supabase: SupabaseAdmin,
+  updates: Array<{ id: number; bracket_url: string }>
+): Promise<number> {
+  let count = 0;
+  for (const update of updates) {
+    const { error } = await supabase
+      .from('tournaments')
+      .update({ bracket_url: update.bracket_url })
+      .eq('id', update.id);
+    if (!error) count++;
+  }
+  return count;
+}
+
 async function validateDecklists(
   supabase: SupabaseAdmin,
   stats: EnrichmentStats,
   logger: ProgressLogger,
   incremental: boolean
 ): Promise<void> {
-  logger.log('Validating decklists via Scrollrack API...');
-  logger.log(`Using ${VALIDATION_CONCURRENCY} parallel requests`);
-  
   // Get total count for progress tracking
   let countQuery = supabase
     .from('entries')
     .select('id', { count: 'exact', head: true })
     .not('decklist', 'is', null);
   
-  if (incremental) {
-    countQuery = countQuery.is('decklist_valid', null);
-  }
+  if (incremental) countQuery = countQuery.is('decklist_valid', null);
   
   const { count: totalCount, error: countError } = await countQuery;
   if (countError) throw countError;
   
-  const totalEntries = totalCount ?? 0;
-  logger.startPhase('Validating decklists', totalEntries);
+  logger.startPhase('Validate Decklists', totalCount ?? 0);
+  logger.log(`Using ${VALIDATION_CONCURRENCY} parallel requests`);
   
+  const pendingUpdates: Array<{ id: number; decklist_valid: boolean }> = [];
   let offset = 0;
+  let totalProcessed = 0;
   
   while (true) {
     let query = supabase
@@ -429,12 +524,9 @@ async function validateDecklists(
       .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     
-    if (incremental) {
-      query = query.is('decklist_valid', null);
-    }
+    if (incremental) query = query.is('decklist_valid', null);
     
     const { data, error } = await query;
-    
     if (error) throw error;
     
     const entries = data as DbEntry[] | null;
@@ -446,28 +538,17 @@ async function validateDecklists(
       
       const results = await Promise.allSettled(
         chunk.map(async (entry) => {
-          if (!entry.decklist) {
-            return { id: entry.id, skipped: true };
-          }
+          if (!entry.decklist) return { id: entry.id, skipped: true };
           
           try {
-            const validationResult = await validateDecklistWithRetry(entry.decklist);
-            
-            if (validationResult) {
-              return { 
-                id: entry.id, 
-                valid: validationResult.valid,
-                skipped: false 
-              };
-            }
-            return { id: entry.id, valid: null, skipped: false };
+            const result = await validateDecklistWithRetry(entry.decklist);
+            return { id: entry.id, valid: result?.valid ?? null, skipped: false };
           } catch {
             return { id: entry.id, valid: null, skipped: false };
           }
         })
       );
       
-      // Update database with results
       for (const result of results) {
         if (result.status === 'fulfilled') {
           const { id, valid, skipped } = result.value;
@@ -476,21 +557,26 @@ async function validateDecklists(
             stats.decklistsSkipped++;
           } else {
             stats.decklistsValidated++;
-            
             if (valid === true) {
               stats.decklistsValid++;
-              await supabase.from('entries').update({ decklist_valid: true }).eq('id', id);
+              pendingUpdates.push({ id, decklist_valid: true });
             } else if (valid === false) {
               stats.decklistsInvalid++;
-              await supabase.from('entries').update({ decklist_valid: false }).eq('id', id);
+              pendingUpdates.push({ id, decklist_valid: false });
             }
           }
         }
       }
       
-      logger.increment(chunk.length);
+      // Flush batch when full
+      if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        await flushValidationUpdates(supabase, pendingUpdates);
+        pendingUpdates.length = 0;
+      }
       
-      // Small delay between parallel batches
+      totalProcessed += chunk.length;
+      logger.update(totalProcessed);
+      
       await new Promise(resolve => setTimeout(resolve, VALIDATION_DELAY_MS));
     }
     
@@ -498,7 +584,24 @@ async function validateDecklists(
     if (entries.length < PAGE_SIZE) break;
   }
   
+  // Flush remaining
+  if (pendingUpdates.length > 0) {
+    await flushValidationUpdates(supabase, pendingUpdates);
+  }
+  
   logger.endPhase();
+}
+
+async function flushValidationUpdates(
+  supabase: SupabaseAdmin,
+  updates: Array<{ id: number; decklist_valid: boolean }>
+): Promise<void> {
+  for (const update of updates) {
+    await supabase
+      .from('entries')
+      .update({ decklist_valid: update.decklist_valid })
+      .eq('id', update.id);
+  }
 }
 
 // ============================================
@@ -506,17 +609,11 @@ async function validateDecklists(
 // ============================================
 
 export interface EnrichOptions {
-  /** Enable incremental mode (only process un-enriched records) */
   incremental?: boolean;
-  /** Skip decklist validation (useful for faster runs) */
   skipValidation?: boolean;
-  /** Custom progress logger */
   logger?: ProgressLogger;
 }
 
-/**
- * Enrich database records with Scryfall data and validate decklists.
- */
 export async function enrichData(
   supabase: SupabaseAdmin,
   options: EnrichOptions = {}
@@ -538,33 +635,47 @@ export async function enrichData(
     decklistsSkipped: 0,
   };
   
-  logger.log(`Enrichment mode: ${incremental ? 'incremental' : 'full'}`);
+  const startTime = Date.now();
+  
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`ENRICHMENT JOB STARTED`);
+  logger.log(`Mode: ${incremental ? 'incremental' : 'full'}`);
+  logger.log(`Skip validation: ${skipValidation}`);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.logMemory();
   
   // Load Scryfall data
   const scryfallCards = await loadScryfallData(logger);
   
-  // Enrich cards
+  // Enrich each table
   await enrichCards(supabase, scryfallCards, stats, logger, incremental);
-  
-  // Enrich commanders
   await enrichCommanders(supabase, scryfallCards, stats, logger, incremental);
-  
-  // Enrich tournaments
   await enrichTournaments(supabase, stats, logger, incremental);
   
-  // Validate decklists
   if (!skipValidation) {
     await validateDecklists(supabase, stats, logger, incremental);
   } else {
     logger.log('Skipping decklist validation');
   }
   
+  // Final summary
+  const totalDuration = Date.now() - startTime;
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`🎉 ENRICHMENT JOB COMPLETE`);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`Duration: ${Math.round(totalDuration / 1000)}s`);
+  logger.log(`Cards: ${stats.cardsEnriched.toLocaleString()} enriched, ${stats.cardsNotFound.toLocaleString()} not found`);
+  logger.log(`Commanders: ${stats.commandersEnriched.toLocaleString()} enriched`);
+  logger.log(`Tournaments: ${stats.tournamentsEnriched.toLocaleString()} enriched`);
+  if (!skipValidation) {
+    logger.log(`Decklists: ${stats.decklistsValid.toLocaleString()} valid, ${stats.decklistsInvalid.toLocaleString()} invalid`);
+  }
+  logger.logMemory();
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  
   return stats;
 }
 
-/**
- * Full enrichment with clearing existing data (for re-seeding).
- */
 export async function enrichDataFull(
   supabase: SupabaseAdmin,
   logger?: ProgressLogger
@@ -573,37 +684,20 @@ export async function enrichDataFull(
   
   log.log('Clearing previously enriched data...');
   
-  // Clear cards enrichment data
-  await supabase
-    .from('cards')
-    .update({
-      type_line: null,
-      mana_cost: null,
-      cmc: null,
-      scryfall_data: null,
-    })
-    .neq('id', 0);
+  await supabase.from('cards').update({
+    type_line: null,
+    mana_cost: null,
+    cmc: null,
+    scryfall_data: null,
+  }).neq('id', 0);
   
-  // Clear commanders color_id
-  await supabase
-    .from('commanders')
-    .update({ color_id: '' })
-    .neq('id', 0);
-  
-  // Clear tournaments bracket_url
-  await supabase
-    .from('tournaments')
-    .update({ bracket_url: null })
-    .neq('id', 0);
-  
-  // Clear entries decklist_valid
-  await supabase
-    .from('entries')
-    .update({ decklist_valid: null })
-    .neq('id', 0);
+  await supabase.from('commanders').update({ color_id: '' }).neq('id', 0);
+  await supabase.from('tournaments').update({ bracket_url: null }).neq('id', 0);
+  await supabase.from('entries').update({ decklist_valid: null }).neq('id', 0);
   
   log.log('All enriched data cleared');
   
   return enrichData(supabase, { incremental: false, logger: log });
 }
+
 

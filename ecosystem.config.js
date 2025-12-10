@@ -18,7 +18,9 @@ module.exports = {
       script: 'npx',
       args: 'tsx worker/index.ts',
       cwd: __dirname,
-      node_args: '--expose-gc --max-old-space-size=768',  // Enable GC + limit Node memory
+      // Memory settings: 1GB for Node heap (streaming keeps usage ~200-400MB typically)
+      // PM2 will restart if it exceeds this - but with streaming Scryfall, this should be fine
+      node_args: '--expose-gc --max-old-space-size=1024',
       
       // Environment variables (override with --env production)
       env: {
@@ -47,8 +49,9 @@ module.exports = {
       out_file: './logs/worker-out.log',
       merge_logs: true,
       
-      // Memory management (reduced from 1G to leave room for OS on 1GB droplet)
-      max_memory_restart: '750M',
+      // Memory management - with streaming Scryfall, we typically stay under 400MB
+      // Set to 900M to allow headroom while still preventing runaway memory
+      max_memory_restart: '900M',
       
       // Graceful shutdown
       kill_timeout: 7200000,  // 2 hours to finish current job (seed jobs are long)

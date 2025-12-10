@@ -354,6 +354,58 @@ async function pollForJobs(supabase: ReturnType<typeof createSupabaseAdmin>): Pr
   }
 }
 
+/**
+ * Reset any jobs that were left running by this worker (crash recovery).
+ * This handles the case where PM2 killed us due to OOM or crash.
+ */
+async function recoverStuckJobs(supabase: ReturnType<typeof createSupabaseAdmin>): Promise<void> {
+  log('Checking for stuck jobs from previous run...');
+  
+  // Reset any jobs that were running with our worker ID (we crashed)
+  const { data: myStuckJobs, error: myError } = await supabase
+    .from('jobs')
+    .update({
+      status: 'failed',
+      error: `Worker ${WORKER_ID} crashed or was killed (recovered on restart)`,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('status', 'running')
+    .eq('worker_id', WORKER_ID)
+    .select('id, job_type');
+  
+  if (myError) {
+    log(`Error recovering own stuck jobs: ${myError.message}`, 'warn');
+  } else if (myStuckJobs && myStuckJobs.length > 0) {
+    for (const job of myStuckJobs) {
+      log(`Recovered stuck job ${job.id} (${job.job_type}) - marked as failed`, 'warn');
+    }
+  }
+  
+  // Also reset any jobs that have been running for more than 4 hours (from any worker)
+  const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+  const { data: oldStuckJobs, error: oldError } = await supabase
+    .from('jobs')
+    .update({
+      status: 'pending',
+      started_at: null,
+      worker_id: null,
+      error: 'Auto-reset: job was stuck for >4 hours',
+    })
+    .eq('status', 'running')
+    .lt('started_at', fourHoursAgo)
+    .select('id, job_type, worker_id');
+  
+  if (oldError) {
+    log(`Error resetting old stuck jobs: ${oldError.message}`, 'warn');
+  } else if (oldStuckJobs && oldStuckJobs.length > 0) {
+    for (const job of oldStuckJobs) {
+      log(`Reset stuck job ${job.id} (${job.job_type}) from worker ${job.worker_id} - was running >4h`, 'warn');
+    }
+  }
+  
+  log('Stuck job recovery complete');
+}
+
 async function main(): Promise<void> {
   log('Worker starting...');
   log(`Worker ID: ${WORKER_ID}`);
@@ -375,6 +427,9 @@ async function main(): Promise<void> {
   }
   
   const supabase = createSupabaseAdmin();
+  
+  // Recover any stuck jobs from crashes
+  await recoverStuckJobs(supabase);
   
   // Handle graceful shutdown
   const shutdown = () => {

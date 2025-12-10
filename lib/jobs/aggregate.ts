@@ -20,8 +20,55 @@ import {
 // Configuration
 // ============================================
 
-// Minimum date for temporal stats - data before this date is excluded
 const MIN_STATS_DATE = '2024-06-01';
+const INSERT_BATCH_SIZE = 1000;
+
+// ============================================
+// Types
+// ============================================
+
+interface TournamentData {
+  id: number;
+  tournament_date: string;
+  top_cut: number;
+  size: number;
+}
+
+// ============================================
+// Shared Data Loading
+// ============================================
+
+async function loadTournaments(
+  supabase: SupabaseAdmin,
+  logger: ProgressLogger
+): Promise<Map<number, TournamentData>> {
+  logger.log(`Loading tournaments (from ${MIN_STATS_DATE})...`);
+  
+  const tournamentMap = new Map<number, TournamentData>();
+  let offset = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('id, tournament_date, top_cut, size')
+      .gte('tournament_date', MIN_STATS_DATE)
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    
+    for (const t of data as TournamentData[]) {
+      tournamentMap.set(t.id, t);
+    }
+    
+    offset += PAGE_SIZE;
+    if (data.length < PAGE_SIZE) break;
+  }
+  
+  logger.log(`Loaded ${tournamentMap.size.toLocaleString()} tournaments`);
+  return tournamentMap;
+}
 
 // ============================================
 // Commander Weekly Stats
@@ -29,42 +76,20 @@ const MIN_STATS_DATE = '2024-06-01';
 
 async function aggregateCommanderWeeklyStats(
   supabase: SupabaseAdmin,
+  tournamentMap: Map<number, TournamentData>,
   logger: ProgressLogger
 ): Promise<number> {
-  logger.log('Aggregating commander weekly stats...');
+  // Get count for progress
+  const { count: totalEntries } = await supabase
+    .from('entries')
+    .select('id', { count: 'exact', head: true })
+    .not('commander_id', 'is', null);
+  
+  logger.startPhase('Commander Weekly Stats', totalEntries ?? 0);
   
   // Clear existing stats
   await supabase.from('commander_weekly_stats').delete().neq('id', 0);
   
-  // Load tournaments
-  logger.log(`Loading tournament data (from ${MIN_STATS_DATE})...`);
-  const tournamentMap = new Map<number, { tournament_date: string; top_cut: number; size: number }>();
-  
-  let tournamentOffset = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from('tournaments')
-      .select('id, tournament_date, top_cut, size')
-      .gte('tournament_date', MIN_STATS_DATE)
-      .order('id', { ascending: true })
-      .range(tournamentOffset, tournamentOffset + PAGE_SIZE - 1);
-    
-    if (error) throw error;
-    
-    const tournaments = data as { id: number; tournament_date: string; top_cut: number; size: number }[] | null;
-    if (!tournaments || tournaments.length === 0) break;
-    
-    for (const t of tournaments) {
-      tournamentMap.set(t.id, { tournament_date: t.tournament_date, top_cut: t.top_cut, size: t.size });
-    }
-    
-    tournamentOffset += PAGE_SIZE;
-    if (tournaments.length < PAGE_SIZE) break;
-  }
-  
-  logger.log(`Loaded ${tournamentMap.size} tournaments`);
-  
-  // Group by commander and week
   const statsMap = new Map<string, {
     commander_id: number;
     week_start: string;
@@ -77,8 +102,6 @@ async function aggregateCommanderWeeklyStats(
     losses: number;
   }>();
   
-  // Process entries
-  logger.log('Loading entries...');
   let offset = 0;
   let totalProcessed = 0;
   
@@ -95,9 +118,7 @@ async function aggregateCommanderWeeklyStats(
         losses_swiss,
         losses_bracket,
         draws,
-        decklist_items (
-          id
-        )
+        decklist_items (id)
       `)
       .not('commander_id', 'is', null)
       .order('id', { ascending: true })
@@ -141,11 +162,9 @@ async function aggregateCommanderWeeklyStats(
       };
       
       existing.entries += 1;
-      
       if (entry.decklist_items && entry.decklist_items.length > 0) {
         existing.entries_with_decklists += 1;
       }
-      
       existing.wins += entry.wins_swiss + entry.wins_bracket;
       existing.draws += entry.draws;
       existing.losses += entry.losses_swiss + entry.losses_bracket;
@@ -153,7 +172,6 @@ async function aggregateCommanderWeeklyStats(
       if (tournament.size > 0) {
         existing.expected_top_cuts += tournament.top_cut / tournament.size;
       }
-      
       if (entry.standing && entry.standing <= tournament.top_cut) {
         existing.top_cuts += 1;
       }
@@ -162,27 +180,23 @@ async function aggregateCommanderWeeklyStats(
     }
     
     totalProcessed += entries.length;
+    logger.update(totalProcessed);
     offset += PAGE_SIZE;
     if (entries.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Processed ${totalProcessed} entries`);
-  
-  // Insert aggregated stats
+  // Insert aggregated stats in batches
   const statsArray = Array.from(statsMap.values());
   
-  if (statsArray.length > 0) {
-    for (let i = 0; i < statsArray.length; i += 1000) {
-      const batch = statsArray.slice(i, i + 1000);
-      const { error: insertError } = await supabase
-        .from('commander_weekly_stats')
-        .insert(batch);
-      
-      if (insertError) throw insertError;
-    }
+  for (let i = 0; i < statsArray.length; i += INSERT_BATCH_SIZE) {
+    const batch = statsArray.slice(i, i + INSERT_BATCH_SIZE);
+    const { error: insertError } = await supabase
+      .from('commander_weekly_stats')
+      .insert(batch);
+    if (insertError) throw insertError;
   }
   
-  logger.log(`Created ${statsArray.length} commander weekly stat records`);
+  logger.endPhase();
   return statsArray.length;
 }
 
@@ -192,43 +206,14 @@ async function aggregateCommanderWeeklyStats(
 
 async function aggregateCardCommanderWeeklyStats(
   supabase: SupabaseAdmin,
+  tournamentMap: Map<number, TournamentData>,
   logger: ProgressLogger
 ): Promise<number> {
-  logger.log('Aggregating card-commander weekly stats...');
-  
   // Clear existing stats
   await supabase.from('card_commander_weekly_stats').delete().neq('id', 0);
   
-  // Load tournaments
-  logger.log(`Loading tournament data (from ${MIN_STATS_DATE})...`);
-  const tournamentMap = new Map<number, { tournament_date: string; top_cut: number; size: number }>();
-  
-  let tournamentOffset = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from('tournaments')
-      .select('id, tournament_date, top_cut, size')
-      .gte('tournament_date', MIN_STATS_DATE)
-      .order('id', { ascending: true })
-      .range(tournamentOffset, tournamentOffset + PAGE_SIZE - 1);
-    
-    if (error) throw error;
-    
-    const tournaments = data as { id: number; tournament_date: string; top_cut: number; size: number }[] | null;
-    if (!tournaments || tournaments.length === 0) break;
-    
-    for (const t of tournaments) {
-      tournamentMap.set(t.id, { tournament_date: t.tournament_date, top_cut: t.top_cut, size: t.size });
-    }
-    
-    tournamentOffset += PAGE_SIZE;
-    if (tournaments.length < PAGE_SIZE) break;
-  }
-  
-  logger.log(`Loaded ${tournamentMap.size} tournaments`);
-  
   // Load entries with valid decklists
-  logger.log('Loading entry data (valid decklists only)...');
+  logger.log('Loading entries with valid decklists...');
   const entryMap = new Map<number, {
     commander_id: number;
     standing: number | null;
@@ -256,8 +241,7 @@ async function aggregateCardCommanderWeeklyStats(
         wins_bracket,
         losses_swiss,
         losses_bracket,
-        draws,
-        decklist_valid
+        draws
       `)
       .not('commander_id', 'is', null)
       .eq('decklist_valid', true)
@@ -276,7 +260,6 @@ async function aggregateCardCommanderWeeklyStats(
       losses_swiss: number;
       losses_bracket: number;
       draws: number;
-      decklist_valid: boolean | null;
     }
     
     const entries = data as EntryData[] | null;
@@ -304,10 +287,14 @@ async function aggregateCardCommanderWeeklyStats(
     if (entries.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${entryMap.size} entries with valid decklists`);
+  logger.log(`Loaded ${entryMap.size.toLocaleString()} entries with valid decklists`);
   
-  // Process decklist items
-  logger.log('Processing decklist items...');
+  // Get count for progress
+  const { count: totalItems } = await supabase
+    .from('decklist_items')
+    .select('id', { count: 'exact', head: true });
+  
+  logger.startPhase('Card-Commander Weekly Stats', totalItems ?? 0);
   
   const statsMap = new Map<string, {
     card_id: number;
@@ -322,7 +309,7 @@ async function aggregateCardCommanderWeeklyStats(
   }>();
   
   let itemOffset = 0;
-  let totalItems = 0;
+  let totalProcessed = 0;
   
   while (true) {
     const { data, error } = await supabase
@@ -342,8 +329,6 @@ async function aggregateCardCommanderWeeklyStats(
       if (!entry) continue;
       
       const weekStart = getWeekStart(new Date(entry.tournament_date));
-      const isTopCut = entry.standing !== null && entry.standing <= entry.top_cut;
-      
       const key = `${item.card_id}-${entry.commander_id}-${weekStart}`;
       
       const existing = statsMap.get(key) || {
@@ -366,36 +351,31 @@ async function aggregateCardCommanderWeeklyStats(
       if (entry.tournament_size > 0) {
         existing.expected_top_cuts += entry.top_cut / entry.tournament_size;
       }
-      
-      if (isTopCut) {
+      if (entry.standing !== null && entry.standing <= entry.top_cut) {
         existing.top_cuts += 1;
       }
       
       statsMap.set(key, existing);
     }
     
-    totalItems += items.length;
+    totalProcessed += items.length;
+    logger.update(totalProcessed);
     itemOffset += PAGE_SIZE;
     if (items.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Processed ${totalItems} decklist items`);
-  
-  // Insert aggregated stats
+  // Insert aggregated stats in batches
   const statsArray = Array.from(statsMap.values());
   
-  if (statsArray.length > 0) {
-    for (let i = 0; i < statsArray.length; i += 1000) {
-      const batch = statsArray.slice(i, i + 1000);
-      const { error: insertError } = await supabase
-        .from('card_commander_weekly_stats')
-        .insert(batch);
-      
-      if (insertError) throw insertError;
-    }
+  for (let i = 0; i < statsArray.length; i += INSERT_BATCH_SIZE) {
+    const batch = statsArray.slice(i, i + INSERT_BATCH_SIZE);
+    const { error: insertError } = await supabase
+      .from('card_commander_weekly_stats')
+      .insert(batch);
+    if (insertError) throw insertError;
   }
   
-  logger.log(`Created ${statsArray.length} card-commander weekly stat records`);
+  logger.endPhase();
   return statsArray.length;
 }
 
@@ -405,40 +385,11 @@ async function aggregateCardCommanderWeeklyStats(
 
 async function aggregateSeatPositionWeeklyStats(
   supabase: SupabaseAdmin,
+  tournamentMap: Map<number, TournamentData>,
   logger: ProgressLogger
 ): Promise<number> {
-  logger.log('Aggregating seat position weekly stats...');
-  
   // Clear existing stats
   await supabase.from('seat_position_weekly_stats').delete().neq('id', 0);
-  
-  // Load tournaments
-  logger.log(`Loading tournament data (from ${MIN_STATS_DATE})...`);
-  const tournamentMap = new Map<number, { tournament_date: string }>();
-  
-  let tournamentOffset = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from('tournaments')
-      .select('id, tournament_date')
-      .gte('tournament_date', MIN_STATS_DATE)
-      .order('id', { ascending: true })
-      .range(tournamentOffset, tournamentOffset + PAGE_SIZE - 1);
-    
-    if (error) throw error;
-    
-    const tournaments = data as { id: number; tournament_date: string }[] | null;
-    if (!tournaments || tournaments.length === 0) break;
-    
-    for (const t of tournaments) {
-      tournamentMap.set(t.id, { tournament_date: t.tournament_date });
-    }
-    
-    tournamentOffset += PAGE_SIZE;
-    if (tournaments.length < PAGE_SIZE) break;
-  }
-  
-  logger.log(`Loaded ${tournamentMap.size} tournaments`);
   
   // Load games
   logger.log('Loading games...');
@@ -458,14 +409,7 @@ async function aggregateSeatPositionWeeklyStats(
     
     if (error) throw error;
     
-    interface GameData {
-      id: number;
-      tournament_id: number;
-      winner_player_id: number | null;
-      is_draw: boolean;
-    }
-    
-    const games = data as GameData[] | null;
+    const games = data as { id: number; tournament_id: number; winner_player_id: number | null; is_draw: boolean }[] | null;
     if (!games || games.length === 0) break;
     
     for (const g of games) {
@@ -482,7 +426,7 @@ async function aggregateSeatPositionWeeklyStats(
     if (games.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${gameMap.size} games`);
+  logger.log(`Loaded ${gameMap.size.toLocaleString()} games`);
   
   // Load entries for commander lookup
   logger.log('Loading entries for commander lookup...');
@@ -510,10 +454,14 @@ async function aggregateSeatPositionWeeklyStats(
     if (entries.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${entryCommanderMap.size} entries`);
+  logger.log(`Loaded ${entryCommanderMap.size.toLocaleString()} entries`);
   
-  // Process game players
-  logger.log('Processing game players...');
+  // Get count for progress
+  const { count: totalGamePlayers } = await supabase
+    .from('game_players')
+    .select('id', { count: 'exact', head: true });
+  
+  logger.startPhase('Seat Position Weekly Stats', totalGamePlayers ?? 0);
   
   const statsMap = new Map<string, {
     commander_id: number;
@@ -535,21 +483,12 @@ async function aggregateSeatPositionWeeklyStats(
     
     if (error) throw error;
     
-    interface GamePlayerData {
-      game_id: number;
-      player_id: number;
-      entry_id: number | null;
-      seat_position: number;
-    }
-    
-    const gamePlayers = data as GamePlayerData[] | null;
+    const gamePlayers = data as { game_id: number; player_id: number; entry_id: number | null; seat_position: number }[] | null;
     if (!gamePlayers || gamePlayers.length === 0) break;
     
     for (const gp of gamePlayers) {
       const game = gameMap.get(gp.game_id);
-      if (!game) continue;
-      
-      if (!gp.entry_id) continue;
+      if (!game || !gp.entry_id) continue;
       
       const commanderId = entryCommanderMap.get(gp.entry_id);
       if (!commanderId) continue;
@@ -569,7 +508,6 @@ async function aggregateSeatPositionWeeklyStats(
       };
       
       existing.games += 1;
-      
       if (!game.is_draw && game.winner_player_id === gp.player_id) {
         existing.wins += 1;
       }
@@ -578,27 +516,23 @@ async function aggregateSeatPositionWeeklyStats(
     }
     
     totalProcessed += gamePlayers.length;
+    logger.update(totalProcessed);
     gpOffset += PAGE_SIZE;
     if (gamePlayers.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Processed ${totalProcessed} game players`);
-  
-  // Insert aggregated stats
+  // Insert aggregated stats in batches
   const statsArray = Array.from(statsMap.values());
   
-  if (statsArray.length > 0) {
-    for (let i = 0; i < statsArray.length; i += 1000) {
-      const batch = statsArray.slice(i, i + 1000);
-      const { error: insertError } = await supabase
-        .from('seat_position_weekly_stats')
-        .insert(batch);
-      
-      if (insertError) throw insertError;
-    }
+  for (let i = 0; i < statsArray.length; i += INSERT_BATCH_SIZE) {
+    const batch = statsArray.slice(i, i + INSERT_BATCH_SIZE);
+    const { error: insertError } = await supabase
+      .from('seat_position_weekly_stats')
+      .insert(batch);
+    if (insertError) throw insertError;
   }
   
-  logger.log(`Created ${statsArray.length} seat position weekly stat records`);
+  logger.endPhase();
   return statsArray.length;
 }
 
@@ -607,26 +541,41 @@ async function aggregateSeatPositionWeeklyStats(
 // ============================================
 
 export interface AggregateOptions {
-  /** Custom progress logger */
   logger?: ProgressLogger;
 }
 
-/**
- * Aggregate all statistics tables.
- * Always performs a full rebuild for data consistency.
- */
 export async function aggregateStats(
   supabase: SupabaseAdmin,
   options: AggregateOptions = {}
 ): Promise<AggregationStats> {
   const { logger = createProgressLogger() } = options;
   
-  logger.log('Starting stats aggregation...');
-  logger.log(`Minimum date for stats: ${MIN_STATS_DATE}`);
+  const startTime = Date.now();
   
-  const commanderWeeklyStats = await aggregateCommanderWeeklyStats(supabase, logger);
-  const cardCommanderWeeklyStats = await aggregateCardCommanderWeeklyStats(supabase, logger);
-  const seatPositionWeeklyStats = await aggregateSeatPositionWeeklyStats(supabase, logger);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`AGGREGATION JOB STARTED`);
+  logger.log(`Minimum date: ${MIN_STATS_DATE}`);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.logMemory();
+  
+  // Load tournament data once and share across all aggregations
+  const tournamentMap = await loadTournaments(supabase, logger);
+  
+  const commanderWeeklyStats = await aggregateCommanderWeeklyStats(supabase, tournamentMap, logger);
+  const cardCommanderWeeklyStats = await aggregateCardCommanderWeeklyStats(supabase, tournamentMap, logger);
+  const seatPositionWeeklyStats = await aggregateSeatPositionWeeklyStats(supabase, tournamentMap, logger);
+  
+  // Final summary
+  const totalDuration = Date.now() - startTime;
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`🎉 AGGREGATION JOB COMPLETE`);
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
+  logger.log(`Duration: ${Math.round(totalDuration / 1000)}s`);
+  logger.log(`Commander weekly stats: ${commanderWeeklyStats.toLocaleString()}`);
+  logger.log(`Card-commander weekly stats: ${cardCommanderWeeklyStats.toLocaleString()}`);
+  logger.log(`Seat position weekly stats: ${seatPositionWeeklyStats.toLocaleString()}`);
+  logger.logMemory();
+  logger.log(`════════════════════════════════════════════════════════════════════════`);
   
   return {
     commanderWeeklyStats,
@@ -634,4 +583,3 @@ export async function aggregateStats(
     seatPositionWeeklyStats,
   };
 }
-

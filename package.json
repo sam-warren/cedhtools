@@ -20,7 +20,10 @@
     "job:enqueue": "npx tsx scripts/enqueue-job.ts",
     "job:status": "npx tsx scripts/enqueue-job.ts status",
     "job:daily": "npx tsx scripts/enqueue-job.ts daily_update",
-    "job:seed": "npx tsx scripts/enqueue-job.ts full_seed"
+    "job:seed": "npx tsx scripts/enqueue-job.ts full_seed",
+    "job:reset": "npx tsx scripts/reset-stuck-jobs.ts",
+    "job:reset:fail": "npx tsx scripts/reset-stuck-jobs.ts --fail",
+    "job:reset:list": "npx tsx scripts/reset-stuck-jobs.ts --list"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -72,9 +75,10 @@
     "react-resizable-panels": "^3.0.6",
     "recharts": "2.15.4",
     "sonner": "^2.0.7",
+    "stream-json": "^1.9.1",
     "tailwind-merge": "^3.3.0",
-    "uuid": "^11.1.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "vaul": "^1.1.2",
     "zod": "^4.1.13"
   },
@@ -83,6 +87,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/stream-json": "^1.7.8",
     "@types/uuid": "^10.0.0",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9",
