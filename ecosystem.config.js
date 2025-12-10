@@ -18,9 +18,10 @@ module.exports = {
       script: './node_modules/.bin/tsx',
       args: 'worker/index.ts',
       cwd: __dirname,
-      // Memory settings: 1GB for Node heap (streaming keeps usage ~200-400MB typically)
-      // PM2 will restart if it exceeds this - but with streaming Scryfall, this should be fine
-      node_args: '--expose-gc --max-old-space-size=1024',
+      // Memory settings: 1.2GB for Node heap on a 2GB droplet
+      // Leaves ~800MB for OS, PM2, and other processes - plenty of headroom
+      // The worker uses streaming/pagination so memory usage should stay under 400MB typically
+      node_args: '--expose-gc --max-old-space-size=1228',
       
       // Environment variables (override with --env production)
       env: {

@@ -355,29 +355,69 @@ async function pollForJobs(supabase: ReturnType<typeof createSupabaseAdmin>): Pr
 }
 
 /**
+ * Maximum retry attempts for crashed jobs before giving up
+ */
+const MAX_RETRY_ATTEMPTS = 3;
+
+/**
  * Reset any jobs that were left running by this worker (crash recovery).
  * This handles the case where PM2 killed us due to OOM or crash.
+ * 
+ * Jobs are re-queued as pending (up to MAX_RETRY_ATTEMPTS times) so they can be retried.
  */
 async function recoverStuckJobs(supabase: ReturnType<typeof createSupabaseAdmin>): Promise<void> {
   log('Checking for stuck jobs from previous run...');
   
-  // Reset any jobs that were running with our worker ID (we crashed)
-  const { data: myStuckJobs, error: myError } = await supabase
+  // First, find any jobs that were running with our worker ID (we crashed)
+  const { data: myStuckJobs, error: findError } = await supabase
     .from('jobs')
-    .update({
-      status: 'failed',
-      error: `Worker ${WORKER_ID} crashed or was killed (recovered on restart)`,
-      completed_at: new Date().toISOString(),
-    })
+    .select('id, job_type, config, retry_count')
     .eq('status', 'running')
-    .eq('worker_id', WORKER_ID)
-    .select('id, job_type');
+    .eq('worker_id', WORKER_ID);
   
-  if (myError) {
-    log(`Error recovering own stuck jobs: ${myError.message}`, 'warn');
+  if (findError) {
+    log(`Error finding own stuck jobs: ${findError.message}`, 'warn');
   } else if (myStuckJobs && myStuckJobs.length > 0) {
     for (const job of myStuckJobs) {
-      log(`Recovered stuck job ${job.id} (${job.job_type}) - marked as failed`, 'warn');
+      const retryCount = (job.retry_count || 0) + 1;
+      
+      if (retryCount <= MAX_RETRY_ATTEMPTS) {
+        // Re-queue for retry
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({
+            status: 'pending',
+            started_at: null,
+            worker_id: null,
+            retry_count: retryCount,
+            error: `Worker ${WORKER_ID} crashed (attempt ${retryCount}/${MAX_RETRY_ATTEMPTS}) - re-queued for retry`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', job.id);
+        
+        if (updateError) {
+          log(`Error re-queuing job ${job.id}: ${updateError.message}`, 'warn');
+        } else {
+          log(`Re-queued crashed job ${job.id} (${job.job_type}) for retry (attempt ${retryCount}/${MAX_RETRY_ATTEMPTS})`, 'warn');
+        }
+      } else {
+        // Max retries exceeded, mark as permanently failed
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            retry_count: retryCount,
+            error: `Worker ${WORKER_ID} crashed - max retries (${MAX_RETRY_ATTEMPTS}) exceeded`,
+          })
+          .eq('id', job.id);
+        
+        if (updateError) {
+          log(`Error failing job ${job.id}: ${updateError.message}`, 'warn');
+        } else {
+          log(`Job ${job.id} (${job.job_type}) failed permanently after ${MAX_RETRY_ATTEMPTS} retries`, 'error');
+        }
+      }
     }
   }
   
@@ -492,7 +532,14 @@ process.on('unhandledRejection', (reason, promise) => {
 const logMemory = () => {
   const used = process.memoryUsage();
   const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
-  log(`Memory: heap=${mb(used.heapUsed)}MB, rss=${mb(used.rss)}MB, external=${mb(used.external)}MB`);
+  const heapMB = mb(used.heapUsed);
+  const rssMB = mb(used.rss);
+  log(`Memory: heap=${heapMB}MB, rss=${rssMB}MB, external=${mb(used.external)}MB`);
+  
+  // Warn if approaching dangerous memory levels on a 2GB droplet
+  if (rssMB > 1500) {
+    log(`⚠️ HIGH MEMORY WARNING: RSS=${rssMB}MB approaching 2GB limit`, 'warn');
+  }
 };
 
 // Log memory every 2 minutes

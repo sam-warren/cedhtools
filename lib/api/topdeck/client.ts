@@ -39,6 +39,9 @@ const API_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
  * Make authenticated request to TopDeck API
+ * 
+ * Uses response.json() directly instead of text() + JSON.parse()
+ * to reduce memory usage by avoiding double-buffering of large responses.
  */
 async function topdeckFetch<T>(
   endpoint: string,
@@ -63,10 +66,9 @@ async function topdeckFetch<T>(
       },
     });
 
-    // Read body as text first to avoid "body already read" errors
-    const text = await response.text();
-    
     if (!response.ok) {
+      // For error responses, we can read as text since they're small
+      const text = await response.text();
       let errorBody: unknown = text;
       try {
         errorBody = JSON.parse(text);
@@ -80,7 +82,10 @@ async function topdeckFetch<T>(
       );
     }
 
-    return JSON.parse(text);
+    // Use response.json() directly - this is more memory efficient than
+    // response.text() + JSON.parse() as it avoids holding the full text string
+    // in memory alongside the parsed object
+    return await response.json() as T;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new TopdeckClientError(
