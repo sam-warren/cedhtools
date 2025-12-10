@@ -15,8 +15,8 @@ module.exports = {
   apps: [
     {
       name: 'cedhtools-worker',
-      script: 'npx',
-      args: 'tsx worker/index.ts',
+      script: './node_modules/.bin/tsx',
+      args: 'worker/index.ts',
       cwd: __dirname,
       // Memory settings: 1GB for Node heap (streaming keeps usage ~200-400MB typically)
       // PM2 will restart if it exceeds this - but with streaming Scryfall, this should be fine
@@ -53,9 +53,9 @@ module.exports = {
       // The job manages its own memory via cache clearing between weeks
       // max_memory_restart: '900M',
       
-      // Graceful shutdown - allow 12 hours for job completion
-      // This only matters if someone runs `pm2 restart` during a job
-      kill_timeout: 43200000,  // 12 hours
+      // Graceful shutdown - the worker has a 30s forced exit timer,
+      // so PM2 just needs to wait a bit longer than that
+      kill_timeout: 60000,  // 60 seconds (worker force-exits after 30s)
       shutdown_with_message: true,
       wait_ready: true,
       listen_timeout: 30000,
