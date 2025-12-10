@@ -432,9 +432,19 @@ async function main(): Promise<void> {
   await recoverStuckJobs(supabase);
   
   // Handle graceful shutdown
+  let shutdownTimer: NodeJS.Timeout | null = null;
   const shutdown = (source: string) => {
     log(`Shutdown signal received (${source}), finishing current job...`);
     isShuttingDown = true;
+    
+    // If we're mid-job and can't exit gracefully, force exit after 30 seconds
+    // This prevents PM2 from waiting forever on a blocked job
+    if (!shutdownTimer) {
+      shutdownTimer = setTimeout(() => {
+        log('Graceful shutdown timed out after 30s, forcing exit...', 'warn');
+        process.exit(0);
+      }, 30000);
+    }
   };
   
   process.on('SIGTERM', () => shutdown('SIGTERM'));

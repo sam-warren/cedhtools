@@ -34,6 +34,9 @@ function getApiKey(): string {
   return apiKey;
 }
 
+// Timeout for API requests (5 minutes - the list endpoint can be slow for large date ranges)
+const API_TIMEOUT_MS = 5 * 60 * 1000;
+
 /**
  * Make authenticated request to TopDeck API
  */
@@ -45,33 +48,50 @@ async function topdeckFetch<T>(
   
   const url = `${TOPDECK_API_URL}${endpoint}`;
   
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': apiKey,
-      ...options.headers,
-    },
-  });
-
-  // Read body as text first to avoid "body already read" errors
-  const text = await response.text();
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   
-  if (!response.ok) {
-    let errorBody: unknown = text;
-    try {
-      errorBody = JSON.parse(text);
-    } catch {
-      // Keep as text
-    }
-    throw new TopdeckClientError(
-      `TopDeck API error: ${response.status} ${response.statusText}`,
-      response.status,
-      errorBody
-    );
-  }
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': apiKey,
+        ...options.headers,
+      },
+    });
 
-  return JSON.parse(text);
+    // Read body as text first to avoid "body already read" errors
+    const text = await response.text();
+    
+    if (!response.ok) {
+      let errorBody: unknown = text;
+      try {
+        errorBody = JSON.parse(text);
+      } catch {
+        // Keep as text
+      }
+      throw new TopdeckClientError(
+        `TopDeck API error: ${response.status} ${response.statusText}`,
+        response.status,
+        errorBody
+      );
+    }
+
+    return JSON.parse(text);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new TopdeckClientError(
+        `TopDeck API timeout after ${API_TIMEOUT_MS / 1000}s for ${endpoint}`,
+        408
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
