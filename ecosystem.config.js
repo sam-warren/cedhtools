@@ -49,14 +49,16 @@ module.exports = {
       out_file: './logs/worker-out.log',
       merge_logs: true,
       
-      // Memory management - with streaming Scryfall, we typically stay under 400MB
-      // Set to 900M to allow headroom while still preventing runaway memory
-      max_memory_restart: '900M',
+      // Memory management - DISABLED for long-running jobs (8+ hours)
+      // The job manages its own memory via cache clearing between weeks
+      // max_memory_restart: '900M',
       
-      // Graceful shutdown
-      kill_timeout: 7200000,  // 2 hours to finish current job (seed jobs are long)
+      // Graceful shutdown - allow 12 hours for job completion
+      // This only matters if someone runs `pm2 restart` during a job
+      kill_timeout: 43200000,  // 12 hours
+      shutdown_with_message: true,
       wait_ready: true,
-      listen_timeout: 10000,
+      listen_timeout: 30000,
     },
   ],
 };

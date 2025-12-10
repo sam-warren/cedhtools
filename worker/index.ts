@@ -432,15 +432,27 @@ async function main(): Promise<void> {
   await recoverStuckJobs(supabase);
   
   // Handle graceful shutdown
-  const shutdown = () => {
-    log('Shutdown signal received, finishing current job...');
+  const shutdown = (source: string) => {
+    log(`Shutdown signal received (${source}), finishing current job...`);
     isShuttingDown = true;
   };
   
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  
+  // Handle PM2 shutdown via IPC message (when shutdown_with_message: true)
+  process.on('message', (msg) => {
+    if (msg === 'shutdown') {
+      shutdown('PM2 IPC');
+    }
+  });
   
   log('Worker ready, polling for jobs...');
+  
+  // Signal to PM2 that we're ready (if running under PM2 with wait_ready: true)
+  if (typeof process.send === 'function') {
+    process.send('ready');
+  }
   
   await pollForJobs(supabase);
   

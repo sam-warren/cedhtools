@@ -287,7 +287,10 @@ async function enrichCards(
     
     totalProcessed += cards.length;
     logger.update(totalProcessed);
-    offset += PAGE_SIZE;
+    // In incremental mode, don't increment offset - updated records drop out of the filter
+    if (!incremental) {
+      offset += PAGE_SIZE;
+    }
     if (cards.length < PAGE_SIZE) break;
   }
   
@@ -390,7 +393,10 @@ async function enrichCommanders(
     
     totalProcessed += commanders.length;
     logger.update(totalProcessed);
-    offset += PAGE_SIZE;
+    // In incremental mode, don't increment offset - updated records drop out of the filter
+    if (!incremental) {
+      offset += PAGE_SIZE;
+    }
     if (commanders.length < PAGE_SIZE) break;
   }
   
@@ -464,7 +470,11 @@ async function enrichTournaments(
     
     totalProcessed += tournaments.length;
     logger.update(totalProcessed);
-    offset += PAGE_SIZE;
+    // In incremental mode, don't increment offset - updated records drop out of the filter
+    // In full mode, increment offset to paginate through all records
+    if (!incremental) {
+      offset += PAGE_SIZE;
+    }
     if (tournaments.length < PAGE_SIZE) break;
   }
   
@@ -579,7 +589,10 @@ async function validateDecklists(
       await new Promise(resolve => setTimeout(resolve, VALIDATION_DELAY_MS));
     }
     
-    offset += PAGE_SIZE;
+    // In incremental mode, don't increment offset - updated records drop out of the filter
+    if (!incremental) {
+      offset += PAGE_SIZE;
+    }
     if (entries.length < PAGE_SIZE) break;
   }
   
