@@ -118,6 +118,7 @@ async function aggregateCommanderWeeklyStats(
         losses_swiss,
         losses_bracket,
         draws,
+        decklist_valid,
         decklist_items (id)
       `)
       .not('commander_id', 'is', null)
@@ -136,6 +137,7 @@ async function aggregateCommanderWeeklyStats(
       losses_swiss: number;
       losses_bracket: number;
       draws: number;
+      decklist_valid: boolean | null;
       decklist_items: { id: number }[] | null;
     }
     
@@ -162,7 +164,8 @@ async function aggregateCommanderWeeklyStats(
       };
       
       existing.entries += 1;
-      if (entry.decklist_items && entry.decklist_items.length > 0) {
+      // Only count entries with VALID decklists to match card_commander_weekly_stats
+      if (entry.decklist_valid === true) {
         existing.entries_with_decklists += 1;
       }
       existing.wins += entry.wins_swiss + entry.wins_bracket;

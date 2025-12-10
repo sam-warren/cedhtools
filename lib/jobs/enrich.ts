@@ -7,18 +7,17 @@
  * Pipeline: sync -> enrich (this) -> aggregate
  */
 
-import {
-  type SupabaseAdmin,
-  type EnrichmentStats,
-  type ProgressLogger,
-  createProgressLogger,
-  PAGE_SIZE,
-  BATCH_SIZE,
-} from './utils';
-import { validateDecklistWithRetry } from '../api/scrollrack';
 import { Readable } from 'stream';
 import { parser } from 'stream-json';
 import { streamArray } from 'stream-json/streamers/StreamArray';
+import { validateDecklistWithRetry } from '../api/scrollrack';
+import {
+  type EnrichmentStats,
+  type ProgressLogger,
+  type SupabaseAdmin,
+  createProgressLogger,
+  PAGE_SIZE
+} from './utils';
 
 // ============================================
 // Configuration

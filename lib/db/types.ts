@@ -373,6 +373,51 @@ export interface Database {
         };
         Relationships: [];
       };
+      jobs: {
+        Row: {
+          id: number;
+          job_type: string;
+          status: 'pending' | 'running' | 'completed' | 'failed';
+          priority: number;
+          config: Record<string, unknown>;
+          started_at: string | null;
+          completed_at: string | null;
+          result: Record<string, unknown> | null;
+          error: string | null;
+          worker_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          job_type: string;
+          status?: 'pending' | 'running' | 'completed' | 'failed';
+          priority?: number;
+          config?: Record<string, unknown>;
+          started_at?: string | null;
+          completed_at?: string | null;
+          result?: Record<string, unknown> | null;
+          error?: string | null;
+          worker_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          job_type?: string;
+          status?: 'pending' | 'running' | 'completed' | 'failed';
+          priority?: number;
+          config?: Record<string, unknown>;
+          started_at?: string | null;
+          completed_at?: string | null;
+          result?: Record<string, unknown> | null;
+          error?: string | null;
+          worker_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -404,6 +449,9 @@ export type CardCommanderWeeklyStats = Database["public"]["Tables"]["card_comman
 export type CardCommanderWeeklyStatsInsert = Database["public"]["Tables"]["card_commander_weekly_stats"]["Insert"];
 export type SeatPositionWeeklyStats = Database["public"]["Tables"]["seat_position_weekly_stats"]["Row"];
 export type SeatPositionWeeklyStatsInsert = Database["public"]["Tables"]["seat_position_weekly_stats"]["Insert"];
+export type Job = Database["public"]["Tables"]["jobs"]["Row"];
+export type JobInsert = Database["public"]["Tables"]["jobs"]["Insert"];
+export type JobUpdate = Database["public"]["Tables"]["jobs"]["Update"];
 
 // Extended types for API responses
 export interface CommanderWithStats extends Commander {
