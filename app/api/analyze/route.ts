@@ -196,6 +196,7 @@ export async function POST(request: NextRequest) {
       });
 
     // Split into deck cards and missing cards
+    // Note: DFC deduplication is handled at the database level in get_commander_card_stats
     const deckCards = allCards.filter(c => c.in_deck);
     const missingCards = allCards
       .filter(c => !c.in_deck)

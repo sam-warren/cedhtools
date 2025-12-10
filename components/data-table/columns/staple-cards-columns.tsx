@@ -33,7 +33,7 @@ export function createStapleCardsColumns(
       cell: ({ row }) => {
         const card = row.original;
         return (
-          <div>
+          <div className="min-w-0">
             <Link
               href={`/cards/${encodeURIComponent(card.name)}/commanders/${commanderId}`}
               className="font-medium hover:underline hover:text-primary"
@@ -41,13 +41,14 @@ export function createStapleCardsColumns(
               {card.name}
             </Link>
             {card.type_line && (
-              <p className="text-xs text-muted-foreground truncate max-w-[280px]">
+              <p className="text-xs text-muted-foreground truncate">
                 {card.type_line}
               </p>
             )}
           </div>
         );
       },
+      size: 320,
       filterFn: (row, id, value) => {
         const name = row.getValue(id) as string;
         const typeLine = row.original.type_line || "";
@@ -64,7 +65,7 @@ export function createStapleCardsColumns(
       header: "Mana Cost",
       cell: ({ row }) => <ManaCost cost={row.original.mana_cost} size="sm" />,
       enableSorting: false,
-      size: 140,
+      size: 100,
     },
     {
       accessorKey: "play_rate",

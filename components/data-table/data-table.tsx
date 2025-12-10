@@ -18,6 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info, Search } from "lucide-react";
+import {
   ColumnDef,
   ColumnFiltersState,
   flexRender,
@@ -135,59 +141,66 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between flex-col sm:flex-row gap-4 sm:gap-2">
-        {enableFiltering && (
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            {globalFilter && (
+    <div className="space-y-3">
+      {(enableFiltering || enableMinEntriesFilter) && (
+        <div className="flex items-center gap-3 flex-wrap">
+          {enableFiltering && globalFilter && (
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search all..."
+                placeholder="Search..."
                 value={globalFilterValue}
                 onChange={(event) => setGlobalFilterValue(event.target.value)}
-                className="w-full sm:w-[300px]"
+                className="pl-9"
               />
-            )}
-            {filterableColumns.map((columnId) => {
-              const column = table.getColumn(columnId);
-              return (
-                column && (
-                  <Input
-                    key={columnId}
-                    placeholder={`Filter ${
-                      column.columnDef.header as string
-                    }...`}
-                    value={(column.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                      column.setFilterValue(event.target.value)
-                    }
-                    className="w-full sm:w-[200px]"
-                  />
-                )
-              );
-            })}
-          </div>
-        )}
-        {enableMinEntriesFilter && (
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium whitespace-nowrap">Min Entries:</span>
-            <Select
-              value={minEntries.toString()}
-              onValueChange={(value) => setMinEntries(Number(value))}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {minEntriesOptions.map((value) => (
-                  <SelectItem key={value} value={value.toString()}>
-                    {value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+          {enableFiltering && filterableColumns.map((columnId) => {
+            const column = table.getColumn(columnId);
+            return (
+              column && (
+                <Input
+                  key={columnId}
+                  placeholder={`Filter ${column.columnDef.header as string}...`}
+                  value={(column.getFilterValue() as string) ?? ""}
+                  onChange={(event) => column.setFilterValue(event.target.value)}
+                  className="w-[200px]"
+                />
+              )
+            );
+          })}
+          {enableMinEntriesFilter && (
+            <div className="flex items-center gap-2 ml-auto">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-help">
+                    <Info className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Min entries</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px]">
+                  Filters cards with fewer tournament appearances for more reliable statistics.
+                </TooltipContent>
+              </Tooltip>
+              <Select
+                value={minEntries.toString()}
+                onValueChange={(value) => setMinEntries(Number(value))}
+              >
+                <SelectTrigger className="w-[72px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {minEntriesOptions.map((value) => (
+                    <SelectItem key={value} value={value.toString()}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      )}
       <div className="rounded-md border">
         <Table className="table-fixed">
           <TableHeader>
