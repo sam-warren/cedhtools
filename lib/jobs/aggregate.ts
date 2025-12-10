@@ -145,6 +145,9 @@ async function aggregateCommanderWeeklyStats(
     if (!entries || entries.length === 0) break;
     
     for (const entry of entries) {
+      // Only include entries with valid decklists for consistency with card stats
+      if (entry.decklist_valid !== true) continue;
+      
       const tournament = tournamentMap.get(entry.tournament_id);
       if (!tournament) continue;
       
@@ -163,11 +166,9 @@ async function aggregateCommanderWeeklyStats(
         losses: 0,
       };
       
+      // All stats now only count entries with valid decklists
       existing.entries += 1;
-      // Only count entries with VALID decklists to match card_commander_weekly_stats
-      if (entry.decklist_valid === true) {
-        existing.entries_with_decklists += 1;
-      }
+      existing.entries_with_decklists += 1;  // Same as entries now
       existing.wins += entry.wins_swiss + entry.wins_bracket;
       existing.draws += entry.draws;
       existing.losses += entry.losses_swiss + entry.losses_bracket;
@@ -431,7 +432,7 @@ async function aggregateSeatPositionWeeklyStats(
   
   logger.log(`Loaded ${gameMap.size.toLocaleString()} games`);
   
-  // Load entries for commander lookup
+  // Load entries for commander lookup (only valid decklists for consistency)
   logger.log('Loading entries for commander lookup...');
   const entryCommanderMap = new Map<number, number>();
   
@@ -441,6 +442,7 @@ async function aggregateSeatPositionWeeklyStats(
       .from('entries')
       .select('id, commander_id')
       .not('commander_id', 'is', null)
+      .eq('decklist_valid', true)
       .order('id', { ascending: true })
       .range(entryOffset, entryOffset + PAGE_SIZE - 1);
     
@@ -457,7 +459,7 @@ async function aggregateSeatPositionWeeklyStats(
     if (entries.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${entryCommanderMap.size.toLocaleString()} entries`);
+  logger.log(`Loaded ${entryCommanderMap.size.toLocaleString()} entries with valid decklists`);
   
   // Get count for progress
   const { count: totalGamePlayers } = await supabase

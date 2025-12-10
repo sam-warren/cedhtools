@@ -1,109 +1,164 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# cedhtools
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
-
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+A comprehensive tournament statistics platform for competitive Elder Dragon Highlander (cEDH). Aggregates and analyzes tournament data from TopDeck.gg to provide insights on commander performance, card play rates, and meta trends.
 
 ## Features
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Proxy
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+- **Commander Statistics**: Browse commanders ranked by conversion score, win rate, and meta share
+- **Card Analysis**: View staple cards for each commander with play rates and performance deltas
+- **Tournament Browser**: Explore recent cEDH tournaments with filtering and search
+- **Deck Analysis**: Paste a decklist URL to compare against meta statistics
+- **Performance Trends**: Monthly charts showing win rate and meta share over time
+- **Seat Position Stats**: Win rate analysis by seat position for each commander
 
-## Demo
+## Tech Stack
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+- **Frontend**: Next.js 16, React 19, Tailwind CSS 4, shadcn/ui
+- **Database**: Supabase (PostgreSQL)
+- **Data Visualization**: Recharts
+- **State Management**: TanStack Query
+- **Background Jobs**: Custom worker with PM2
 
-## Deploy to Vercel
+## Getting Started
 
-Vercel deployment will guide you through creating a Supabase account and project.
+### Prerequisites
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+- Node.js 20+
+- A Supabase project (local or cloud)
+- TopDeck.gg API key
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+### Environment Setup
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+Create a `.env.local` file:
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+TOPDECK_API_KEY=your_topdeck_api_key
+```
 
-## Clone and run locally
+### Installation
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+```bash
+npm install
+```
 
-2. Create a Next.js app using the Supabase Starter template npx command
+### Database Setup
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+Run the Supabase migrations to set up the schema:
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
+```bash
+supabase db push
+```
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
+### Seeding Data
 
-3. Use `cd` to change into the app's directory
+The data pipeline has three stages:
 
-   ```bash
-   cd with-supabase-app
-   ```
+1. **Sync**: Fetch tournament data from TopDeck.gg API
+2. **Enrich**: Add Scryfall card metadata and validate decklists  
+3. **Aggregate**: Calculate weekly statistics for commanders and cards
 
-4. Rename `.env.example` to `.env.local` and update the following:
+Run all stages:
 
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
+```bash
+npm run db:seed
+```
 
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+Or run individually:
 
-5. You can now run the Next.js local development server:
+```bash
+npm run db:sync        # Sync tournaments
+npm run db:enrich      # Enrich with Scryfall data
+npm run db:aggregate   # Aggregate statistics
+```
 
-   ```bash
-   npm run dev
-   ```
+### Development
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+```bash
+npm run dev
+```
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+The app will be available at [http://localhost:3000](http://localhost:3000).
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+## Background Worker
 
-## Feedback and issues
+For production, use the PM2-managed background worker to process jobs:
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+```bash
+# Start the worker
+pm2 start ecosystem.config.js
 
-## More Supabase examples
+# View logs
+pm2 logs cedhtools-worker
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+# Stop the worker
+pm2 stop cedhtools-worker
+```
+
+### Job Management
+
+```bash
+# Enqueue a daily update job
+npm run job:daily
+
+# Enqueue a full seed job
+npm run job:seed -- --start-date 2024-06-01
+
+# View job status
+npm run job:status
+
+# Reset stuck jobs
+npm run job:reset
+```
+
+## Project Structure
+
+```
+├── app/                    # Next.js App Router pages
+│   ├── api/               # API routes
+│   ├── commanders/        # Commander pages
+│   ├── cards/             # Card detail pages
+│   ├── tournaments/       # Tournament browser
+│   └── analyze/           # Deck analysis
+├── components/            # React components
+│   ├── commanders/        # Commander-specific components
+│   ├── data-table/        # DataTable with sorting/filtering
+│   ├── shared/            # Shared components
+│   └── ui/                # shadcn/ui components
+├── lib/                   # Core utilities
+│   ├── api/               # External API clients
+│   ├── db/                # Database types and clients
+│   └── jobs/              # Background job implementations
+├── scripts/               # CLI scripts for data management
+├── supabase/              # Database migrations
+└── worker/                # Background job worker
+```
+
+## Data Pipeline
+
+```
+TopDeck.gg API → Sync Job → Raw Tables
+                              ↓
+Scryfall API → Enrich Job → Enriched Tables
+                              ↓
+              Aggregate Job → Weekly Stats Tables
+                              ↓
+                           Frontend API
+```
+
+### Tables
+
+| Table | Purpose |
+|-------|---------|
+| `tournaments` | Tournament metadata |
+| `entries` | Player entries (commander, standing, wins/losses) |
+| `decklist_items` | Cards in each decklist |
+| `commander_weekly_stats` | Aggregated commander stats by week |
+| `card_commander_weekly_stats` | Card stats per commander by week |
+| `seat_position_weekly_stats` | Win rates by seat position |
+
+## License
+
+MIT

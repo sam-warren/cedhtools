@@ -37,3 +37,5 @@ COMMENT ON FUNCTION get_commander_seat_stats IS 'Efficiently aggregates seat pos
 
 
 
+
+
