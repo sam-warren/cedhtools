@@ -385,6 +385,7 @@ export interface Database {
           result: Record<string, unknown> | null;
           error: string | null;
           worker_id: string | null;
+          retry_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -399,6 +400,7 @@ export interface Database {
           result?: Record<string, unknown> | null;
           error?: string | null;
           worker_id?: string | null;
+          retry_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -413,6 +415,7 @@ export interface Database {
           result?: Record<string, unknown> | null;
           error?: string | null;
           worker_id?: string | null;
+          retry_count?: number;
           created_at?: string;
           updated_at?: string;
         };
