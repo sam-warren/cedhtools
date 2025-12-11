@@ -2,11 +2,20 @@
 
 import { ColorIdentity } from "@/components/shared/color-identity";
 import { DataTable, createStapleCardsColumns } from "@/components/data-table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
+import { TIME_PERIOD_OPTIONS, type TimePeriod } from "@/lib/utils/time-period";
 import type { CardWithStats } from "@/types/api";
 import {
   Info,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -52,6 +61,9 @@ export interface AnalysisResponse {
 
 interface AnalysisResultsProps {
   data: AnalysisResponse;
+  timePeriod: TimePeriod;
+  onTimePeriodChange: (period: TimePeriod) => void;
+  isFetching?: boolean;
 }
 
 /**
@@ -64,7 +76,7 @@ function formatDelta(value: number, decimals: number = 2): string {
   return (value > 0 ? "+" : "") + formatted;
 }
 
-export function AnalysisResults({ data }: AnalysisResultsProps) {
+export function AnalysisResults({ data, timePeriod, onTimePeriodChange, isFetching = false }: AnalysisResultsProps) {
   const [activeTab, setActiveTab] = useState<"deck" | "missing">("deck");
   
   const { commander, deck_stats, deck_cards, missing_staples, potential_cuts, strong_cards, unknown_cards } = data;
@@ -161,13 +173,16 @@ export function AnalysisResults({ data }: AnalysisResultsProps) {
               >
                 View commander page →
               </Link>
+              {isFetching && (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              )}
             </div>
             <h1 className="text-3xl md:text-4xl font-medium tracking-tight">{commander.name}</h1>
             <p className="text-muted-foreground mt-2">Deck Analysis</p>
           </div>
 
           {/* Deck Score */}
-          <div className="flex flex-wrap gap-x-12 gap-y-4">
+          <div className={`flex flex-wrap gap-x-12 gap-y-4 ${isFetching ? "opacity-60" : ""} transition-opacity`}>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Deck Rating</p>
               <p className={cn("text-2xl font-medium", scoreInfo.color)}>
@@ -197,12 +212,32 @@ export function AnalysisResults({ data }: AnalysisResultsProps) {
               <p className="text-xs text-muted-foreground">{commander.entries} tournament decks</p>
             </div>
           </div>
+
+          {/* Time Period Selector */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Showing data from</span>
+            <Select
+              value={timePeriod}
+              onValueChange={(value) => onTimePeriodChange(value as TimePeriod)}
+            >
+              <SelectTrigger className="w-40 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_PERIOD_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </section>
 
       {/* Insights Section */}
       {(strong_cards.length > 0 || potential_cuts.length > 0 || missing_staples.length > 0 || hiddenGems.length > 0) && (
-        <section className="border-t pt-10">
+        <section className={`border-t pt-10 ${isFetching ? "opacity-60" : ""} transition-opacity`}>
           <h2 className="text-lg font-medium mb-6">Quick Insights</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -310,7 +345,7 @@ export function AnalysisResults({ data }: AnalysisResultsProps) {
       )}
 
       {/* Card Tables Section */}
-      <section className="border-t pt-10">
+      <section className={`border-t pt-10 ${isFetching ? "opacity-60" : ""} transition-opacity`}>
         {/* Tab Navigation */}
         <div className="flex items-center gap-6 mb-6">
           <button

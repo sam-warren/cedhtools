@@ -21,6 +21,10 @@
     "job:status": "npx tsx scripts/enqueue-job.ts status",
     "job:daily": "npx tsx scripts/enqueue-job.ts daily_update",
     "job:seed": "npx tsx scripts/enqueue-job.ts full_seed",
+    "job:sync": "npx tsx scripts/enqueue-job.ts sync",
+    "job:enrich": "npx tsx scripts/enqueue-job.ts enrich",
+    "job:aggregate": "npx tsx scripts/enqueue-job.ts aggregate",
+    "job:cancel": "npx tsx scripts/cancel-job.ts",
     "job:reset": "npx tsx scripts/reset-stuck-jobs.ts",
     "job:reset:fail": "npx tsx scripts/reset-stuck-jobs.ts --fail",
     "job:reset:list": "npx tsx scripts/reset-stuck-jobs.ts --list"

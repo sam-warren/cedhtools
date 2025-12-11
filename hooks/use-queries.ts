@@ -169,6 +169,58 @@ export function useCardCommanderStats(
 }
 
 // ============================================
+// Deck Analysis Hook
+// ============================================
+
+import type { AnalysisResponse } from "@/components/analyze/analysis-results";
+
+async function fetchDeckAnalysis(
+  commanderName: string,
+  cards: string[],
+  timePeriod: TimePeriod
+): Promise<AnalysisResponse> {
+  const res = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commanderName, cards, timePeriod }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Analysis failed");
+  }
+  return res.json();
+}
+
+/**
+ * Fetch deck analysis for a commander with given cards.
+ * Supports time period filtering with smooth transitions (keeps previous data visible).
+ * 
+ * @param commanderName - Commander name
+ * @param cards - Array of card names from the decklist
+ * @param timePeriod - Time period for filtering stats
+ * @param enabled - Whether to enable the query (set to true once cards are ready)
+ */
+export function useDeckAnalysis(
+  commanderName: string,
+  cards: string[],
+  timePeriod: TimePeriod,
+  enabled: boolean = true
+) {
+  // Create a stable key from cards array (first 10 cards + count as fingerprint)
+  const cardsFingerprint = cards.length > 0 
+    ? `${cards.slice(0, 10).join(",")}:${cards.length}` 
+    : "";
+  
+  return useQuery({
+    queryKey: ["deck-analysis", commanderName, cardsFingerprint, timePeriod] as const,
+    queryFn: () => fetchDeckAnalysis(commanderName, cards, timePeriod),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    placeholderData: keepPreviousData,
+    enabled: enabled && !!commanderName && cards.length > 0,
+  });
+}
+
+// ============================================
 // Commander Search (for Deck Analyzer)
 // ============================================
 

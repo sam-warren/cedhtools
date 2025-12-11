@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AnalysisResults, AnalysisResultsSkeleton, type AnalysisResponse } from "@/components/analyze/analysis-results";
+import { useDeckAnalysis } from "@/hooks/use-queries";
 import { getDeckById, getAnalysis, saveAnalysis } from "@/lib/storage";
 import { parseDecklist, prepareForValidation } from "@/lib/parsers";
+import type { TimePeriod } from "@/lib/utils/time-period";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -32,35 +34,24 @@ async function validateDecklist(decklist: string): Promise<ValidationResult> {
   return response.json();
 }
 
-async function analyzeDecklist(
-  commanderName: string,
-  cards: string[]
-): Promise<AnalysisResponse> {
-  const response = await fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ commanderName, cards }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Analysis failed");
-  }
-
-  return response.json();
-}
-
 export default function AnalysisPage() {
   const params = useParams();
   const deckId = params.id as string;
   
   const [mounted, setMounted] = useState(false);
-  const [cachedAnalysis, setCachedAnalysis] = useState<AnalysisResponse | null>(null);
   const [deckNotFound, setDeckNotFound] = useState(false);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("6_months");
+  
+  // Store validated deck data for query-based fetching
+  const [validatedDeck, setValidatedDeck] = useState<{
+    commanderName: string;
+    cardNames: string[];
+  } | null>(null);
 
-  const analysisMutation = useMutation({
+  // Initial validation mutation - runs once to validate and parse the decklist
+  const validationMutation = useMutation({
     mutationFn: async (deck: { commanderName: string; decklist: string }) => {
-      // Step 1: Validate the decklist with Scrollrack
+      // Validate the decklist with Scrollrack
       const preparedDecklist = prepareForValidation(deck.decklist, deck.commanderName);
       const validationResult = await validateDecklist(preparedDecklist);
       
@@ -68,21 +59,38 @@ export default function AnalysisPage() {
         throw new Error(validationResult.errors.join("; "));
       }
       
-      // Step 2: Parse the decklist to get card names
+      // Parse the decklist to get card names
       const cards = parseDecklist(deck.decklist);
       const cardNames = cards.map(card => card.name);
       
-      // Step 3: Analyze the decklist
-      return analyzeDecklist(deck.commanderName, cardNames);
+      return { commanderName: deck.commanderName, cardNames };
     },
     onSuccess: (data) => {
-      // Save analysis to localStorage
-      saveAnalysis(deckId, data);
-      setCachedAnalysis(data);
+      setValidatedDeck(data);
     },
   });
 
-  // Load deck and cached analysis from localStorage
+  // Use query-based hook for analysis with smooth time period transitions
+  const {
+    data: analysisData,
+    isLoading: analysisLoading,
+    isFetching: analysisFetching,
+    error: analysisError,
+  } = useDeckAnalysis(
+    validatedDeck?.commanderName ?? "",
+    validatedDeck?.cardNames ?? [],
+    timePeriod,
+    !!validatedDeck // Only enabled once we have validated deck data
+  );
+
+  // Save analysis to localStorage when it changes
+  useEffect(() => {
+    if (analysisData && deckId) {
+      saveAnalysis(deckId, analysisData);
+    }
+  }, [analysisData, deckId]);
+
+  // Load deck from localStorage on mount
   useEffect(() => {
     setMounted(true);
     
@@ -92,13 +100,19 @@ export default function AnalysisPage() {
       return;
     }
     
-    // Check for cached analysis
+    // Check for cached analysis first (for instant display)
     const cached = getAnalysis(deckId);
     if (cached) {
-      setCachedAnalysis(cached);
+      // Parse the decklist to get card names for the query hook
+      const cards = parseDecklist(deck.decklist);
+      const cardNames = cards.map(card => card.name);
+      setValidatedDeck({ commanderName: deck.commanderName, cardNames });
     } else {
-      // Trigger fresh analysis
-      analysisMutation.mutate(deck);
+      // Need to validate first
+      validationMutation.mutate({ 
+        commanderName: deck.commanderName, 
+        decklist: deck.decklist 
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
@@ -132,8 +146,8 @@ export default function AnalysisPage() {
     );
   }
 
-  // Loading state
-  if (analysisMutation.isPending) {
+  // Initial validation in progress
+  if (validationMutation.isPending) {
     return (
       <div className="container mx-auto px-4 py-12 md:py-16">
         <AnalysisResultsSkeleton />
@@ -141,18 +155,18 @@ export default function AnalysisPage() {
     );
   }
 
-  // Error state
-  if (analysisMutation.isError) {
+  // Validation error
+  if (validationMutation.isError) {
     return (
       <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-start gap-3 p-4 border border-destructive/50 bg-destructive/5 rounded-md mb-8">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-destructive">Analysis Failed</p>
+              <p className="font-medium text-destructive">Validation Failed</p>
               <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                {analysisMutation.error instanceof Error
-                  ? analysisMutation.error.message.split("; ").map((err, i) => (
+                {validationMutation.error instanceof Error
+                  ? validationMutation.error.message.split("; ").map((err, i) => (
                       <p key={i}>{err}</p>
                     ))
                   : <p>An unexpected error occurred</p>}
@@ -170,11 +184,54 @@ export default function AnalysisPage() {
     );
   }
 
-  // Show cached or fresh analysis results
-  if (cachedAnalysis) {
+  // Initial analysis loading (no data yet)
+  if (analysisLoading && !analysisData) {
     return (
       <div className="container mx-auto px-4 py-12 md:py-16">
-        <AnalysisResults data={cachedAnalysis} />
+        <AnalysisResultsSkeleton />
+      </div>
+    );
+  }
+
+  // Analysis error (and no cached data to show)
+  if (analysisError && !analysisData) {
+    return (
+      <div className="container mx-auto px-4 py-12 md:py-16">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-start gap-3 p-4 border border-destructive/50 bg-destructive/5 rounded-md mb-8">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-destructive">Analysis Failed</p>
+              <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                {analysisError instanceof Error
+                  ? analysisError.message.split("; ").map((err, i) => (
+                      <p key={i}>{err}</p>
+                    ))
+                  : <p>An unexpected error occurred</p>}
+              </div>
+            </div>
+          </div>
+          <Link href="/analyze">
+            <Button variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Analyze
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show analysis results (with fade effect when fetching new time period)
+  if (analysisData) {
+    return (
+      <div className="container mx-auto px-4 py-12 md:py-16">
+        <AnalysisResults 
+          data={analysisData} 
+          timePeriod={timePeriod}
+          onTimePeriodChange={setTimePeriod}
+          isFetching={analysisFetching}
+        />
       </div>
     );
   }

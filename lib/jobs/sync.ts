@@ -124,8 +124,9 @@ async function preloadCommanderCache(
     
     for (const cmd of data) {
       cache[cmd.name] = cmd.id;
-      if (cmd.name.includes(' // ')) {
-        const frontFace = cmd.name.split(' // ')[0].trim();
+      // Also cache by front face for DFC lookup
+      const frontFace = getFrontFaceName(cmd.name);
+      if (frontFace !== cmd.name) {
         cache[frontFace] = cmd.id;
       }
     }
@@ -162,8 +163,9 @@ async function preloadCardCache(
     
     for (const card of data) {
       cache[card.name] = card.id;
-      if (card.name.includes(' // ')) {
-        const frontFace = card.name.split(' // ')[0].trim();
+      // Also cache by front face for DFC lookup
+      const frontFace = getFrontFaceName(card.name);
+      if (frontFace !== card.name) {
         cache[frontFace] = card.id;
       }
     }
@@ -296,8 +298,9 @@ async function batchUpsertCommanders(
     if (data) {
       for (const row of data) {
         cache[row.name] = row.id;
-        if (row.name.includes(' // ')) {
-          const frontFace = row.name.split(' // ')[0].trim();
+        // Also cache by front face for DFC lookup
+        const frontFace = getFrontFaceName(row.name);
+        if (frontFace !== row.name) {
           cache[frontFace] = row.id;
         }
       }
@@ -362,8 +365,9 @@ async function batchUpsertCards(
     if (data) {
       for (const row of data) {
         cache[row.name] = row.id;
-        if (row.name.includes(' // ')) {
-          const frontFace = row.name.split(' // ')[0].trim();
+        // Also cache by front face for DFC lookup
+        const frontFace = getFrontFaceName(row.name);
+        if (frontFace !== row.name) {
           cache[frontFace] = row.id;
         }
       }

@@ -16,6 +16,7 @@ import {
   type ProgressLogger,
   type SupabaseAdmin,
   createProgressLogger,
+  getFrontFaceName,
   PAGE_SIZE
 } from './utils';
 
@@ -187,11 +188,10 @@ export async function loadScryfallData(
       cardByOracleId.set(card.oracle_id, card);
       cardByName.set(card.name.toLowerCase(), card);
       
-      if (card.name.includes(' // ')) {
-        const frontFace = card.name.split(' // ')[0].toLowerCase();
-        if (!cardByName.has(frontFace)) {
-          cardByName.set(frontFace, card);
-        }
+      // Also index by front face for DFC lookup
+      const frontFace = getFrontFaceName(card.name).toLowerCase();
+      if (frontFace !== card.name.toLowerCase() && !cardByName.has(frontFace)) {
+        cardByName.set(frontFace, card);
       }
       
       processedCount++;
@@ -230,6 +230,8 @@ async function enrichCards(
   const { count: totalCount } = await countQuery;
   
   logger.startPhase('Enrich Cards', totalCount ?? 0);
+  logger.log(`Mode: ${incremental ? 'incremental (unenriched only)' : 'full rebuild'}`);
+  logger.log(`Scryfall data: ${logger.formatNumber(scryfallCards.size)} cards by oracle_id, ${logger.formatNumber(scryfallCards.byName.size)} by name`);
   
   const pendingUpdates: Array<{
     id: number;
@@ -242,9 +244,14 @@ async function enrichCards(
   
   let offset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let totalFlushed = 0;
   const byName = scryfallCards.byName;
   
   while (true) {
+    const batchStartTime = Date.now();
+    batchNum++;
+    
     let query = supabase
       .from('cards')
       .select('id, name, oracle_id')
@@ -258,6 +265,10 @@ async function enrichCards(
     if (!data || data.length === 0) break;
     
     const cards = data as DbCard[];
+    logger.logBatchStart(batchNum, cards.length, 'cards');
+    
+    let batchMatched = 0;
+    let batchNotFound = 0;
     
     for (const card of cards) {
       let scryfallCard = card.oracle_id ? scryfallCards.get(card.oracle_id) : undefined;
@@ -265,9 +276,11 @@ async function enrichCards(
       
       if (!scryfallCard) {
         stats.cardsNotFound++;
+        batchNotFound++;
         continue;
       }
       
+      batchMatched++;
       pendingUpdates.push({
         id: card.id,
         oracle_id: scryfallCard.oracle_id,
@@ -279,14 +292,23 @@ async function enrichCards(
       
       // Flush batch when full
       if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushStart = Date.now();
         const flushed = await flushCardUpdates(supabase, pendingUpdates);
         stats.cardsEnriched += flushed;
+        totalFlushed += flushed;
+        logger.debug(`Flushed ${flushed} card updates to DB (${Date.now() - flushStart}ms)`);
         pendingUpdates.length = 0;
       }
     }
     
     totalProcessed += cards.length;
     logger.update(totalProcessed);
+    logger.logBatchComplete(batchNum, totalProcessed, totalCount ?? 0, Date.now() - batchStartTime);
+    logger.debug(`Batch ${batchNum}: ${batchMatched} matched, ${batchNotFound} not found in Scryfall`);
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
+    
     // In incremental mode, don't increment offset - updated records drop out of the filter
     if (!incremental) {
       offset += PAGE_SIZE;
@@ -296,10 +318,13 @@ async function enrichCards(
   
   // Flush remaining
   if (pendingUpdates.length > 0) {
+    logger.debug(`Flushing final ${pendingUpdates.length} card updates...`);
     const flushed = await flushCardUpdates(supabase, pendingUpdates);
     stats.cardsEnriched += flushed;
+    totalFlushed += flushed;
   }
   
+  logger.log(`Total enriched: ${logger.formatNumber(totalFlushed)} cards, ${logger.formatNumber(stats.cardsNotFound)} not found`);
   logger.endPhase();
 }
 
@@ -347,13 +372,22 @@ async function enrichCommanders(
   const { count: totalCount } = await countQuery;
   
   logger.startPhase('Enrich Commanders', totalCount ?? 0);
+  logger.log(`Mode: ${incremental ? 'incremental (unenriched only)' : 'full rebuild'}`);
   
   const pendingUpdates: Array<{ id: number; color_id: string }> = [];
   let offset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let totalFlushed = 0;
   const byName = scryfallCards.byName;
   
+  // Track color identity distribution for stats
+  const colorIdCounts: Record<string, number> = {};
+  
   while (true) {
+    const batchStartTime = Date.now();
+    batchNum++;
+    
     let query = supabase
       .from('commanders')
       .select('id, name')
@@ -367,10 +401,20 @@ async function enrichCommanders(
     if (!data || data.length === 0) break;
     
     const commanders = data as DbCommander[];
+    logger.logBatchStart(batchNum, commanders.length, 'commanders');
+    
+    let batchPartners = 0;
+    let batchSolo = 0;
     
     for (const commander of commanders) {
       const commanderNames = commander.name.split(' / ');
       const combinedColorIdentity: string[] = [];
+      
+      if (commanderNames.length > 1) {
+        batchPartners++;
+      } else {
+        batchSolo++;
+      }
       
       for (const name of commanderNames) {
         const scryfallCard = byName?.get(name.toLowerCase().trim());
@@ -379,20 +423,32 @@ async function enrichCommanders(
         }
       }
       
+      const colorId = wubrgify([...new Set(combinedColorIdentity)]);
+      colorIdCounts[colorId] = (colorIdCounts[colorId] || 0) + 1;
+      
       pendingUpdates.push({
         id: commander.id,
-        color_id: wubrgify([...new Set(combinedColorIdentity)]),
+        color_id: colorId,
       });
       
       if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushStart = Date.now();
         const flushed = await flushCommanderUpdates(supabase, pendingUpdates);
         stats.commandersEnriched += flushed;
+        totalFlushed += flushed;
+        logger.debug(`Flushed ${flushed} commander updates to DB (${Date.now() - flushStart}ms)`);
         pendingUpdates.length = 0;
       }
     }
     
     totalProcessed += commanders.length;
     logger.update(totalProcessed);
+    logger.logBatchComplete(batchNum, totalProcessed, totalCount ?? 0, Date.now() - batchStartTime);
+    logger.debug(`Batch ${batchNum}: ${batchSolo} solo commanders, ${batchPartners} partner pairs`);
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
+    
     // In incremental mode, don't increment offset - updated records drop out of the filter
     if (!incremental) {
       offset += PAGE_SIZE;
@@ -401,10 +457,20 @@ async function enrichCommanders(
   }
   
   if (pendingUpdates.length > 0) {
+    logger.debug(`Flushing final ${pendingUpdates.length} commander updates...`);
     const flushed = await flushCommanderUpdates(supabase, pendingUpdates);
     stats.commandersEnriched += flushed;
+    totalFlushed += flushed;
   }
   
+  // Log color identity distribution
+  const topColors = Object.entries(colorIdCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([color, count]) => `${color}: ${count}`)
+    .join(', ');
+  logger.log(`Total enriched: ${logger.formatNumber(totalFlushed)} commanders`);
+  logger.log(`Top color identities: ${topColors}`);
   logger.endPhase();
 }
 
@@ -435,12 +501,19 @@ async function enrichTournaments(
   const { count: totalCount } = await countQuery;
   
   logger.startPhase('Enrich Tournaments', totalCount ?? 0);
+  logger.log(`Mode: ${incremental ? 'incremental (unenriched only)' : 'full rebuild'}`);
+  logger.log(`Adding bracket URLs to tournaments...`);
   
   const pendingUpdates: Array<{ id: number; bracket_url: string }> = [];
   let offset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let totalFlushed = 0;
   
   while (true) {
+    const batchStartTime = Date.now();
+    batchNum++;
+    
     let query = supabase
       .from('tournaments')
       .select('id, tid')
@@ -454,6 +527,7 @@ async function enrichTournaments(
     if (!data || data.length === 0) break;
     
     const tournaments = data as DbTournament[];
+    logger.logBatchStart(batchNum, tournaments.length, 'tournaments');
     
     for (const tournament of tournaments) {
       pendingUpdates.push({
@@ -462,14 +536,22 @@ async function enrichTournaments(
       });
       
       if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushStart = Date.now();
         const flushed = await flushTournamentUpdates(supabase, pendingUpdates);
         stats.tournamentsEnriched += flushed;
+        totalFlushed += flushed;
+        logger.debug(`Flushed ${flushed} tournament updates to DB (${Date.now() - flushStart}ms)`);
         pendingUpdates.length = 0;
       }
     }
     
     totalProcessed += tournaments.length;
     logger.update(totalProcessed);
+    logger.logBatchComplete(batchNum, totalProcessed, totalCount ?? 0, Date.now() - batchStartTime);
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
+    
     // In incremental mode, don't increment offset - updated records drop out of the filter
     // In full mode, increment offset to paginate through all records
     if (!incremental) {
@@ -479,10 +561,13 @@ async function enrichTournaments(
   }
   
   if (pendingUpdates.length > 0) {
+    logger.debug(`Flushing final ${pendingUpdates.length} tournament updates...`);
     const flushed = await flushTournamentUpdates(supabase, pendingUpdates);
     stats.tournamentsEnriched += flushed;
+    totalFlushed += flushed;
   }
   
+  logger.log(`Total enriched: ${logger.formatNumber(totalFlushed)} tournaments with bracket URLs`);
   logger.endPhase();
 }
 
@@ -519,13 +604,26 @@ async function validateDecklists(
   if (countError) throw countError;
   
   logger.startPhase('Validate Decklists', totalCount ?? 0);
-  logger.log(`Using ${VALIDATION_CONCURRENCY} parallel requests`);
+  logger.log(`Mode: ${incremental ? 'incremental (unvalidated only)' : 'full rebuild'}`);
+  logger.log(`Concurrency: ${VALIDATION_CONCURRENCY} parallel requests`);
+  logger.log(`Rate limit delay: ${VALIDATION_DELAY_MS}ms between chunks`);
   
   const pendingUpdates: Array<{ id: number; decklist_valid: boolean }> = [];
   let offset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let chunkNum = 0;
+  let totalFlushed = 0;
+  
+  // Track validation results for summary
+  let totalApiCalls = 0;
+  let totalApiErrors = 0;
+  let lastProgressTime = Date.now();
   
   while (true) {
+    const batchStartTime = Date.now();
+    batchNum++;
+    
     let query = supabase
       .from('entries')
       .select('id, decklist')
@@ -541,19 +639,30 @@ async function validateDecklists(
     const entries = data as DbEntry[] | null;
     if (!entries || entries.length === 0) break;
     
+    logger.logBatchStart(batchNum, entries.length, 'decklists');
+    
+    let batchValid = 0;
+    let batchInvalid = 0;
+    let batchSkipped = 0;
+    let batchErrors = 0;
+    
     // Process in parallel chunks
     for (let i = 0; i < entries.length; i += VALIDATION_CONCURRENCY) {
       const chunk = entries.slice(i, i + VALIDATION_CONCURRENCY);
+      chunkNum++;
+      const chunkStart = Date.now();
       
       const results = await Promise.allSettled(
         chunk.map(async (entry) => {
           if (!entry.decklist) return { id: entry.id, skipped: true };
           
           try {
+            totalApiCalls++;
             const result = await validateDecklistWithRetry(entry.decklist);
             return { id: entry.id, valid: result?.valid ?? null, skipped: false };
           } catch {
-            return { id: entry.id, valid: null, skipped: false };
+            totalApiErrors++;
+            return { id: entry.id, valid: null, skipped: false, error: true };
           }
         })
       );
@@ -564,30 +673,54 @@ async function validateDecklists(
           
           if (skipped) {
             stats.decklistsSkipped++;
+            batchSkipped++;
           } else {
             stats.decklistsValidated++;
             if (valid === true) {
               stats.decklistsValid++;
+              batchValid++;
               pendingUpdates.push({ id, decklist_valid: true });
             } else if (valid === false) {
               stats.decklistsInvalid++;
+              batchInvalid++;
               pendingUpdates.push({ id, decklist_valid: false });
+            } else {
+              batchErrors++;
             }
           }
+        } else {
+          batchErrors++;
         }
       }
       
       // Flush batch when full
       if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
+        const flushStart = Date.now();
         await flushValidationUpdates(supabase, pendingUpdates);
+        totalFlushed += pendingUpdates.length;
+        logger.debug(`Flushed ${pendingUpdates.length} validation updates to DB (${Date.now() - flushStart}ms)`);
         pendingUpdates.length = 0;
       }
       
       totalProcessed += chunk.length;
       logger.update(totalProcessed);
       
+      // Log detailed chunk progress every 30 seconds
+      const now = Date.now();
+      if (now - lastProgressTime >= 30000) {
+        const chunkRate = chunk.length / ((now - chunkStart) / 1000);
+        logger.debug(`Chunk ${chunkNum}: ${chunk.length} validated at ${chunkRate.toFixed(1)}/s | API calls: ${totalApiCalls}, errors: ${totalApiErrors}`);
+        lastProgressTime = now;
+      }
+      
       await new Promise(resolve => setTimeout(resolve, VALIDATION_DELAY_MS));
     }
+    
+    logger.logBatchComplete(batchNum, totalProcessed, totalCount ?? 0, Date.now() - batchStartTime);
+    logger.debug(`Batch ${batchNum} results: ${batchValid} valid, ${batchInvalid} invalid, ${batchSkipped} skipped, ${batchErrors} errors`);
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
     
     // In incremental mode, don't increment offset - updated records drop out of the filter
     if (!incremental) {
@@ -598,9 +731,21 @@ async function validateDecklists(
   
   // Flush remaining
   if (pendingUpdates.length > 0) {
+    logger.debug(`Flushing final ${pendingUpdates.length} validation updates...`);
     await flushValidationUpdates(supabase, pendingUpdates);
+    totalFlushed += pendingUpdates.length;
   }
   
+  // Summary statistics
+  const validRate = stats.decklistsValidated > 0 
+    ? ((stats.decklistsValid / stats.decklistsValidated) * 100).toFixed(1) 
+    : '0';
+  logger.log(`Validation complete:`);
+  logger.log(`  Total validated: ${logger.formatNumber(stats.decklistsValidated)}`);
+  logger.log(`  Valid: ${logger.formatNumber(stats.decklistsValid)} (${validRate}%)`);
+  logger.log(`  Invalid: ${logger.formatNumber(stats.decklistsInvalid)}`);
+  logger.log(`  Skipped: ${logger.formatNumber(stats.decklistsSkipped)}`);
+  logger.log(`  API calls: ${logger.formatNumber(totalApiCalls)}, errors: ${totalApiErrors}`);
   logger.endPhase();
 }
 

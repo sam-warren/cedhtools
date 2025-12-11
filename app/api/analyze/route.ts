@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/utils/time-period";
+import { getFrontFaceName } from "@/lib/utils/text";
 
 /**
  * POST /api/analyze
@@ -137,12 +138,7 @@ export async function POST(request: NextRequest) {
     // Normalize user's card names for matching
     // Handle double-faced cards by extracting front face name
     const userCardNamesLower = new Set(
-      cards.map(c => {
-        const name = c.toLowerCase().trim();
-        // Extract front face from "Front // Back" format
-        const frontFace = name.split(' // ')[0].trim();
-        return frontFace;
-      })
+      cards.map(c => getFrontFaceName(c.toLowerCase().trim()))
     );
 
     // Also create a set with the full DFC names for exact matching
@@ -156,7 +152,7 @@ export async function POST(request: NextRequest) {
       // Exact match
       if (userCardNamesFull.has(nameLower)) return true;
       // Front face match (for DFCs stored as "Front // Back" in DB)
-      const frontFace = nameLower.split(' // ')[0].trim();
+      const frontFace = getFrontFaceName(nameLower);
       if (userCardNamesLower.has(frontFace)) return true;
       // Check if user's card matches DB front face
       if (userCardNamesLower.has(nameLower)) return true;
@@ -210,7 +206,7 @@ export async function POST(request: NextRequest) {
       const nameLower = card.name.toLowerCase();
       knownCardNames.add(nameLower);
       // Also add front face for DFCs
-      const frontFace = nameLower.split(' // ')[0].trim();
+      const frontFace = getFrontFaceName(nameLower);
       if (frontFace !== nameLower) {
         knownCardNames.add(frontFace);
       }
@@ -218,7 +214,7 @@ export async function POST(request: NextRequest) {
     
     const unknownCards = cards.filter(c => {
       const nameLower = c.toLowerCase().trim();
-      const frontFace = nameLower.split(' // ')[0].trim();
+      const frontFace = getFrontFaceName(nameLower);
       // Check if it's the commander
       if (commanderNames.includes(nameLower) || commanderNames.includes(frontFace)) {
         return false;

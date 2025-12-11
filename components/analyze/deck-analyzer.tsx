@@ -56,14 +56,18 @@ async function validateDecklist(decklist: string): Promise<ValidationResult> {
   return response.json();
 }
 
+// Default time period for initial analysis (user can change on results page)
+const DEFAULT_TIME_PERIOD = "6_months";
+
 async function analyzeDecklist(
   commanderName: string,
-  cards: string[]
+  cards: string[],
+  timePeriod: string = DEFAULT_TIME_PERIOD
 ): Promise<AnalysisResponse> {
   const response = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ commanderName, cards }),
+    body: JSON.stringify({ commanderName, cards, timePeriod }),
   });
 
   if (!response.ok) {

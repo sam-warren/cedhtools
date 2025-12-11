@@ -42,10 +42,12 @@ async function loadTournaments(
   supabase: SupabaseAdmin,
   logger: ProgressLogger
 ): Promise<Map<number, TournamentData>> {
-  logger.log(`Loading tournaments (from ${MIN_STATS_DATE})...`);
+  logger.logSubPhase('Loading Tournaments', `from ${MIN_STATS_DATE}`);
   
+  const loadStart = Date.now();
   const tournamentMap = new Map<number, TournamentData>();
   let offset = 0;
+  let pages = 0;
   
   while (true) {
     const { data, error } = await supabase
@@ -62,11 +64,13 @@ async function loadTournaments(
       tournamentMap.set(t.id, t);
     }
     
+    pages++;
     offset += PAGE_SIZE;
     if (data.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${tournamentMap.size.toLocaleString()} tournaments`);
+  const elapsed = Date.now() - loadStart;
+  logger.log(`Loaded ${logger.formatNumber(tournamentMap.size)} tournaments in ${pages} pages (${elapsed}ms)`);
   return tournamentMap;
 }
 
@@ -86,9 +90,14 @@ async function aggregateCommanderWeeklyStats(
     .not('commander_id', 'is', null);
   
   logger.startPhase('Commander Weekly Stats', totalEntries ?? 0);
+  logger.log(`Processing entries with valid decklists only`);
+  logger.log(`Tournaments in scope: ${logger.formatNumber(tournamentMap.size)}`);
   
   // Clear existing stats
+  logger.logSubPhase('Clearing existing stats');
+  const clearStart = Date.now();
   await supabase.from('commander_weekly_stats').delete().neq('id', 0);
+  logger.debug(`Cleared existing stats (${Date.now() - clearStart}ms)`);
   
   const statsMap = new Map<string, {
     commander_id: number;
@@ -104,8 +113,17 @@ async function aggregateCommanderWeeklyStats(
   
   let offset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let entriesWithValidDecklists = 0;
+  let entriesSkipped = 0;
+  let entriesNoTournament = 0;
+  
+  logger.logSubPhase('Processing entries');
   
   while (true) {
+    const batchStart = Date.now();
+    batchNum++;
+    
     const { data, error } = await supabase
       .from('entries')
       .select(`
@@ -144,12 +162,27 @@ async function aggregateCommanderWeeklyStats(
     const entries = data as EntryData[] | null;
     if (!entries || entries.length === 0) break;
     
+    logger.logBatchStart(batchNum, entries.length, 'entries');
+    
+    let batchIncluded = 0;
+    let batchSkipped = 0;
+    
     for (const entry of entries) {
       // Only include entries with valid decklists for consistency with card stats
-      if (entry.decklist_valid !== true) continue;
+      if (entry.decklist_valid !== true) {
+        entriesSkipped++;
+        batchSkipped++;
+        continue;
+      }
       
       const tournament = tournamentMap.get(entry.tournament_id);
-      if (!tournament) continue;
+      if (!tournament) {
+        entriesNoTournament++;
+        continue;
+      }
+      
+      entriesWithValidDecklists++;
+      batchIncluded++;
       
       const weekStart = getWeekStart(new Date(tournament.tournament_date));
       const key = `${entry.commander_id}-${weekStart}`;
@@ -185,12 +218,25 @@ async function aggregateCommanderWeeklyStats(
     
     totalProcessed += entries.length;
     logger.update(totalProcessed);
+    logger.logBatchComplete(batchNum, totalProcessed, totalEntries ?? 0, Date.now() - batchStart);
+    logger.debug(`Batch ${batchNum}: ${batchIncluded} included, ${batchSkipped} skipped (no valid decklist)`);
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
+    
     offset += PAGE_SIZE;
     if (entries.length < PAGE_SIZE) break;
   }
   
+  // Log aggregation summary
+  logger.log(`Aggregation complete: ${logger.formatNumber(entriesWithValidDecklists)} entries -> ${logger.formatNumber(statsMap.size)} stat rows`);
+  logger.log(`Skipped: ${logger.formatNumber(entriesSkipped)} (no valid decklist), ${logger.formatNumber(entriesNoTournament)} (no tournament match)`);
+  
   // Insert aggregated stats in batches
+  logger.logSubPhase('Inserting aggregated stats', `${logger.formatNumber(statsMap.size)} rows`);
   const statsArray = Array.from(statsMap.values());
+  const insertStart = Date.now();
+  let insertedBatches = 0;
   
   for (let i = 0; i < statsArray.length; i += INSERT_BATCH_SIZE) {
     const batch = statsArray.slice(i, i + INSERT_BATCH_SIZE);
@@ -198,8 +244,14 @@ async function aggregateCommanderWeeklyStats(
       .from('commander_weekly_stats')
       .insert(batch);
     if (insertError) throw insertError;
+    insertedBatches++;
+    
+    if (insertedBatches % 10 === 0) {
+      logger.debug(`Inserted ${logger.formatNumber(i + batch.length)}/${logger.formatNumber(statsArray.length)} rows...`);
+    }
   }
   
+  logger.log(`Inserted ${logger.formatNumber(statsArray.length)} rows in ${insertedBatches} batches (${Date.now() - insertStart}ms)`);
   logger.endPhase();
   return statsArray.length;
 }
@@ -214,10 +266,14 @@ async function aggregateCardCommanderWeeklyStats(
   logger: ProgressLogger
 ): Promise<number> {
   // Clear existing stats
+  logger.logSubPhase('Clearing existing card-commander stats');
+  const clearStart = Date.now();
   await supabase.from('card_commander_weekly_stats').delete().neq('id', 0);
+  logger.debug(`Cleared existing stats (${Date.now() - clearStart}ms)`);
   
   // Load entries with valid decklists
-  logger.log('Loading entries with valid decklists...');
+  logger.logSubPhase('Loading entries with valid decklists');
+  const entryLoadStart = Date.now();
   const entryMap = new Map<number, {
     commander_id: number;
     standing: number | null;
@@ -232,6 +288,8 @@ async function aggregateCardCommanderWeeklyStats(
   }>();
   
   let entryOffset = 0;
+  let entryPages = 0;
+  let entriesSkipped = 0;
   
   while (true) {
     const { data, error } = await supabase
@@ -271,7 +329,10 @@ async function aggregateCardCommanderWeeklyStats(
     
     for (const entry of entries) {
       const tournament = tournamentMap.get(entry.tournament_id);
-      if (!tournament) continue;
+      if (!tournament) {
+        entriesSkipped++;
+        continue;
+      }
       
       entryMap.set(entry.id, {
         commander_id: entry.commander_id,
@@ -287,11 +348,16 @@ async function aggregateCardCommanderWeeklyStats(
       });
     }
     
+    entryPages++;
     entryOffset += PAGE_SIZE;
     if (entries.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${entryMap.size.toLocaleString()} entries with valid decklists`);
+  logger.log(`Loaded ${logger.formatNumber(entryMap.size)} entries in ${entryPages} pages (${Date.now() - entryLoadStart}ms)`);
+  if (entriesSkipped > 0) {
+    logger.debug(`Skipped ${logger.formatNumber(entriesSkipped)} entries (no matching tournament)`);
+  }
+  logger.logMemory();
   
   // Get count for progress
   const { count: totalItems } = await supabase
@@ -299,6 +365,7 @@ async function aggregateCardCommanderWeeklyStats(
     .select('id', { count: 'exact', head: true });
   
   logger.startPhase('Card-Commander Weekly Stats', totalItems ?? 0);
+  logger.log(`Processing ${logger.formatNumber(totalItems ?? 0)} decklist items`);
   
   const statsMap = new Map<string, {
     card_id: number;
@@ -314,8 +381,14 @@ async function aggregateCardCommanderWeeklyStats(
   
   let itemOffset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let itemsMatched = 0;
+  let itemsNoEntry = 0;
   
   while (true) {
+    const batchStart = Date.now();
+    batchNum++;
+    
     const { data, error } = await supabase
       .from('decklist_items')
       .select('entry_id, card_id')
@@ -327,10 +400,20 @@ async function aggregateCardCommanderWeeklyStats(
     const items = data as { entry_id: number; card_id: number }[] | null;
     if (!items || items.length === 0) break;
     
+    logger.logBatchStart(batchNum, items.length, 'decklist items');
+    
+    let batchMatched = 0;
+    
     for (const item of items) {
       const entryId = typeof item.entry_id === 'string' ? parseInt(item.entry_id, 10) : item.entry_id;
       const entry = entryMap.get(entryId);
-      if (!entry) continue;
+      if (!entry) {
+        itemsNoEntry++;
+        continue;
+      }
+      
+      itemsMatched++;
+      batchMatched++;
       
       const weekStart = getWeekStart(new Date(entry.tournament_date));
       const key = `${item.card_id}-${entry.commander_id}-${weekStart}`;
@@ -364,12 +447,30 @@ async function aggregateCardCommanderWeeklyStats(
     
     totalProcessed += items.length;
     logger.update(totalProcessed);
+    logger.logBatchComplete(batchNum, totalProcessed, totalItems ?? 0, Date.now() - batchStart);
+    
+    // Log stats map growth every 10 batches
+    if (batchNum % 10 === 0) {
+      logger.debug(`Stats map size: ${logger.formatNumber(statsMap.size)} unique card-commander-week combinations`);
+    }
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
+    
     itemOffset += PAGE_SIZE;
     if (items.length < PAGE_SIZE) break;
   }
   
+  logger.log(`Aggregation complete: ${logger.formatNumber(itemsMatched)} items -> ${logger.formatNumber(statsMap.size)} stat rows`);
+  if (itemsNoEntry > 0) {
+    logger.debug(`Skipped ${logger.formatNumber(itemsNoEntry)} items (no matching entry with valid decklist)`);
+  }
+  
   // Insert aggregated stats in batches
+  logger.logSubPhase('Inserting aggregated stats', `${logger.formatNumber(statsMap.size)} rows`);
   const statsArray = Array.from(statsMap.values());
+  const insertStart = Date.now();
+  let insertedBatches = 0;
   
   for (let i = 0; i < statsArray.length; i += INSERT_BATCH_SIZE) {
     const batch = statsArray.slice(i, i + INSERT_BATCH_SIZE);
@@ -377,8 +478,17 @@ async function aggregateCardCommanderWeeklyStats(
       .from('card_commander_weekly_stats')
       .insert(batch);
     if (insertError) throw insertError;
+    insertedBatches++;
+    
+    // Log insert progress every 50 batches
+    if (insertedBatches % 50 === 0) {
+      const inserted = i + batch.length;
+      const percent = ((inserted / statsArray.length) * 100).toFixed(1);
+      logger.debug(`Inserted ${logger.formatNumber(inserted)}/${logger.formatNumber(statsArray.length)} rows (${percent}%)...`);
+    }
   }
   
+  logger.log(`Inserted ${logger.formatNumber(statsArray.length)} rows in ${insertedBatches} batches (${Date.now() - insertStart}ms)`);
   logger.endPhase();
   return statsArray.length;
 }
@@ -393,10 +503,14 @@ async function aggregateSeatPositionWeeklyStats(
   logger: ProgressLogger
 ): Promise<number> {
   // Clear existing stats
+  logger.logSubPhase('Clearing existing seat position stats');
+  const clearStart = Date.now();
   await supabase.from('seat_position_weekly_stats').delete().neq('id', 0);
+  logger.debug(`Cleared existing stats (${Date.now() - clearStart}ms)`);
   
   // Load games
-  logger.log('Loading games...');
+  logger.logSubPhase('Loading games');
+  const gameLoadStart = Date.now();
   const gameMap = new Map<number, { 
     tournament_id: number; 
     winner_player_id: number | null;
@@ -404,6 +518,9 @@ async function aggregateSeatPositionWeeklyStats(
   }>();
   
   let gameOffset = 0;
+  let gamePages = 0;
+  let gamesSkipped = 0;
+  
   while (true) {
     const { data, error } = await supabase
       .from('games')
@@ -423,20 +540,29 @@ async function aggregateSeatPositionWeeklyStats(
           winner_player_id: g.winner_player_id,
           is_draw: g.is_draw,
         });
+      } else {
+        gamesSkipped++;
       }
     }
     
+    gamePages++;
     gameOffset += PAGE_SIZE;
     if (games.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${gameMap.size.toLocaleString()} games`);
+  logger.log(`Loaded ${logger.formatNumber(gameMap.size)} games in ${gamePages} pages (${Date.now() - gameLoadStart}ms)`);
+  if (gamesSkipped > 0) {
+    logger.debug(`Skipped ${logger.formatNumber(gamesSkipped)} games (no matching tournament)`);
+  }
   
   // Load entries for commander lookup (only valid decklists for consistency)
-  logger.log('Loading entries for commander lookup...');
+  logger.logSubPhase('Loading entries for commander lookup');
+  const entryLoadStart = Date.now();
   const entryCommanderMap = new Map<number, number>();
   
   let entryOffset = 0;
+  let entryPages = 0;
+  
   while (true) {
     const { data, error } = await supabase
       .from('entries')
@@ -455,11 +581,13 @@ async function aggregateSeatPositionWeeklyStats(
       entryCommanderMap.set(e.id, e.commander_id);
     }
     
+    entryPages++;
     entryOffset += PAGE_SIZE;
     if (entries.length < PAGE_SIZE) break;
   }
   
-  logger.log(`Loaded ${entryCommanderMap.size.toLocaleString()} entries with valid decklists`);
+  logger.log(`Loaded ${logger.formatNumber(entryCommanderMap.size)} entries in ${entryPages} pages (${Date.now() - entryLoadStart}ms)`);
+  logger.logMemory();
   
   // Get count for progress
   const { count: totalGamePlayers } = await supabase
@@ -467,6 +595,7 @@ async function aggregateSeatPositionWeeklyStats(
     .select('id', { count: 'exact', head: true });
   
   logger.startPhase('Seat Position Weekly Stats', totalGamePlayers ?? 0);
+  logger.log(`Processing ${logger.formatNumber(totalGamePlayers ?? 0)} game player records`);
   
   const statsMap = new Map<string, {
     commander_id: number;
@@ -478,8 +607,17 @@ async function aggregateSeatPositionWeeklyStats(
   
   let gpOffset = 0;
   let totalProcessed = 0;
+  let batchNum = 0;
+  let recordsMatched = 0;
+  let recordsNoGame = 0;
+  let recordsNoEntry = 0;
+  let recordsNoCommander = 0;
+  let totalWins = 0;
   
   while (true) {
+    const batchStart = Date.now();
+    batchNum++;
+    
     const { data, error } = await supabase
       .from('game_players')
       .select('game_id, player_id, entry_id, seat_position')
@@ -491,15 +629,32 @@ async function aggregateSeatPositionWeeklyStats(
     const gamePlayers = data as { game_id: number; player_id: number; entry_id: number | null; seat_position: number }[] | null;
     if (!gamePlayers || gamePlayers.length === 0) break;
     
+    logger.logBatchStart(batchNum, gamePlayers.length, 'game players');
+    
+    let batchWins = 0;
+    
     for (const gp of gamePlayers) {
       const game = gameMap.get(gp.game_id);
-      if (!game || !gp.entry_id) continue;
+      if (!game) {
+        recordsNoGame++;
+        continue;
+      }
+      
+      if (!gp.entry_id) {
+        recordsNoEntry++;
+        continue;
+      }
       
       const commanderId = entryCommanderMap.get(gp.entry_id);
-      if (!commanderId) continue;
+      if (!commanderId) {
+        recordsNoCommander++;
+        continue;
+      }
       
       const tournament = tournamentMap.get(game.tournament_id);
       if (!tournament) continue;
+      
+      recordsMatched++;
       
       const weekStart = getWeekStart(new Date(tournament.tournament_date));
       const key = `${commanderId}-${gp.seat_position}-${weekStart}`;
@@ -515,6 +670,8 @@ async function aggregateSeatPositionWeeklyStats(
       existing.games += 1;
       if (!game.is_draw && game.winner_player_id === gp.player_id) {
         existing.wins += 1;
+        batchWins++;
+        totalWins++;
       }
       
       statsMap.set(key, existing);
@@ -522,12 +679,29 @@ async function aggregateSeatPositionWeeklyStats(
     
     totalProcessed += gamePlayers.length;
     logger.update(totalProcessed);
+    logger.logBatchComplete(batchNum, totalProcessed, totalGamePlayers ?? 0, Date.now() - batchStart);
+    
+    // Log win rate every 10 batches
+    if (batchNum % 10 === 0) {
+      const winRate = recordsMatched > 0 ? ((totalWins / recordsMatched) * 100).toFixed(1) : '0';
+      logger.debug(`Stats: ${logger.formatNumber(statsMap.size)} unique combinations, win rate: ${winRate}%`);
+    }
+    
+    // Check for cancellation between batches
+    await logger.checkCancelled();
+    
     gpOffset += PAGE_SIZE;
     if (gamePlayers.length < PAGE_SIZE) break;
   }
   
+  logger.log(`Aggregation complete: ${logger.formatNumber(recordsMatched)} records -> ${logger.formatNumber(statsMap.size)} stat rows`);
+  logger.debug(`Skipped: ${logger.formatNumber(recordsNoGame)} no game, ${logger.formatNumber(recordsNoEntry)} no entry, ${logger.formatNumber(recordsNoCommander)} no commander`);
+  
   // Insert aggregated stats in batches
+  logger.logSubPhase('Inserting aggregated stats', `${logger.formatNumber(statsMap.size)} rows`);
   const statsArray = Array.from(statsMap.values());
+  const insertStart = Date.now();
+  let insertedBatches = 0;
   
   for (let i = 0; i < statsArray.length; i += INSERT_BATCH_SIZE) {
     const batch = statsArray.slice(i, i + INSERT_BATCH_SIZE);
@@ -535,8 +709,16 @@ async function aggregateSeatPositionWeeklyStats(
       .from('seat_position_weekly_stats')
       .insert(batch);
     if (insertError) throw insertError;
+    insertedBatches++;
+    
+    if (insertedBatches % 20 === 0) {
+      const inserted = i + batch.length;
+      const percent = ((inserted / statsArray.length) * 100).toFixed(1);
+      logger.debug(`Inserted ${logger.formatNumber(inserted)}/${logger.formatNumber(statsArray.length)} rows (${percent}%)...`);
+    }
   }
   
+  logger.log(`Inserted ${logger.formatNumber(statsArray.length)} rows in ${insertedBatches} batches (${Date.now() - insertStart}ms)`);
   logger.endPhase();
   return statsArray.length;
 }

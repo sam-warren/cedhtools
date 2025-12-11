@@ -26,8 +26,10 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   createProgressLogger,
   createSupabaseAdmin,
+  JobCancelledError,
   type AggregationStats,
   type EnrichmentStats,
+  type ProgressLoggerConfig,
   type SyncStats,
 } from '../lib/jobs';
 import { aggregateStats } from '../lib/jobs/aggregate';
@@ -75,21 +77,67 @@ function log(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   console.log(`[${timestamp}] ${prefix} [${WORKER_ID}] ${message}`);
 }
 
+/**
+ * Create a cancellation checker function for a specific job.
+ * This function checks the database to see if the job has been cancelled.
+ */
+function createCancellationChecker(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  jobId: number
+): () => Promise<boolean> {
+  return async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('should_cancel_job', {
+        p_job_id: jobId,
+      }) as { data: boolean | null; error: { message: string } | null };
+      
+      if (error) {
+        log(`Error checking cancellation for job ${jobId}: ${error.message}`, 'warn');
+        return false;
+      }
+      
+      return data === true;
+    } catch {
+      return false;
+    }
+  };
+}
+
+/**
+ * Create a progress logger with cancellation support for a specific job.
+ */
+function createJobLogger(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  jobId: number
+) {
+  const checkCancelled = createCancellationChecker(supabase, jobId);
+  
+  const config: ProgressLoggerConfig = {
+    checkCancelled,
+    progressIntervalMs: 10000,
+    minItemsBetweenLogs: 50,
+  };
+  
+  return createProgressLogger((msg) => log(msg), config);
+}
+
 // ============================================
 // Job Execution
 // ============================================
 
 async function executeDailyUpdate(
   supabase: ReturnType<typeof createSupabaseAdmin>,
-  config: Record<string, unknown>
+  jobConfig: Record<string, unknown>,
+  jobId: number
 ): Promise<JobResult> {
   const startTime = Date.now();
-  const logger = createProgressLogger((msg) => log(msg));
+  const logger = createJobLogger(supabase, jobId);
   
   log('Starting daily update pipeline...');
   
   // Sync last 7 days (or configured)
-  const daysBack = (config.days_back as number) || 7;
+  const daysBack = (jobConfig.days_back as number) || 7;
   const startDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
   
   const syncStats = await syncTournaments(supabase, {
@@ -124,12 +172,13 @@ async function executeDailyUpdate(
 
 async function executeFullSeed(
   supabase: ReturnType<typeof createSupabaseAdmin>,
-  config: Record<string, unknown>
+  jobConfig: Record<string, unknown>,
+  jobId: number
 ): Promise<JobResult> {
   const startTime = Date.now();
-  const logger = createProgressLogger((msg) => log(msg));
+  const logger = createJobLogger(supabase, jobId);
   
-  const startDateStr = (config.start_date as string) || '2025-05-19';
+  const startDateStr = (jobConfig.start_date as string) || '2025-05-19';
   const startDate = new Date(startDateStr);
   
   log(`Starting full seed from ${startDate.toISOString()}...`);
@@ -139,7 +188,7 @@ async function executeFullSeed(
   log(`Sync complete: ${syncStats.tournamentsProcessed} tournaments processed`);
   
   // Full enrich
-  const skipValidation = (config.skip_validation as boolean) ?? false;
+  const skipValidation = (jobConfig.skip_validation as boolean) ?? false;
   const enrichStats = await enrichData(supabase, {
     incremental: false,
     skipValidation,
@@ -162,14 +211,15 @@ async function executeFullSeed(
 
 async function executeSync(
   supabase: ReturnType<typeof createSupabaseAdmin>,
-  config: Record<string, unknown>
+  jobConfig: Record<string, unknown>,
+  jobId: number
 ): Promise<JobResult> {
   const startTime = Date.now();
-  const logger = createProgressLogger((msg) => log(msg));
+  const logger = createJobLogger(supabase, jobId);
   
-  const daysBack = (config.days_back as number) || 7;
-  const startDate = config.start_date 
-    ? new Date(config.start_date as string)
+  const daysBack = (jobConfig.days_back as number) || 7;
+  const startDate = jobConfig.start_date 
+    ? new Date(jobConfig.start_date as string)
     : new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
   
   log(`Starting sync from ${startDate.toISOString()}...`);
@@ -188,13 +238,14 @@ async function executeSync(
 
 async function executeEnrich(
   supabase: ReturnType<typeof createSupabaseAdmin>,
-  config: Record<string, unknown>
+  jobConfig: Record<string, unknown>,
+  jobId: number
 ): Promise<JobResult> {
   const startTime = Date.now();
-  const logger = createProgressLogger((msg) => log(msg));
+  const logger = createJobLogger(supabase, jobId);
   
-  const incremental = (config.incremental as boolean) ?? true;
-  const skipValidation = (config.skip_validation as boolean) ?? false;
+  const incremental = (jobConfig.incremental as boolean) ?? true;
+  const skipValidation = (jobConfig.skip_validation as boolean) ?? false;
   
   log(`Starting enrich (incremental: ${incremental}, skip_validation: ${skipValidation})...`);
   
@@ -213,10 +264,11 @@ async function executeEnrich(
 
 async function executeAggregate(
   supabase: ReturnType<typeof createSupabaseAdmin>,
-  _config: Record<string, unknown>
+  _jobConfig: Record<string, unknown>,
+  jobId: number
 ): Promise<JobResult> {
   const startTime = Date.now();
-  const logger = createProgressLogger((msg) => log(msg));
+  const logger = createJobLogger(supabase, jobId);
   
   log('Starting stats aggregation...');
   
@@ -234,15 +286,15 @@ async function executeJob(
 ): Promise<JobResult> {
   switch (job.job_type) {
     case 'daily_update':
-      return executeDailyUpdate(supabase, job.config);
+      return executeDailyUpdate(supabase, job.config, job.id);
     case 'full_seed':
-      return executeFullSeed(supabase, job.config);
+      return executeFullSeed(supabase, job.config, job.id);
     case 'sync':
-      return executeSync(supabase, job.config);
+      return executeSync(supabase, job.config, job.id);
     case 'enrich':
-      return executeEnrich(supabase, job.config);
+      return executeEnrich(supabase, job.config, job.id);
     case 'aggregate':
-      return executeAggregate(supabase, job.config);
+      return executeAggregate(supabase, job.config, job.id);
     default:
       throw new Error(`Unknown job type: ${job.job_type}`);
   }
@@ -320,6 +372,12 @@ async function processJob(supabase: ReturnType<typeof createSupabaseAdmin>, job:
       log(`GC triggered, mem: ${getMemoryMB()}`);
     }
   } catch (error) {
+    // Handle cancellation specially - job is already marked as cancelled in the DB
+    if (error instanceof JobCancelledError) {
+      log(`Job ${job.id} was cancelled by user`, 'warn');
+      return;
+    }
+    
     const errorMessage = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : '';
     log(`Job ${job.id} failed: ${errorMessage}`, 'error');
