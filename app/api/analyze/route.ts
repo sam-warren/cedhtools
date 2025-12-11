@@ -67,12 +67,6 @@ export async function POST(request: NextRequest) {
       timePeriod?: TimePeriod;
     };
 
-    // #region agent log
-    // Log user's submitted cards (looking for MDFC patterns)
-    const mdfcRelatedCards = cards.filter(c => c.toLowerCase().includes('stupor') || c.includes(' // '));
-    fetch('http://127.0.0.1:7242/ingest/53ab917f-f414-4585-85ed-763653998763',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/analyze/route.ts:POST_entry',message:'User submitted cards with MDFC patterns',data:{mdfcRelatedCards,totalCards:cards.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A-input'})}).catch(()=>{});
-    // #endregion
-
     if (!commanderName) {
       return NextResponse.json(
         { error: "Commander name is required" },
@@ -121,18 +115,6 @@ export async function POST(request: NextRequest) {
 
     const stats = rpcData as RpcCardStats[] | null;
     
-    // #region agent log
-    // Log RPC response - check if duplicates by front face exist (Hypothesis A, B)
-    const stuporCards = (stats || []).filter(s => s.card_name.toLowerCase().includes('stupor'));
-    const frontFaceMap: Record<string, string[]> = {};
-    for (const card of stuporCards) {
-      const ff = getFrontFaceName(card.card_name.toLowerCase());
-      if (!frontFaceMap[ff]) frontFaceMap[ff] = [];
-      frontFaceMap[ff].push(card.card_name);
-    }
-    fetch('http://127.0.0.1:7242/ingest/53ab917f-f414-4585-85ed-763653998763',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/analyze/route.ts:RPC_response',message:'RPC returned cards - checking for duplicates',data:{stuporCards:stuporCards.map(c=>({name:c.card_name,entries:c.entries})),frontFaceMap,totalStats:stats?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A-B-rpc'})}).catch(()=>{});
-    // #endregion
-
     // Calculate commander stats
     const firstRow = stats?.[0];
     const totalCommanderEntries = firstRow?.commander_entries || 0;

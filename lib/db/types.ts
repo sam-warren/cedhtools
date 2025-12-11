@@ -72,6 +72,7 @@ export interface Database {
           id: number;
           name: string;
           color_id: string;
+          is_legal: boolean | null;
           created_at: string;
           updated_at: string;
         };
@@ -79,6 +80,7 @@ export interface Database {
           id?: number;
           name: string;
           color_id?: string;
+          is_legal?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -86,6 +88,7 @@ export interface Database {
           id?: number;
           name?: string;
           color_id?: string;
+          is_legal?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -65,35 +65,48 @@ export async function validateDecklist(decklist: string): Promise<ValidationResu
   
   const normalizedDecklist = lines.join('\n');
 
-  const response = await fetch(`${SCROLLRACK_API_URL}/validate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      game: 'mtg',
-      format: 'commander',
-      list: normalizedDecklist,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  
+  try {
+    const response = await fetch(`${SCROLLRACK_API_URL}/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        game: 'mtg',
+        format: 'commander',
+        list: normalizedDecklist,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
 
-  const text = await response.text();
+    const text = await response.text();
 
-  if (!response.ok) {
-    let errorBody: unknown = text;
-    try {
-      errorBody = JSON.parse(text);
-    } catch {
-      // Keep as text
+    if (!response.ok) {
+      let errorBody: unknown = text;
+      try {
+        errorBody = JSON.parse(text);
+      } catch {
+        // Keep as text
+      }
+      throw new ScrollrackClientError(
+        `Scrollrack API error: ${response.status} ${response.statusText}`,
+        response.status,
+        errorBody
+      );
     }
-    throw new ScrollrackClientError(
-      `Scrollrack API error: ${response.status} ${response.statusText}`,
-      response.status,
-      errorBody
-    );
-  }
 
-  return JSON.parse(text) as ValidationResult;
+    return JSON.parse(text) as ValidationResult;
+  } catch (error) {
+    clearTimeout(timeout);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ScrollrackClientError('Request timeout after 30s', 408);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -106,8 +119,8 @@ export async function validateDecklist(decklist: string): Promise<ValidationResu
  */
 export async function validateDecklistWithRetry(
   decklist: string,
-  maxRetries: number = 3,
-  delayMs: number = 1000
+  maxRetries: number = 2,
+  delayMs: number = 100
 ): Promise<ValidationResult | null> {
   let lastError: Error | null = null;
 

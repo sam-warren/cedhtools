@@ -188,6 +188,7 @@ export type Database = {
           color_id: string
           created_at: string
           id: number
+          is_legal: boolean | null
           name: string
           updated_at: string
         }
@@ -195,6 +196,7 @@ export type Database = {
           color_id?: string
           created_at?: string
           id?: number
+          is_legal?: boolean | null
           name: string
           updated_at?: string
         }
@@ -202,6 +204,7 @@ export type Database = {
           color_id?: string
           created_at?: string
           id?: number
+          is_legal?: boolean | null
           name?: string
           updated_at?: string
         }

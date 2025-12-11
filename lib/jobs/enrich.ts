@@ -25,8 +25,8 @@ import {
 // ============================================
 
 const SCRYFALL_BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
-const VALIDATION_CONCURRENCY = 10;
-const VALIDATION_DELAY_MS = 20;
+const VALIDATION_CONCURRENCY = 200; // No rate limits on Scrollrack API - go wide
+const VALIDATION_DELAY_MS = 0; // No delay needed
 const UPDATE_BATCH_SIZE = 100; // Batch size for DB updates
 
 // ============================================
@@ -54,6 +54,8 @@ export interface ScryfallCard {
   cmc?: number;
   color_identity?: string[];
   card_faces?: Array<{ mana_cost?: string }>;
+  keywords?: string[];
+  oracle_text?: string;
 }
 
 interface DbCard {
@@ -97,6 +99,102 @@ function wubrgify(colorIdentity: string[]): string {
   return result || 'C';
 }
 
+/**
+ * Helper to check if a keywords array contains a keyword (case-insensitive)
+ */
+function hasKeyword(keywords: string[], keyword: string): boolean {
+  const lowerKeyword = keyword.toLowerCase();
+  return keywords.some(kw => kw.toLowerCase() === lowerKeyword);
+}
+
+/**
+ * Check if a commander pairing is legal under MTG rules.
+ * 
+ * Legal configurations:
+ * - Single commander (always legal if it's a valid commander card)
+ * - Two commanders with generic "Partner" keyword
+ * - Two commanders that "Partner with" each other specifically
+ * - A commander with "Choose a Background" keyword + a Background enchantment
+ * - Two commanders with "Friends forever" (Stranger Things/Doctor Who)
+ * - A Time Lord Doctor + a creature with "Doctor's companion"
+ * 
+ * Scryfall keyword casing (for reference):
+ * - "Partner" / "Partner with" 
+ * - "Choose a background" (lowercase 'b')
+ * - "Friends forever" (lowercase 'f')
+ * - "Doctor's companion" (lowercase 'c')
+ * 
+ * @param names Array of commander names (split by " / ")
+ * @param scryfallByName Map of lowercase card name to ScryfallCard
+ * @returns true if the pairing is legal, false otherwise
+ */
+function isLegalCommanderPairing(
+  names: string[],
+  scryfallByName: Map<string, ScryfallCard>
+): boolean {
+  // Single commander is always legal
+  if (names.length === 1) return true;
+  
+  // Only 1 or 2 commanders are allowed
+  if (names.length !== 2) return false;
+  
+  const card1 = scryfallByName.get(names[0].toLowerCase().trim());
+  const card2 = scryfallByName.get(names[1].toLowerCase().trim());
+  
+  // If we can't find both cards in Scryfall data, assume legal (might be new cards)
+  if (!card1 || !card2) return true;
+  
+  const kw1 = card1.keywords || [];
+  const kw2 = card2.keywords || [];
+  const type1 = card1.type_line || '';
+  const type2 = card2.type_line || '';
+  const oracle1 = card1.oracle_text || '';
+  const oracle2 = card2.oracle_text || '';
+  
+  // Check for "Partner with" - these can ONLY pair with their specific named partner
+  // Note: "Partner with" cards also have "Partner" in keywords, so check this FIRST
+  const hasPartnerWith1 = hasKeyword(kw1, 'Partner with');
+  const hasPartnerWith2 = hasKeyword(kw2, 'Partner with');
+  
+  if (hasPartnerWith1 || hasPartnerWith2) {
+    // Both must have "Partner with" and name each other in their oracle text
+    if (hasPartnerWith1 && hasPartnerWith2) {
+      const names1Other = oracle1.toLowerCase().includes(card2.name.toLowerCase());
+      const names2Other = oracle2.toLowerCase().includes(card1.name.toLowerCase());
+      if (names1Other && names2Other) return true;
+    }
+    // If only one has "Partner with", it's not a valid pairing
+    // (Partner with X cannot pair with generic Partner)
+    return false;
+  }
+  
+  // Both have generic Partner keyword (and neither has "Partner with")
+  if (hasKeyword(kw1, 'Partner') && hasKeyword(kw2, 'Partner')) return true;
+  
+  // Choose a Background + Background enchantment
+  // Scryfall uses "Choose a background" as a keyword (lowercase 'b')
+  const hasChooseBackground1 = hasKeyword(kw1, 'Choose a background');
+  const hasChooseBackground2 = hasKeyword(kw2, 'Choose a background');
+  const isBackground1 = type1.toLowerCase().includes('background');
+  const isBackground2 = type2.toLowerCase().includes('background');
+  
+  if ((hasChooseBackground1 && isBackground2) || (hasChooseBackground2 && isBackground1)) return true;
+  
+  // Friends forever (Stranger Things / Doctor Who crossover cards)
+  if (hasKeyword(kw1, 'Friends forever') && hasKeyword(kw2, 'Friends forever')) return true;
+  
+  // Doctor's companion - pairs with Time Lord Doctor
+  const isDoctor1 = type1.toLowerCase().includes('time lord doctor');
+  const isDoctor2 = type2.toLowerCase().includes('time lord doctor');
+  const hasCompanion1 = hasKeyword(kw1, "Doctor's companion");
+  const hasCompanion2 = hasKeyword(kw2, "Doctor's companion");
+  
+  if ((isDoctor1 && hasCompanion2) || (isDoctor2 && hasCompanion1)) return true;
+  
+  // No valid pairing mechanism found
+  return false;
+}
+
 // ============================================
 // Scryfall Data Loading (Streaming)
 // ============================================
@@ -110,6 +208,8 @@ interface ScryfallCardRaw {
   cmc?: number;
   color_identity?: string[];
   card_faces?: Array<{ mana_cost?: string }>;
+  keywords?: string[];
+  oracle_text?: string;
 }
 
 /**
@@ -183,6 +283,8 @@ export async function loadScryfallData(
         cmc: raw.cmc,
         color_identity: raw.color_identity,
         card_faces: raw.card_faces?.map(f => ({ mana_cost: f.mana_cost })),
+        keywords: raw.keywords,
+        oracle_text: raw.oracle_text,
       };
       
       cardByOracleId.set(card.oracle_id, card);
@@ -368,13 +470,13 @@ async function enrichCommanders(
 ): Promise<void> {
   // Get count for progress
   let countQuery = supabase.from('commanders').select('id', { count: 'exact', head: true });
-  if (incremental) countQuery = countQuery.eq('color_id', '');
+  if (incremental) countQuery = countQuery.or('color_id.eq.,is_legal.is.null');
   const { count: totalCount } = await countQuery;
   
   logger.startPhase('Enrich Commanders', totalCount ?? 0);
-  logger.log(`Mode: ${incremental ? 'incremental (unenriched only)' : 'full rebuild'}`);
+  logger.log(`Mode: ${incremental ? 'incremental (unenriched or missing legality)' : 'full rebuild'}`);
   
-  const pendingUpdates: Array<{ id: number; color_id: string }> = [];
+  const pendingUpdates: Array<{ id: number; color_id: string; is_legal: boolean }> = [];
   let offset = 0;
   let totalProcessed = 0;
   let batchNum = 0;
@@ -383,6 +485,11 @@ async function enrichCommanders(
   
   // Track color identity distribution for stats
   const colorIdCounts: Record<string, number> = {};
+  
+  // Track legal/illegal commander counts
+  let legalCount = 0;
+  let illegalCount = 0;
+  const illegalCommanders: string[] = [];
   
   while (true) {
     const batchStartTime = Date.now();
@@ -394,7 +501,10 @@ async function enrichCommanders(
       .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     
-    if (incremental) query = query.eq('color_id', '');
+    // In incremental mode, process commanders that either:
+    // - Haven't been enriched yet (color_id = '')
+    // - Haven't had legality checked yet (is_legal IS NULL)
+    if (incremental) query = query.or('color_id.eq.,is_legal.is.null');
     
     const { data, error } = await query;
     if (error) throw error;
@@ -426,9 +536,23 @@ async function enrichCommanders(
       const colorId = wubrgify([...new Set(combinedColorIdentity)]);
       colorIdCounts[colorId] = (colorIdCounts[colorId] || 0) + 1;
       
+      // Check if this commander pairing is legal under MTG rules
+      const isLegal = byName ? isLegalCommanderPairing(commanderNames, byName) : true;
+      
+      if (isLegal) {
+        legalCount++;
+      } else {
+        illegalCount++;
+        // Track first 10 illegal commanders for logging
+        if (illegalCommanders.length < 10) {
+          illegalCommanders.push(commander.name);
+        }
+      }
+      
       pendingUpdates.push({
         id: commander.id,
         color_id: colorId,
+        is_legal: isLegal,
       });
       
       if (pendingUpdates.length >= UPDATE_BATCH_SIZE) {
@@ -471,18 +595,25 @@ async function enrichCommanders(
     .join(', ');
   logger.log(`Total enriched: ${logger.formatNumber(totalFlushed)} commanders`);
   logger.log(`Top color identities: ${topColors}`);
+  
+  // Log legality stats
+  logger.log(`Commander legality: ${logger.formatNumber(legalCount)} legal, ${logger.formatNumber(illegalCount)} illegal`);
+  if (illegalCommanders.length > 0) {
+    logger.log(`Sample illegal commanders: ${illegalCommanders.slice(0, 5).join(', ')}${illegalCommanders.length > 5 ? '...' : ''}`);
+  }
+  
   logger.endPhase();
 }
 
 async function flushCommanderUpdates(
   supabase: SupabaseAdmin,
-  updates: Array<{ id: number; color_id: string }>
+  updates: Array<{ id: number; color_id: string; is_legal: boolean }>
 ): Promise<number> {
   let count = 0;
   for (const update of updates) {
     const { error } = await supabase
       .from('commanders')
-      .update({ color_id: update.color_id })
+      .update({ color_id: update.color_id, is_legal: update.is_legal })
       .eq('id', update.id);
     if (!error) count++;
   }
@@ -606,7 +737,6 @@ async function validateDecklists(
   logger.startPhase('Validate Decklists', totalCount ?? 0);
   logger.log(`Mode: ${incremental ? 'incremental (unvalidated only)' : 'full rebuild'}`);
   logger.log(`Concurrency: ${VALIDATION_CONCURRENCY} parallel requests`);
-  logger.log(`Rate limit delay: ${VALIDATION_DELAY_MS}ms between chunks`);
   
   const pendingUpdates: Array<{ id: number; decklist_valid: boolean }> = [];
   let offset = 0;
@@ -713,7 +843,7 @@ async function validateDecklists(
         lastProgressTime = now;
       }
       
-      await new Promise(resolve => setTimeout(resolve, VALIDATION_DELAY_MS));
+      // No delay needed - Scrollrack API has no rate limits
     }
     
     logger.logBatchComplete(batchNum, totalProcessed, totalCount ?? 0, Date.now() - batchStartTime);
@@ -848,7 +978,7 @@ export async function enrichDataFull(
     scryfall_data: null,
   }).neq('id', 0);
   
-  await supabase.from('commanders').update({ color_id: '' }).neq('id', 0);
+  await supabase.from('commanders').update({ color_id: '', is_legal: null }).neq('id', 0);
   await supabase.from('tournaments').update({ bracket_url: null }).neq('id', 0);
   await supabase.from('entries').update({ decklist_valid: null }).neq('id', 0);
   
