@@ -59,3 +59,4 @@ COMMENT ON FUNCTION get_commander_detail_stats IS 'Efficiently aggregates weekly
 
 
 
+

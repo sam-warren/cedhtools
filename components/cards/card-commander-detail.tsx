@@ -92,12 +92,13 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
     );
   }
 
-  const { card, commander, stats, commander_win_rate, trend, play_rate_trend } = data;
+  const { card, commander, stats, commander_win_rate, commander_conversion_score, trend, play_rate_trend } = data;
 
   const playRatePercent = (stats.play_rate * 100).toFixed(1);
   const winRatePercent = (stats.win_rate * 100).toFixed(1);
   const commanderWinRatePercent = (commander_win_rate * 100).toFixed(1);
   const conversionScore = Math.round(stats.conversion_score);
+  const commanderConversionScoreRounded = Math.round(commander_conversion_score ?? 100);
   
   // Calculate win rate delta (compare after rounding to avoid "22.4% is below 22.4%")
   const winRateDelta = stats.win_rate - commander_win_rate;
@@ -107,6 +108,9 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
   const winRateComparison = roundedWinRate > roundedCommanderWinRate ? "above" 
     : roundedWinRate < roundedCommanderWinRate ? "below" 
     : "at";
+  
+  // Calculate conversion score delta
+  const conversionScoreDelta = conversionScore - commanderConversionScoreRounded;
 
   // Scryfall image URL
   const cardImageUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&format=image&version=normal`;
@@ -248,10 +252,12 @@ export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDeta
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Conversion Score</p>
-              <p className={`text-2xl font-medium tabular-nums ${conversionScore > 105 ? "stat-positive" : conversionScore < 95 ? "stat-negative" : ""}`}>
+              <p className={`text-2xl font-medium tabular-nums ${conversionScore > commanderConversionScoreRounded + 5 ? "stat-positive" : conversionScore < commanderConversionScoreRounded - 5 ? "stat-negative" : ""}`}>
                 {conversionScore}
               </p>
-              <p className="text-xs text-muted-foreground">{stats.top_cuts} top cuts</p>
+              <p className={`text-xs tabular-nums ${conversionScoreDelta > 5 ? "text-green-500" : conversionScoreDelta < -5 ? "text-red-500" : "text-muted-foreground"}`}>
+                {conversionScoreDelta >= 0 ? "+" : ""}{conversionScoreDelta} vs avg
+              </p>
             </div>
           </div>
 

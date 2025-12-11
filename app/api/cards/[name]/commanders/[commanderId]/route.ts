@@ -21,6 +21,8 @@ interface RpcWeeklyStat {
   commander_total_wins: number;
   commander_total_draws: number;
   commander_total_losses: number;
+  commander_total_top_cuts: number;
+  commander_total_expected_top_cuts: number;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -77,6 +79,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     
     // Get commander totals from the first row
     let commanderWinRate = 0;
+    let commanderConversionScore = 100;
     let playRateDenominator = 0;
     
     if (weeklyStats.length > 0) {
@@ -86,6 +89,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const commanderTotalLosses = firstRow.commander_total_losses;
       const commanderTotalGames = commanderTotalWins + commanderTotalDraws + commanderTotalLosses;
       commanderWinRate = commanderTotalGames > 0 ? commanderTotalWins / commanderTotalGames : 0;
+      
+      // Calculate commander conversion score
+      const commanderTotalTopCuts = firstRow.commander_total_top_cuts;
+      const commanderTotalExpectedTopCuts = firstRow.commander_total_expected_top_cuts;
+      commanderConversionScore = commanderTotalExpectedTopCuts > 0 
+        ? (commanderTotalTopCuts / commanderTotalExpectedTopCuts) * 100 
+        : 100;
       
       playRateDenominator = firstRow.commander_total_entries_with_decklists > 0
         ? firstRow.commander_total_entries_with_decklists
@@ -172,6 +182,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         conversion_score: conversionScore,
       },
       commander_win_rate: commanderWinRate,
+      commander_conversion_score: commanderConversionScore,
       trend: trendData,
       play_rate_trend: playRateTrend,
     });

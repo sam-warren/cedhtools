@@ -11,10 +11,3 @@ ALTER TABLE card_commander_weekly_stats
 ADD COLUMN IF NOT EXISTS expected_top_cuts REAL DEFAULT 0;
 
 COMMENT ON COLUMN card_commander_weekly_stats.expected_top_cuts IS 'Sum of (topCut/tournamentSize) for each entry - used for conversion score calculation';
-
-
-
-
-
-
-

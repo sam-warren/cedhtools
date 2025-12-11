@@ -150,6 +150,7 @@ export interface CardCommanderStats {
     conversion_score: number; // (top_cuts / expected_top_cuts) * 100
   };
   commander_win_rate: number; // Commander's overall win rate for comparison
+  commander_conversion_score: number; // Commander's overall conversion score for comparison
   trend: TrendDataPoint[];
   play_rate_trend: { week_start: string; play_rate: number; entries: number; commander_entries: number }[];
 }
