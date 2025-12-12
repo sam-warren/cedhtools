@@ -21,15 +21,16 @@ import {
   useCommanderCards,
   useCommanderSeats,
 } from "@/hooks/use-queries";
-import { TIME_PERIOD_OPTIONS, getMonthsToShow, isValidDataMonth, formatMonthLabel, type TimePeriod } from "@/lib/utils/time-period";
-import type { CommanderDetail as CommanderDetailType } from "@/types/api";
+import { useTimePeriod } from "@/lib/contexts/time-period-context";
+import { TIME_PERIOD_OPTIONS, getMonthsToShow, isValidDataMonth, formatMonthLabel } from "@/lib/utils/time-period";
+import type { CommanderDetail as CommanderDetailType, TimePeriod } from "@/types/api";
 import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 
 interface CommanderDetailProps {
@@ -60,7 +61,7 @@ function CommanderDetailSkeleton() {
 }
 
 export function CommanderDetail({ commanderName, initialData }: CommanderDetailProps) {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("6_months");
+  const { timePeriod, setTimePeriod } = useTimePeriod();
 
   const {
     data: commander,

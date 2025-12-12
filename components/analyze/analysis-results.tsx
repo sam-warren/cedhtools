@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
+import { useTimePeriod } from "@/lib/contexts/time-period-context";
 import { TIME_PERIOD_OPTIONS, type TimePeriod } from "@/lib/utils/time-period";
 import type { CardWithStats } from "@/types/api";
 import {
@@ -61,8 +62,6 @@ export interface AnalysisResponse {
 
 interface AnalysisResultsProps {
   data: AnalysisResponse;
-  timePeriod: TimePeriod;
-  onTimePeriodChange: (period: TimePeriod) => void;
   isFetching?: boolean;
 }
 
@@ -76,7 +75,8 @@ function formatDelta(value: number, decimals: number = 2): string {
   return (value > 0 ? "+" : "") + formatted;
 }
 
-export function AnalysisResults({ data, timePeriod, onTimePeriodChange, isFetching = false }: AnalysisResultsProps) {
+export function AnalysisResults({ data, isFetching = false }: AnalysisResultsProps) {
+  const { timePeriod, setTimePeriod } = useTimePeriod();
   const [activeTab, setActiveTab] = useState<"deck" | "missing">("deck");
   
   const { commander, deck_stats, deck_cards, missing_staples, potential_cuts, strong_cards, unknown_cards } = data;
@@ -218,7 +218,7 @@ export function AnalysisResults({ data, timePeriod, onTimePeriodChange, isFetchi
             <span className="text-sm text-muted-foreground">Showing data from</span>
             <Select
               value={timePeriod}
-              onValueChange={(value) => onTimePeriodChange(value as TimePeriod)}
+              onValueChange={(value) => setTimePeriod(value as TimePeriod)}
             >
               <SelectTrigger className="w-40 h-9">
                 <SelectValue />

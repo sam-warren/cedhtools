@@ -5,6 +5,7 @@ import type {
     CardDetail,
     CommanderCardsResponse,
     CommanderDetail,
+    CommanderTopPlayersResponse,
     SeatPositionResponse,
     TimePeriod
 } from "@/types/api";
@@ -21,6 +22,7 @@ export const queryKeys = {
     detail: (name: string, timePeriod: TimePeriod) => ["commanders", "detail", name, timePeriod] as const,
     cards: (name: string, timePeriod: TimePeriod) => ["commanders", "cards", name, timePeriod] as const,
     seats: (name: string, timePeriod: TimePeriod) => ["commanders", "seats", name, timePeriod] as const,
+    topPlayers: (name: string, timePeriod: TimePeriod) => ["commanders", "top-players", name, timePeriod] as const,
     search: (query: string) => ["commanders", "search", query] as const,
   },
   
@@ -77,6 +79,17 @@ async function fetchCommanderSeats(
   return res.json();
 }
 
+async function fetchCommanderTopPlayers(
+  commanderName: string,
+  timePeriod: TimePeriod
+): Promise<CommanderTopPlayersResponse> {
+  const res = await fetch(
+    `/api/commanders/${encodeURIComponent(commanderName)}/top-players?timePeriod=${timePeriod}`
+  );
+  if (!res.ok) throw new Error("Failed to fetch top players");
+  return res.json();
+}
+
 async function fetchCardDetail(cardName: string): Promise<CardDetail> {
   const res = await fetch(`/api/cards/${encodeURIComponent(cardName)}`);
   if (!res.ok) throw new Error("Card not found");
@@ -130,6 +143,18 @@ export function useCommanderSeats(commanderName: string, timePeriod: TimePeriod)
   return useQuery({
     queryKey: queryKeys.commanders.seats(commanderName, timePeriod),
     queryFn: () => fetchCommanderSeats(commanderName, timePeriod),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Fetch top players by win rate for a commander
+ */
+export function useCommanderTopPlayers(commanderName: string, timePeriod: TimePeriod) {
+  return useQuery({
+    queryKey: queryKeys.commanders.topPlayers(commanderName, timePeriod),
+    queryFn: () => fetchCommanderTopPlayers(commanderName, timePeriod),
     staleTime: 1000 * 60 * 5, // 5 minutes
     placeholderData: keepPreviousData,
   });

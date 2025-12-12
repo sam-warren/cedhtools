@@ -11,8 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debounce";
-import { TIME_PERIOD_OPTIONS, type TimePeriod } from "@/lib/utils/time-period";
-import type { CommanderListItem, SortBy } from "@/types/api";
+import { useTimePeriod } from "@/lib/contexts/time-period-context";
+import { TIME_PERIOD_OPTIONS } from "@/lib/utils/time-period";
+import type { CommanderListItem, SortBy, TimePeriod } from "@/types/api";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { RefreshCw, Search, X, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -75,7 +76,7 @@ export function CommanderBrowser({ initialData }: CommanderBrowserProps) {
 
   // Filters
   const [sortBy, setSortBy] = useState<SortBy>(DEFAULT_SORT_BY);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>(DEFAULT_TIME_PERIOD);
+  const { timePeriod, setTimePeriod } = useTimePeriod();
   const [minTournamentSize, setMinTournamentSize] = useState(DEFAULT_MIN_SIZE);
   const [searchQuery, setSearchQuery] = useState("");
   

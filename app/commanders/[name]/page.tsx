@@ -4,6 +4,7 @@ import { createClient } from "@/lib/db/server";
 import { getTimePeriodDateOnly, type TimePeriod } from "@/lib/utils/time-period";
 import { CommanderDetail } from "@/components/commanders/commander-detail";
 import { RecentEntries } from "@/components/commanders/recent-entries";
+import { TopPlayersSection } from "@/components/commanders/top-players-section";
 import { AnalyzeCTA } from "@/components/commanders/analyze-cta";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CommanderDetail as CommanderDetailType, EntryInfo } from "@/types/api";
@@ -243,6 +244,9 @@ async function CommanderPageContent({ commanderName }: { commanderName: string }
       
       {/* Server component for recent entries */}
       <RecentEntries entries={entries} />
+      
+      {/* Client component for top players - uses context for time period */}
+      <TopPlayersSection commanderName={commanderName} />
       
       {/* Server component for CTA */}
       <AnalyzeCTA 

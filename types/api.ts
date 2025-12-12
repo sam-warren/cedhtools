@@ -174,3 +174,22 @@ export interface CardDetail extends CardInfo {
   commanders: CommanderWithCardStats[];
 }
 
+// Top players types
+export interface TopPlayer {
+  player_id: number;
+  player_name: string;
+  topdeck_id: string | null;
+  entries: number;
+  games_played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  win_rate: number;
+}
+
+export interface CommanderTopPlayersResponse {
+  commander_id: number;
+  commander_name: string;
+  top_players: TopPlayer[];
+}
+

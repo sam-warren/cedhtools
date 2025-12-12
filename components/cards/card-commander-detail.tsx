@@ -17,14 +17,14 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCardCommanderStats } from "@/hooks/use-queries";
-import { TIME_PERIOD_OPTIONS, getMonthsToShow, isValidDataMonth, formatMonthLabel, type TimePeriod } from "@/lib/utils/time-period";
+import { useTimePeriod } from "@/lib/contexts/time-period-context";
+import { TIME_PERIOD_OPTIONS, getMonthsToShow, isValidDataMonth, formatMonthLabel, TimePeriod } from "@/lib/utils/time-period";
 import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 
 interface CardCommanderDetailProps {
@@ -59,7 +59,7 @@ function CardCommanderDetailSkeleton() {
 }
 
 export function CardCommanderDetail({ cardName, commanderId }: CardCommanderDetailProps) {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("6_months");
+  const { timePeriod, setTimePeriod } = useTimePeriod();
   
   const {
     data,

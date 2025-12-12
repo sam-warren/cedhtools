@@ -26,7 +26,9 @@ import {
 } from "lucide-react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/use-debounce";
-import { TIME_PERIOD_OPTIONS, type TimePeriod } from "@/lib/utils/time-period";
+import { useTimePeriod } from "@/lib/contexts/time-period-context";
+import { TIME_PERIOD_OPTIONS } from "@/lib/utils/time-period";
+import type { TimePeriod } from "@/types/api";
 
 interface Tournament {
   id: number;
@@ -112,7 +114,7 @@ export function TournamentBrowser() {
   useEffect(() => setMounted(true), []);
 
   // Filters
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>(DEFAULT_TIME_PERIOD);
+  const { timePeriod, setTimePeriod } = useTimePeriod();
   const [searchQuery, setSearchQuery] = useState("");
   const [minSize, setMinSize] = useState(DEFAULT_MIN_SIZE);
   const [topCutFilter, setTopCutFilter] = useState<string>(DEFAULT_TOP_CUT);

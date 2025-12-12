@@ -7,7 +7,7 @@ import { AnalysisResults, AnalysisResultsSkeleton, type AnalysisResponse } from 
 import { useDeckAnalysis } from "@/hooks/use-queries";
 import { getDeckById, getAnalysis, saveAnalysis } from "@/lib/storage";
 import { parseDecklist, prepareForValidation } from "@/lib/parsers";
-import type { TimePeriod } from "@/lib/utils/time-period";
+import { useTimePeriod } from "@/lib/contexts/time-period-context";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export default function AnalysisPage() {
   
   const [mounted, setMounted] = useState(false);
   const [deckNotFound, setDeckNotFound] = useState(false);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("6_months");
+  const { timePeriod, setTimePeriod } = useTimePeriod();
   
   // Store validated deck data for query-based fetching
   const [validatedDeck, setValidatedDeck] = useState<{
@@ -228,8 +228,6 @@ export default function AnalysisPage() {
       <div className="container mx-auto px-4 py-12 md:py-16">
         <AnalysisResults 
           data={analysisData} 
-          timePeriod={timePeriod}
-          onTimePeriodChange={setTimePeriod}
           isFetching={analysisFetching}
         />
       </div>
